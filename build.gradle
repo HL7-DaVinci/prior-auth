@@ -35,6 +35,9 @@ dependencies {
   testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-dstu3:3.7.0'
   testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-dstu2:3.7.0'
   testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-r4:3.7.0'
+  testImplementation 'com.helger:ph-schematron:5.0.6'
+  testImplementation 'com.phloc:phloc-schematron:2.7.1'
+  testImplementation 'com.phloc:phloc-commons:4.4.11'
 }
 
 jacocoTestReport {

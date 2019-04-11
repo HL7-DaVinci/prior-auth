@@ -5,6 +5,7 @@
 build
 
 # Ignore Eclipse files
+.project
 .classpath
 .settings/
 bin
