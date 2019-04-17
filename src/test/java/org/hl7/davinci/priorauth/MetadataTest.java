@@ -1,25 +1,20 @@
 package org.hl7.davinci.priorauth;
 
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
-import ca.uhn.fhir.validation.FhirValidator;
-import ca.uhn.fhir.validation.SingleValidationMessage;
-import ca.uhn.fhir.validation.ValidationResult;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-
-import static org.junit.Assert.*;
-
 import java.io.IOException;
 
 import org.apache.meecrowave.Meecrowave;
 import org.apache.meecrowave.junit.MonoMeecrowave;
 import org.apache.meecrowave.testing.ConfigurationInject;
 import org.hl7.fhir.r4.model.CapabilityStatement;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import ca.uhn.fhir.validation.ValidationResult;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 @RunWith(MonoMeecrowave.Runner.class)
 public class MetadataTest {
@@ -42,7 +37,11 @@ public class MetadataTest {
         .url(base + "/metadata")
         .build();
     Response response = client.newCall(request).execute();
-    assertEquals(200, response.code());
+    Assert.assertEquals(200, response.code());
+
+    // Test the response has CORS headers
+    String cors = response.header("Access-Control-Allow-Origin");
+    Assert.assertEquals("*", cors);
 
     // Test the response is a JSON Capability Statement
     String body = response.body().string();
@@ -50,20 +49,8 @@ public class MetadataTest {
         (CapabilityStatement) App.FHIR_CTX.newJsonParser().parseResource(body);
     Assert.assertNotNull(capabilityStatement);
 
-    // Test the response is VALID
-    FhirValidator validator = App.FHIR_CTX.newValidator();
-    validator.setValidateAgainstStandardSchema(true);
-    validator.setValidateAgainstStandardSchematron(true);
-    ValidationResult result = validator.validateWithResult(capabilityStatement);
-
-    // If the validation failed, print out the errors before we fail the test.
-    if (!result.isSuccessful()) {
-      System.out.println(body);
-      for (SingleValidationMessage message : result.getMessages()) {
-        System.out.println(message.getSeverity() + ": " + message.getMessage());
-      }
-    }
-
+    // Validate the response.
+    ValidationResult result = ValidationHelper.validate(capabilityStatement);
     Assert.assertTrue(result.isSuccessful());
   }
 }
