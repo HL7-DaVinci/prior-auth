@@ -15,7 +15,10 @@ gradle run
 
 Access the microservice:
 ```
-curl
+curl http://localhost:9000/fhir/metadata
+curl http://localhost:9000/fhir/Bundle
+curl http://localhost:9000/fhir/Claim
+curl http://localhost:9000/fhir/ClaimResponse
 ```
 
 Submit a prior authorization request:

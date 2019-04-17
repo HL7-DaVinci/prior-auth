@@ -1,6 +1,7 @@
 package org.hl7.davinci.priorauth;
 
 import org.apache.meecrowave.Meecrowave;
+
 import ca.uhn.fhir.context.FhirContext;
 
 /**
@@ -15,6 +16,11 @@ public class App {
    * per-application, not per-record.
    */
   public static final FhirContext FHIR_CTX = FhirContext.forR4();
+
+  /**
+   * Local database for FHIR resources.
+   */
+  public static final Database DB = new Database();
 
   /**
    * Launch the Prior Authorization microservice.

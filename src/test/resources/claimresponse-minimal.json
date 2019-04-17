@@ -1,0 +1,23 @@
+{
+  "resourceType": "ClaimResponse",
+  "id": "minimal",
+  "status": "draft",
+  "type": {
+    "coding": [
+      {
+        "system": "http://terminology.hl7.org/CodeSystem/claim-type",
+        "code": "professional",
+        "display": "Professional"
+      }
+    ]
+  },
+  "use": "preauthorization",
+  "patient": {
+    "reference": "Patient/1"
+  },
+  "created": "2019-04-01",
+  "insurer": {
+    "reference": "Organization/1"
+  },
+  "outcome": "queued"
+}

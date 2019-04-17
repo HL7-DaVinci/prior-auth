@@ -77,7 +77,7 @@ public class Metadata {
     claim.setType("Claim");
     // TODO claim.setSupportedProfile(theSupportedProfile);
     claim.addInteraction().setCode(TypeRestfulInteraction.READ);
-    // TODO support claim search
+    claim.addInteraction().setCode(TypeRestfulInteraction.SEARCHTYPE);    
     claim.addOperation()
       .setName("$submit")
       .setDefinition("http://hl7.org/fhir/OperationDefinition/Claim-submit");
@@ -89,9 +89,17 @@ public class Metadata {
     claimResponse.setType("ClaimResponse");
     // TODO claimResponse.setSupportedProfile(theSupportedProfile);
     claimResponse.addInteraction().setCode(TypeRestfulInteraction.READ);
-    // TODO support claimResponse search
+    claimResponse.addInteraction().setCode(TypeRestfulInteraction.SEARCHTYPE);    
     rest.addResource(claimResponse);
-    
+
+    // Bundle Resource
+    CapabilityStatementRestResourceComponent bundle =
+        new CapabilityStatementRestResourceComponent();
+    bundle.setType("Bundle");
+    bundle.addInteraction().setCode(TypeRestfulInteraction.READ);
+    bundle.addInteraction().setCode(TypeRestfulInteraction.SEARCHTYPE);    
+    rest.addResource(bundle);
+  
     metadata.addRest(rest);
 
     String json =

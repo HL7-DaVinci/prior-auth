@@ -9,3 +9,7 @@ build
 .classpath
 .settings/
 bin
+
+# Ignore Database files
+database.mv.db
+database.trace.db
