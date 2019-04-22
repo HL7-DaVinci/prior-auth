@@ -79,7 +79,7 @@ public class Database {
         Resource resource = (Resource) App.FHIR_CTX.newJsonParser().parseResource(json);
         resource.setId(id);
         BundleEntryComponent entry = new BundleEntryComponent();
-        entry.setFullUrl(baseUrl + "fhir/" + resourceType + "/" + id);
+        entry.setFullUrl(baseUrl + resourceType + "/" + id);
         entry.setResource(resource);
         results.addEntry(entry);
         total += 1;
