@@ -23,7 +23,10 @@ curl http://localhost:9000/fhir/ClaimResponse
 
 Submit a prior authorization request:
 ```
-curl
+curl -X POST 
+     -H "Content-Type: application/json" 
+     -d @src/test/resources/claim-complete.json 
+     http://localhost:9000/fhir/Claim/\$submit
 ```
 
 ## Questions and Contributions
