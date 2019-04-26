@@ -10,6 +10,7 @@ import java.util.List;
 import org.apache.meecrowave.Meecrowave;
 import org.apache.meecrowave.junit.MonoMeecrowave;
 import org.apache.meecrowave.testing.ConfigurationInject;
+import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.junit.AfterClass;
@@ -27,7 +28,7 @@ import okhttp3.Response;
 
 @RunWith(MonoMeecrowave.Runner.class)
 public class ClaimSubmitTest {
-  
+
   public static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
 
   @ConfigurationInject
@@ -41,7 +42,7 @@ public class ClaimSubmitTest {
   private static String emptyBundle;
   private static String claimOnly;
   private static String bundleWithOnlyClaim;
-   
+
   @BeforeClass
   public static void setup() throws IOException {
     client = new OkHttpClient();
@@ -49,7 +50,7 @@ public class ClaimSubmitTest {
 
     // Read in the test fixtures...
     Path modulesFolder = Paths.get("src/test/resources");
-    Path fixture = modulesFolder.resolve("claim-complete.json");
+    Path fixture = modulesFolder.resolve("bundle-prior-auth.json");
     completeClaim = new String(Files.readAllBytes(fixture));
 
     fixture = modulesFolder.resolve("bundle-minimal.json");
@@ -66,16 +67,25 @@ public class ClaimSubmitTest {
   public static void cleanup() {
     for (String id : resourceIds) {
       System.out.println("Deleting Resources with ID = " + id);
-      App.DB.delete(Database.BUNDLE, id);      
-      App.DB.delete(Database.CLAIM, id);      
-      App.DB.delete(Database.CLAIM_RESPONSE, id);      
+      App.DB.delete(Database.BUNDLE, id);
+      App.DB.delete(Database.CLAIM, id);
+      App.DB.delete(Database.CLAIM_RESPONSE, id);
     }
+  }
+
+  @Test
+  public void completeClaimValidation() {
+    Bundle bundle =
+        (Bundle) App.FHIR_CTX.newJsonParser().parseResource(completeClaim);
+    Assert.assertNotNull(bundle);
+    ValidationResult result = ValidationHelper.validate(bundle);
+    Assert.assertTrue(result.isSuccessful());
   }
 
   @Test
   public void submitCompleteClaim() throws IOException {
     String base = "http://localhost:" + config.getHttpPort();
-    
+
     // Test that we can POST /fhir/Claim/$submit
     RequestBody requestBody = RequestBody.create(JSON, completeClaim);
     Request request = new Request.Builder()
@@ -137,7 +147,7 @@ public class ClaimSubmitTest {
 
   private void checkErrors(String body) throws IOException {
     String base = "http://localhost:" + config.getHttpPort();
-    
+
     // Test that we can POST /fhir/Claim/$submit
     RequestBody requestBody = RequestBody.create(JSON, body);
     Request request = new Request.Builder()

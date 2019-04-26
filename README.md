@@ -8,9 +8,9 @@ The Da Vinci Prior Authorization Reference Implementation (RI) is a software pro
 
 Start the Prior Authorization microservice:
 ```
-gradle install
-gradle clean check
-gradle run
+./gradlew install
+./gradlew clean check
+./gradlew run
 ```
 
 Access the microservice:
@@ -23,9 +23,9 @@ curl http://localhost:9000/fhir/ClaimResponse
 
 Submit a prior authorization request:
 ```
-curl -X POST 
-     -H "Content-Type: application/json" 
-     -d @src/test/resources/claim-complete.json 
+curl -X POST
+     -H "Content-Type: application/json"
+     -d @src/test/resources/bundle-prior-auth.json
      http://localhost:9000/fhir/Claim/\$submit
 ```
 

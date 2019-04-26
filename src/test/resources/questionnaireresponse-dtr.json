@@ -1,0 +1,342 @@
+{
+  "resourceType": "QuestionnaireResponse",
+  "id": "response1",
+  "authored": "2019-04-23",
+  "status": "completed",
+  "item": [
+    {
+      "linkId": "1",
+      "text": "Patient Information",
+      "item": [
+        {
+          "linkId": "1.1",
+          "text": "Last Name",
+          "answer": [
+            {
+              "valueString": "Smith"
+            }
+          ]
+        },
+        {
+          "linkId": "1.2",
+          "text": "First Name",
+          "answer": [
+            {
+              "valueString": "Paul"
+            }
+          ]
+        },
+        {
+          "linkId": "1.3",
+          "text": "Middle Initial",
+          "answer": [
+            {
+              "valueString": "A, N"
+            }
+          ]
+        },
+        {
+          "linkId": "1.4",
+          "text": "Date Of Birth",
+          "answer": [
+            {
+              "valueDate": "1996-12-23"
+            }
+          ]
+        },
+        {
+          "linkId": "1.5",
+          "text": "Gender",
+          "answer": [
+            {
+              "valueCoding": {
+                "code": "male",
+                "display": "Male"
+              }
+            }
+          ]
+        },
+        {
+          "linkId": "1.6",
+          "text": "Medicare ID",
+          "answer": [
+            {
+              "valueString": "10A3D58WH22"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "linkId": "2",
+      "text": "Provider who is performing face-to-face evaluation",
+      "item": [
+        {
+          "linkId": "2.1",
+          "text": "Last Name",
+          "answer": [
+            {
+              "valueString": "Doe"
+            }
+          ]
+        },
+        {
+          "linkId": "2.2",
+          "text": "First Name",
+          "answer": [
+            {
+              "valueString": "Jane"
+            }
+          ]
+        },
+        {
+          "linkId": "2.3",
+          "text": "Middle Initial",
+          "answer": [
+            {
+              "valueString": "N/A"
+            }
+          ]
+        },
+        {
+          "linkId": "2.4",
+          "text": "NPI",
+          "answer": [
+            {
+              "valueString": "1122334455"
+            }
+          ]
+        },
+        {
+          "linkId": "2.5",
+          "text": "Date of Face-To-Face Evaluation",
+          "answer": [
+            {
+              "valueDate": "2019-04-23"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "linkId": "3",
+      "text": "Coverage Requirements",
+      "item": [
+        {
+          "linkId": "3.1",
+          "text": "Relevant Patient Diagnoses (conditions that might be expected to improve with oxygen therapy)",
+          "answer": [
+            {
+              "valueCoding": {
+                "code": "COPD",
+                "display": "COPD"
+              }
+            },
+            {
+              "valueCoding": {
+                "code": "Hypoxemia",
+                "display": "Hypoxemia"
+              }
+            }
+          ]
+        },
+        {
+          "linkId": "3.2",
+          "text": "Arterial oxygen saturation (Patient on room air while at rest and awake when tested)",
+          "answer": [
+            {
+              "valueQuantity": {
+                "unit": "%",
+                "value": 85
+              }
+            }
+          ]
+        },
+        {
+          "linkId": "3.3",
+          "text": "Arterial Partial Pressure of Oxygen (PO2) (Patient on room air while at rest and awake when tested)",
+          "answer": [
+            {}
+          ]
+        },
+        {
+          "linkId": "3.4",
+          "text": "Arterial oxygen saturation (Patient tested during exercise)",
+          "answer": [
+            {}
+          ]
+        },
+        {
+          "linkId": "3.5",
+          "text": "Arterial Partial Pressure of Oxygen (PO2) (Patient tested during exercise)",
+          "answer": [
+            {}
+          ]
+        },
+        {
+          "linkId": "3.6",
+          "text": "Is there a documented improvement of hypoxemia during exercise with oxygen?",
+          "answer": [
+            {}
+          ]
+        },
+        {
+          "linkId": "3.11",
+          "text": "Recent hematocrit result",
+          "answer": [
+            {
+              "valueQuantity": {
+                "unit": "%",
+                "value": 61
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "linkId": "4",
+      "text": "Prescribed Use",
+      "item": [
+        {
+          "linkId": "4.1",
+          "text": "Start date",
+          "answer": [
+            {
+              "valueDate": "2019-04-23"
+            }
+          ]
+        },
+        {
+          "linkId": "4.2",
+          "text": "Length of need: (months) (99 = lifetime)",
+          "answer": [
+            {
+              "integer": "99"
+            }
+          ]
+        },
+        {
+          "linkId": "4.4",
+          "text": "Peak Flow Rate",
+          "item": [
+            {
+              "linkId": "4.4.1",
+              "text": "LPM",
+              "answer": [
+                {
+                  "integer": "3"
+                }
+              ]
+            },
+            {
+              "linkId": "4.4.2",
+              "text": "oxygen %",
+              "answer": [
+                {
+                  "integer": "5"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "linkId": "4.5",
+          "text": "Average Flow Rate",
+          "item": [
+            {
+              "linkId": "4.5.1",
+              "text": "LPM",
+              "answer": [
+                {
+                  "integer": "2"
+                }
+              ]
+            },
+            {
+              "linkId": "4.5.2",
+              "text": "oxygen %",
+              "answer": [
+                {
+                  "integer": "5"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "linkId": "4.6",
+          "text": "Frequency of use (choose all that apply)",
+          "answer": [
+            {
+              "valueCoding": {
+                "code": "During sleep",
+                "display": "During sleep"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "linkId": "5",
+      "text": "Oxygen Supply Order Details",
+      "item": [
+        {
+          "linkId": "5.1",
+          "text": "Current Order Description",
+          "answer": [
+            {
+              "valueString": "HCPCS E0424 - Stationary Compressed Gaseous Oxygen System, Rental"
+            }
+          ]
+        },
+        {
+          "linkId": "5.1b",
+          "text": "Current Order Is For A Portable Device",
+          "answer": [
+            {
+              "valueBoolean": false
+            }
+          ]
+        },
+        {
+          "linkId": "5.2",
+          "text": "Type",
+          "answer": [
+            {
+              "valueCoding": {
+                "code": "Compressed Gas",
+                "display": "Compressed Gas"
+              }
+            }
+          ]
+        },
+        {
+          "linkId": "5.3",
+          "text": "Means of oxygen delivery and accessories",
+          "answer": [
+            {
+              "valueCoding": {
+                "code": "High flow oxygen therapy",
+                "display": "High flow oxygen therapy"
+              }
+            }
+          ]
+        },
+        {
+          "linkId": "5.4",
+          "text": "Type of order",
+          "answer": [
+            {
+              "valueCoding": {
+                "code": "Initial or original order for certification",
+                "display": "Initial or original order for certification"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
