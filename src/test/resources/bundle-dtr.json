@@ -1,0 +1,266 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "pat013",
+        "meta": {
+          "versionId": "1",
+          "lastUpdated": "2019-04-08T09:24:47.455-04:00"
+        },
+        "text": {
+          "status": "generated",
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><div class=\"hapiHeaderText\">Paul Alan Nestor <b>SMITH </b></div><table class=\"hapiPropertyTable\"><tbody><tr><td>Date of birth</td><td><span>04 July 1979</span></td></tr></tbody></table></div>"
+        },
+        "name": [
+          {
+            "use": "official",
+            "family": "Smith",
+            "given": [
+              "Paul",
+              "Alan",
+              "Nestor"
+            ]
+          }
+        ],
+        "gender": "male",
+        "birthDate": "1979-07-04",
+        "address": [
+          {
+            "use": "home",
+            "type": "both",
+            "state": "MA"
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Practitioner",
+        "id": "pra1234",
+        "meta": {
+          "versionId": "1",
+          "lastUpdated": "2019-04-08T09:24:45.382-04:00"
+        },
+        "identifier": [
+          {
+            "system": "http://hl7.org/fhir/sid/us-npi",
+            "value": "1122334455"
+          }
+        ],
+        "name": [
+          {
+            "family": "Doe",
+            "given": [
+              "Jane"
+            ],
+            "prefix": [
+              "Dr."
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs013",
+        "meta": {
+          "versionId": "1",
+          "lastUpdated": "2019-04-08T09:24:47.707-04:00"
+        },
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "59408-5",
+              "display": "Oxygen saturation in Arterial blood by Pulse oximetry"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/pat013"
+        },
+        "issued": "2019-03-20T15:30:10+01:00",
+        "valueQuantity": {
+          "value": 85,
+          "unit": "%",
+          "system": "http://unitsofmeasure.org",
+          "code": "%"
+        }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs013B",
+        "meta": {
+          "versionId": "1",
+          "lastUpdated": "2019-04-08T09:24:47.761-04:00"
+        },
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "31100-1",
+              "display": "Hematocrit [Volume Fraction] of Blood by Impedance"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/pat013"
+        },
+        "issued": "2019-03-20T15:30:10+01:00",
+        "valueQuantity": {
+          "value": 61,
+          "unit": "%",
+          "system": "http://unitsofmeasure.org",
+          "code": "%"
+        }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Condition",
+        "id": "cond013a",
+        "meta": {
+          "versionId": "1",
+          "lastUpdated": "2019-04-08T09:24:47.556-04:00"
+        },
+        "clinicalStatus": "active",
+        "verificationStatus": "confirmed",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://hl7.org/fhir/condition-category",
+                "code": "encounter-diagnosis",
+                "display": "Encounter Diagnosis"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://hl7.org/fhir/sid/icd-10-cm",
+              "code": "J44.9",
+              "display": "Chronic obstructive pulmonary disease, unspecified"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/pat013"
+        }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Condition",
+        "id": "cond013b",
+        "meta": {
+          "versionId": "1",
+          "lastUpdated": "2019-04-08T09:24:47.604-04:00"
+        },
+        "clinicalStatus": "active",
+        "verificationStatus": "confirmed",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://hl7.org/fhir/condition-category",
+                "code": "encounter-diagnosis",
+                "display": "Encounter Diagnosis"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://hl7.org/fhir/sid/icd-10-cm",
+              "code": "R09.02",
+              "display": "Hypoxemia"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/pat013"
+        }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Condition",
+        "id": "cond013c",
+        "meta": {
+          "versionId": "1",
+          "lastUpdated": "2019-04-08T09:24:47.654-04:00"
+        },
+        "clinicalStatus": "active",
+        "verificationStatus": "confirmed",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://hl7.org/fhir/condition-category",
+                "code": "encounter-diagnosis",
+                "display": "Encounter Diagnosis"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://hl7.org/fhir/sid/icd-10-cm",
+              "code": "E11.21",
+              "display": "Type 2 diabetes mellitus with diabetic nephropathy"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/pat013"
+        }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Coverage",
+        "id": "cov1234",
+        "meta": {
+          "versionId": "1",
+          "lastUpdated": "2019-04-08T09:24:46.970-04:00"
+        },
+        "payor": [
+          {
+            "reference": "Organization/org1234"
+          }
+        ],
+        "grouping": {
+          "plan": "Medicare Part D"
+        }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Coverage",
+        "id": "cov013",
+        "meta": {
+          "versionId": "1",
+          "lastUpdated": "2019-04-08T09:24:47.521-04:00"
+        },
+        "status": "active",
+        "subscriberId": "10A3D58WH22",
+        "grouping": {
+          "subGroup": "Medicare",
+          "subPlan": "Part A"
+        }
+      }
+    }
+  ]
+}
