@@ -29,6 +29,17 @@ curl -X POST
      http://localhost:9000/fhir/Claim/\$submit
 ```
 
+## Docker
+Build the docker image:
+```
+docker build -t prior-auth .
+```
+
+Run the docker image:
+```
+docker run -p 9000:9000 -it prior-auth
+```
+
 ## Questions and Contributions
 Questions about the project can be asked in the [DaVinci stream on the FHIR Zulip Chat](https://chat.fhir.org/#narrow/stream/179283-DaVinci).
 
