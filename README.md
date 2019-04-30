@@ -32,12 +32,12 @@ curl -X POST
 ## Docker
 Build the docker image:
 ```
-docker build -t prior-auth .
+docker build -t hspc/davinci-prior-auth:latest .
 ```
 
 Run the docker image:
 ```
-docker run -p 9000:9000 -it prior-auth
+docker run -p 9000:9000 -it -rm --name davinci-prior-auth hspc/davinci-prior-auth:latest
 ```
 
 ## Questions and Contributions
