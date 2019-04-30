@@ -5,6 +5,7 @@ import java.util.Calendar;
 import javax.enterprise.context.RequestScoped;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -28,21 +29,30 @@ import org.hl7.fhir.r4.model.Enumerations.PublicationStatus;
 public class Metadata {
 
   /**
-   * Cached CapabilityStatement JSON.
+   * Cached CapabilityStatement.
    */
-  private static final String capabilityStatement = buildCapabilityStatement();
+  private static final CapabilityStatement capabilityStatement = buildCapabilityStatement();
 
   @GET
+  @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
   public Response getMetadata() {
-    return Response.ok(capabilityStatement, MediaType.APPLICATION_JSON).build();
+    String json = App.DB.json(capabilityStatement);
+    return Response.ok(json).build();
+  }
+
+  @GET
+  @Produces({MediaType.APPLICATION_XML, "application/fhir+xml"})
+  public Response getMetadataXml() {
+    String xml = App.DB.xml(capabilityStatement);
+    return Response.ok(xml).build();
   }
 
   /**
    * Builds the CapabilityStatement describing the Prior Authorization
    * Reference Implementation.
-   * @return String - the CapabilityStatement JSON.
+   * @return CapabilityStatement - the CapabilityStatement.
    */
-  private static String buildCapabilityStatement() {
+  private static CapabilityStatement buildCapabilityStatement() {
     CapabilityStatement metadata = new CapabilityStatement();
     metadata.setTitle("Da Vinci Prior Authorization Reference Implementation");
     metadata.setStatus(PublicationStatus.DRAFT);
@@ -102,9 +112,6 @@ public class Metadata {
   
     metadata.addRest(rest);
 
-    String json =
-        App.FHIR_CTX.newJsonParser().setPrettyPrint(true).encodeResourceToString(metadata);
-
-    return json;
+    return metadata;
   }
 }

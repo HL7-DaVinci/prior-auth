@@ -53,6 +53,7 @@ public class ClaimResponseEndpointTest {
     // Test that we can GET /fhir/ClaimResponse.
     Request request = new Request.Builder()
         .url(base + "/ClaimResponse")
+        .header("Accept", "application/fhir+json")
         .build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(200, response.code());
@@ -73,6 +74,33 @@ public class ClaimResponseEndpointTest {
   }
 
   @Test
+  public void searchClaimResponsesXml() throws IOException {
+    String base = "http://localhost:" + config.getHttpPort();
+
+    // Test that we can GET /fhir/ClaimResponse.
+    Request request = new Request.Builder()
+        .url(base + "/ClaimResponse")
+        .header("Accept", "application/fhir+xml")
+        .build();
+    Response response = client.newCall(request).execute();
+    Assert.assertEquals(200, response.code());
+
+    // Test the response has CORS headers
+    String cors = response.header("Access-Control-Allow-Origin");
+    Assert.assertEquals("*", cors);
+
+    // Test the response is an XML Bundle
+    String body = response.body().string();
+    Bundle bundle =
+        (Bundle) App.FHIR_CTX.newXmlParser().parseResource(body);
+    Assert.assertNotNull(bundle);
+
+    // Validate the response.
+    ValidationResult result = ValidationHelper.validate(bundle);
+    Assert.assertTrue(result.isSuccessful());
+  }
+
+  @Test
   public void claimResponseExists() {
     ClaimResponse claimResponse = (ClaimResponse) App.DB.read(Database.CLAIM_RESPONSE, "minimal");
     Assert.assertNotNull(claimResponse);
@@ -82,10 +110,11 @@ public class ClaimResponseEndpointTest {
   public void getClaimResponse() throws IOException {
     String base = "http://localhost:" + config.getHttpPort();
 
-    // Test that non-existent ClaimResponse returns 404.
+    // Test that we can GET /fhir/ClaimResponse/minimal
     Request request = new Request.Builder()
-        .url(base + "/ClaimResponse/minimal")
-        .build();
+       .url(base + "/ClaimResponse/minimal")
+       .header("Accept", "application/fhir+json")
+       .build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(200, response.code());
  
@@ -97,6 +126,33 @@ public class ClaimResponseEndpointTest {
     String body = response.body().string();
     ClaimResponse claimResponse =
         (ClaimResponse) App.FHIR_CTX.newJsonParser().parseResource(body);
+    Assert.assertNotNull(claimResponse);
+
+    // Validate the response.
+    ValidationResult result = ValidationHelper.validate(claimResponse);
+    Assert.assertTrue(result.isSuccessful());
+  }
+
+  @Test
+  public void getClaimResponseXml() throws IOException {
+    String base = "http://localhost:" + config.getHttpPort();
+
+    // Test that we can GET /fhir/ClaimResponse/minimal
+    Request request = new Request.Builder()
+       .url(base + "/ClaimResponse/minimal")
+       .header("Accept", "application/fhir+xml")
+       .build();
+    Response response = client.newCall(request).execute();
+    Assert.assertEquals(200, response.code());
+
+    // Test the response has CORS headers
+    String cors = response.header("Access-Control-Allow-Origin");
+    Assert.assertEquals("*", cors);
+
+    // Test the response is an XML Bundle
+    String body = response.body().string();
+    ClaimResponse claimResponse =
+        (ClaimResponse) App.FHIR_CTX.newXmlParser().parseResource(body);
     Assert.assertNotNull(claimResponse);
 
     // Validate the response.

@@ -52,6 +52,7 @@ public class BundleEndpointTest {
     // Test that we can GET /fhir/Bundle.
     Request request = new Request.Builder()
         .url(base + "/Bundle")
+        .header("Accept", "application/fhir+json")
         .build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(200, response.code());
@@ -72,6 +73,33 @@ public class BundleEndpointTest {
   }
 
   @Test
+  public void searchBundlesXml() throws IOException {
+    String base = "http://localhost:" + config.getHttpPort();
+
+    // Test that we can GET /fhir/Bundle.
+    Request request = new Request.Builder()
+        .url(base + "/Bundle")
+        .header("Accept", "application/fhir+xml")
+        .build();
+    Response response = client.newCall(request).execute();
+    Assert.assertEquals(200, response.code());
+
+    // Test the response has CORS headers
+    String cors = response.header("Access-Control-Allow-Origin");
+    Assert.assertEquals("*", cors);
+
+    // Test the response is an XML Bundle
+    String body = response.body().string();
+    Bundle bundle =
+        (Bundle) App.FHIR_CTX.newXmlParser().parseResource(body);
+    Assert.assertNotNull(bundle);
+
+    // Validate the response.
+    ValidationResult result = ValidationHelper.validate(bundle);
+    Assert.assertTrue(result.isSuccessful());
+  }
+
+  @Test
   public void bundleExists() {
     Bundle bundle = (Bundle) App.DB.read(Database.BUNDLE, "minimal");
     Assert.assertNotNull(bundle);
@@ -81,9 +109,10 @@ public class BundleEndpointTest {
   public void getBundle() throws IOException {
     String base = "http://localhost:" + config.getHttpPort();
 
-    // Test that non-existent Bundle returns 404.
+    // Test that we can get fhir/Bundle/minimal
     Request request = new Request.Builder()
         .url(base + "/Bundle/minimal")
+        .header("Accept", "application/fhir+json")
         .build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(200, response.code());
@@ -96,6 +125,33 @@ public class BundleEndpointTest {
     String body = response.body().string();
     Bundle bundle =
         (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
+    Assert.assertNotNull(bundle);
+
+    // Validate the response.
+    ValidationResult result = ValidationHelper.validate(bundle);
+    Assert.assertTrue(result.isSuccessful());
+  }
+
+  @Test
+  public void getBundleXml() throws IOException {
+    String base = "http://localhost:" + config.getHttpPort();
+
+    // Test that we can get fhir/Bundle/minimal
+    Request request = new Request.Builder()
+        .url(base + "/Bundle/minimal")
+        .header("Accept", "application/fhir+xml")
+        .build();
+    Response response = client.newCall(request).execute();
+    Assert.assertEquals(200, response.code());
+
+    // Test the response has CORS headers
+    String cors = response.header("Access-Control-Allow-Origin");
+    Assert.assertEquals("*", cors);
+
+    // Test the response is an XML Bundle
+    String body = response.body().string();
+    Bundle bundle =
+        (Bundle) App.FHIR_CTX.newXmlParser().parseResource(body);
     Assert.assertNotNull(bundle);
 
     // Validate the response.
