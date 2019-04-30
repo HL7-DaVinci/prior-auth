@@ -1,7 +1,6 @@
-FROM openjdk:8
+FROM gradle:jdk8-alpine
 EXPOSE 9000/tcp
-COPY . /prior-auth/
+COPY --chown=gradle:gradle . /prior-auth/
 WORKDIR /prior-auth/
-RUN ./gradlew install
-RUN ./gradlew clean check
-CMD ["./gradlew", "run"]
+RUN gradle install
+CMD ["gradle", "run"]
