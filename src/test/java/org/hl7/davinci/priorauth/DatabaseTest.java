@@ -29,4 +29,14 @@ public class DatabaseTest {
     String json = App.DB.json(bundle);
     Assert.assertNotNull(json);
   }
+
+  @Test
+  public void testXml() {
+    Bundle bundle = new Bundle();
+    bundle.setType(BundleType.SEARCHSET);
+    bundle.setTotal(0);
+
+    String xml = App.DB.xml(bundle);
+    Assert.assertNotNull(xml);
+  }
 }

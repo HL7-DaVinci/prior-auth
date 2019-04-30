@@ -35,6 +35,7 @@ public class MetadataTest {
     // Test that we can GET /fhir/metadata.
     Request request = new Request.Builder()
         .url(base + "/metadata")
+        .header("Accept", "application/fhir+json")
         .build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(200, response.code());
@@ -47,6 +48,33 @@ public class MetadataTest {
     String body = response.body().string();
     CapabilityStatement capabilityStatement =
         (CapabilityStatement) App.FHIR_CTX.newJsonParser().parseResource(body);
+    Assert.assertNotNull(capabilityStatement);
+
+    // Validate the response.
+    ValidationResult result = ValidationHelper.validate(capabilityStatement);
+    Assert.assertTrue(result.isSuccessful());
+  }
+
+  @Test
+  public void getMetadataXml() throws IOException {
+    String base = "http://localhost:" + config.getHttpPort();
+
+    // Test that we can GET /fhir/metadata.
+    Request request = new Request.Builder()
+        .url(base + "/metadata")
+        .header("Accept", "application/fhir+xml")
+        .build();
+    Response response = client.newCall(request).execute();
+    Assert.assertEquals(200, response.code());
+
+    // Test the response has CORS headers
+    String cors = response.header("Access-Control-Allow-Origin");
+    Assert.assertEquals("*", cors);
+
+    // Test the response is an XML Capability Statement
+    String body = response.body().string();
+    CapabilityStatement capabilityStatement =
+        (CapabilityStatement) App.FHIR_CTX.newXmlParser().parseResource(body);
     Assert.assertNotNull(capabilityStatement);
 
     // Validate the response.

@@ -181,4 +181,15 @@ public class Database {
         App.FHIR_CTX.newJsonParser().setPrettyPrint(true).encodeResourceToString(resource);
     return json;
   }
+
+  /**
+   * Convert a FHIR resource into XML.
+   * @param resource - the resource to convert to XML.
+   * @return String - the XML.
+   */
+  public String xml(IBaseResource resource) {
+    String xml =
+        App.FHIR_CTX.newXmlParser().setPrettyPrint(true).encodeResourceToString(resource);
+    return xml;
+  }
 }
