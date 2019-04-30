@@ -37,7 +37,7 @@ docker build -t hspc/davinci-prior-auth:latest .
 
 Run the docker image:
 ```
-docker run -p 9000:9000 -it -rm --name davinci-prior-auth hspc/davinci-prior-auth:latest
+docker run -p 9000:9000 -it --rm --name davinci-prior-auth hspc/davinci-prior-auth:latest
 ```
 
 ## Questions and Contributions
