@@ -13,3 +13,6 @@ bin
 # Ignore Database files
 database.mv.db
 database.trace.db
+
+# Ignore Mac OS X
+**/.DS_Store
