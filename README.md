@@ -6,7 +6,7 @@ The Da Vinci Prior Authorization Reference Implementation (RI) is a software pro
 
 ## Getting Started
 
-Start the Prior Authorization microservice:
+Build, test, and start the Prior Authorization microservice:
 ```
 ./gradlew install
 ./gradlew clean check
@@ -28,6 +28,73 @@ curl -X POST
      -d @src/test/resources/bundle-prior-auth.json
      http://localhost:9000/fhir/Claim/\$submit
 ```
+
+## FHIR Services
+
+The service endpoints in the table below are relative to `http://localhost:9000/fhir`.
+
+Service | Methods | Description
+--------|---------|------------
+`/metadata` | `GET` | The FHIR [capabilities interaction](http://hl7.org/fhir/R4/http.html#capabilities) that returns a FHIR [CapabilityStatement](http://hl7.org/fhir/R4/capabilitystatement.html) resource describing these services.
+`/Bundle` | `GET` | The FHIR [Bundle](http://hl7.org/fhir/R4/bundle.html) endpoint returns all the `Bundle`s that were submitted to the `Claim/$submit` operation.
+`/Bundle/{id}` | `GET` | Gets a single `Bundle` by `id`
+`/Claim` | `GET` | The FHIR [Claim](http://hl7.org/fhir/R4/claim.html) endpoint returns all the `Claim`s that were submitted to the `Claim/$submit` operation.
+`/Claim/{id}` | `GET` | Gets a single `Claim` by `id`
+`/Claim/$submit` | `POST` | Submit a `Bundle` containing a Prior Authorization `Claim` with all the necessary supporting resources. The response to a successful submission is a `ClaimResponse`.
+`/ClaimResponse` | `GET` | The FHIR [ClaimResponse](http://hl7.org/fhir/R4/claimresponse.html) endpoint returns all the `ClaimResponse`s that were generated in response to `Claim/$submit` operations.
+`/ClaimResponse/{id}` | `GET` | Gets a single `ClaimResponse` by `id`
+
+> *Note About IDs*: The Prior Authorization service generates an `id` when a successful `Claim/$submit` operation is performed. The `Bundle` that was submitted will subsequently be available at `/Bundle/{id}`, and the `Claim` from the submission will be available at `/Claim/{id}`, and the `ClaimResponse` will also be available at `/ClaimResponse/{id}`. _All three resources will share the same `id`._
+
+## Contents of `/Claim/$submit` Submission
+
+The body of the `/Claim/$submit` operation are as follows:
+
+```
+ + Bundle
+ |
+ +-+ entry
+   |
+   +-- Claim
+   |
+   +-- QuestionnaireResponse
+   |
+   +-- DeviceRequest
+   |
+   +-- Other Resources (Patient, Practitioner, Coverage, Condition, Observation)
+```
+
+The first `entry` of the submitted `Bundle` should contain a `Claim`, followed by a `QuestionnaireResponse` which includes answers in response to questions presented by Da Vinci [Documentation Templates and Rules](https://github.com/HL7-DaVinci/dtr) (DTR), then the `DeviceRequest` that actually requires the prior authorization, followed by all supporting FHIR resources including the `Patient`, `Practitioner`, `Coverage`, and relevant `Condition` and `Observation` resources used in DTR calculations or otherwise used as supporting information.
+
+## Demonstration
+
+This project can be demonstrated in combination with the Da Vinci [Coverage Requirements Discovery](https://github.com/HL7-DaVinci/CRD) (CRD), [CRD request generator](https://github.com/HL7-DaVinci/crd-request-generator), and [Documentation Templates and Rules](https://github.com/HL7-DaVinci/dtr) (DTR) projects.
+
+1. Follow the `CRD` instructions to start the `ehr-server` (i.e. `gradle tomcatRun` within `{CRD}/ehr-server`)
+2. Follow the `CRD` instructions to start the CDS Hooks `server` (i.e. `gradle bootRun` within `{CRD}/server`)
+3. Follow the `crd-request-generator` instructions to launch the request generator (i.e. `npm start` within that project)
+4. Follow the `dtr` instructions to launch the DTR application (i.e. `npm start` within that project)
+5. Follow the _Getting Started_ instructions above to start the Prior Authorization `Claim/$submit` service (i.e. `./gradlew run`)
+6. Using the `crd-request-generator` application (i.e. browsing `http://localhost:3000`):
+  - select `stu3`
+  - enter Age `40`
+  - enter Gender `Male`
+  - select Code `Oxygen Thing - E0424`
+  - select `Massachusetts` (in both Patient and Practitioner State)
+  - select `Include Prefetch`
+  - click `Submit`
+
+![Request Generator Application](/documentation/request.png)
+
+7. In the display CDS Hook card, select `SMART App`, which will open up a Questionnaire Form.
+
+![CDS Hook Card](/documentation/card.png)
+
+8. Scroll down to the bottom of the Questionnaire Form and click `Submit`.
+9. A fancy `alert` will tell you the prior authorization request has been granted. Use the browser debug tools to view interesting messages on the `console`.
+
+![Alert Message](/documentation/alert.png)
+
 
 ## Docker
 Build the docker image:
