@@ -66,6 +66,53 @@ The body of the `/Claim/$submit` operation are as follows:
 
 The first `entry` of the submitted `Bundle` should contain a `Claim`, followed by a `QuestionnaireResponse` which includes answers in response to questions presented by Da Vinci [Documentation Templates and Rules](https://github.com/HL7-DaVinci/dtr) (DTR), then the `DeviceRequest` that actually requires the prior authorization, followed by all supporting FHIR resources including the `Patient`, `Practitioner`, `Coverage`, and relevant `Condition` and `Observation` resources used in DTR calculations or otherwise used as supporting information.
 
+## Response of the `/Claim/$submit` Operation
+
+Assuming the structure and contents of the submitted `Bundle` are adequate, the service will responsed with a `ClaimResponse` as detailed below. Otherwise, the service will respond with an `OperationalOutcome` containing an error message.
+
+```
+ + ClaimResponse
+ + ClaimResponse.id = {id}
+ + ClaimResponse.status
+ + ClaimResponse.type
+ + ClaimResponse.use = "preauthorization"
+ + ClaimResponse.patient = { reference: Patient }
+ + ClaimResponse.created
+ + ClaimResponse.insurer
+ + ClaimResponse.request = { reference: Claim/{id} }
+ + ClaimResponse.outcome
+ + ClaimResponse.disposition
+ + ClaimResponse.preAuthRef = {prior authorization number}
+```
+
+With a successful submission, the actual Prior Authorization Number is located in the `ClaimResponse.preAuthRef` field.
+
+For example:
+```json
+{
+  "resourceType": "ClaimResponse",
+  "id": "536d41f2-0273-4807-a0e6-8d9909146667",
+  "status": "active",
+  "type": {
+    "coding": [ {
+        "system": "http://terminology.hl7.org/CodeSystem/claim-type",
+        "code": "professional",
+        "display": "Professional"
+    } ]
+  },
+  "use": "preauthorization",
+  "patient": { "reference": "Patient/pat013" },
+  "created": "2019-05-04T15:32:06+00:00",
+  "insurer": {
+    "display": "Unknown"
+  },
+  "request": { "reference": "Claim/536d41f2-0273-4807-a0e6-8d9909146667" },
+  "outcome": "complete",
+  "disposition": "Granted",
+  "preAuthRef": "536d41f2-0273-4807-a0e6-8d9909146667"
+}
+```
+
 ## Demonstration
 
 This project can be demonstrated in combination with the Da Vinci [Coverage Requirements Discovery](https://github.com/HL7-DaVinci/CRD) (CRD), [CRD request generator](https://github.com/HL7-DaVinci/crd-request-generator), and [Documentation Templates and Rules](https://github.com/HL7-DaVinci/dtr) (DTR) projects.
