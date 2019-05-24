@@ -10,8 +10,12 @@ import java.util.Date;
 
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Bundle.BundleType;
+import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
+import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
+import org.hl7.fhir.r4.model.OperationOutcome.OperationOutcomeIssueComponent;
 import org.hl7.fhir.r4.model.Resource;
 
 /**
@@ -163,6 +167,25 @@ public class Database {
   }
 
   /**
+   * Delete all resources of a particular type.
+   * @param resourceType - the resource type to delete.
+   * @return boolean - whether or not the resources were deleted.
+   */
+  public boolean delete(String resourceType) {
+    boolean result = false;
+    if (resourceType != null) {
+      try (Connection connection = getConnection()) {
+        PreparedStatement stmt = connection.prepareStatement(
+            "DELETE FROM " + resourceType + ";");
+        result = stmt.execute();
+      } catch (SQLException e) {
+        e.printStackTrace();
+      }
+    }
+    return result;
+  }
+
+  /**
    * Set the base URI for the microservice. This is necessary so
    * Bundle.entry.fullUrl data is accurately populated.
    * @param base - from @Context UriInfo uri.getBaseUri()
@@ -191,5 +214,21 @@ public class Database {
     String xml =
         App.FHIR_CTX.newXmlParser().setPrettyPrint(true).encodeResourceToString(resource);
     return xml;
+  }
+
+  /**
+   * Create a FHIR OperationOutcome.
+   * @param severity The severity of the result.
+   * @param type The issue type.
+   * @param message The message to return.
+   * @return OperationOutcome - the FHIR resource.
+   */
+  public OperationOutcome outcome(IssueSeverity severity, IssueType type, String message) {
+    OperationOutcome error = new OperationOutcome();
+    OperationOutcomeIssueComponent issue = error.addIssue();
+    issue.setSeverity(severity);
+    issue.setCode(type);
+    issue.setDiagnostics(message);
+    return error;
   }
 }
