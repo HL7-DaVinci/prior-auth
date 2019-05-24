@@ -129,7 +129,12 @@ public class Metadata {
     bundle.addInteraction().setCode(TypeRestfulInteraction.SEARCHTYPE);
     bundle.addInteraction().setCode(TypeRestfulInteraction.DELETE);
     rest.addResource(bundle);
-  
+
+    rest.addOperation()
+      .setName("$expunge")
+      .setDefinition("https://smilecdr.com/docs/current/fhir_repository/deleting_data.html#drop-all-data")
+      .setDocumentation("For Demonstration Purposes Only. Deletes all data from the demonstration database. Not part of the Implementation Guide.");
+
     metadata.addRest(rest);
 
     return metadata;

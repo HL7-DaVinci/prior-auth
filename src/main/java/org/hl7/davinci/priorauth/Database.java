@@ -167,6 +167,25 @@ public class Database {
   }
 
   /**
+   * Delete all resources of a particular type.
+   * @param resourceType - the resource type to delete.
+   * @return boolean - whether or not the resources were deleted.
+   */
+  public boolean delete(String resourceType) {
+    boolean result = false;
+    if (resourceType != null) {
+      try (Connection connection = getConnection()) {
+        PreparedStatement stmt = connection.prepareStatement(
+            "DELETE FROM " + resourceType + ";");
+        result = stmt.execute();
+      } catch (SQLException e) {
+        e.printStackTrace();
+      }
+    }
+    return result;
+  }
+
+  /**
    * Set the base URI for the microservice. This is necessary so
    * Bundle.entry.fullUrl data is accurately populated.
    * @param base - from @Context UriInfo uri.getBaseUri()
