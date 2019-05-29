@@ -69,7 +69,7 @@ The body of the `/Claim/$submit` operation are as follows:
    +-- Other Resources (Patient, Practitioner, Coverage, Condition, Observation)
 ```
 
-The first `entry` of the submitted `Bundle` should contain a `Claim`, followed by a `QuestionnaireResponse` which includes answers in response to questions presented by Da Vinci [Documentation Templates and Rules](https://github.com/HL7-DaVinci/dtr) (DTR), then the `DeviceRequest` that actually requires the prior authorization, followed by all supporting FHIR resources including the `Patient`, `Practitioner`, `Coverage`, and relevant `Condition` and `Observation` resources used in DTR calculations or otherwise used as supporting information.
+The first `entry` of the submitted `Bundle` should contain a `Claim`, followed by a `QuestionnaireResponse` which includes answers in response to questions presented by Da Vinci [Documentation Templates and Rules](https://github.com/HL7-DaVinci/dtr) (DTR), then the `DeviceRequest` (or other resource type) that actually requires the prior authorization, followed by all supporting FHIR resources including the `Patient`, `Practitioner`, `Coverage`, and relevant `Condition` and `Observation` resources used in DTR calculations or otherwise used as supporting information.
 
 ## Response of the `/Claim/$submit` Operation
 
