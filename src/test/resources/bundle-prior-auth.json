@@ -32,7 +32,7 @@
             }
           ]
         },
-        "presciption": {
+        "prescription": {
           "reference": "DeviceRequest/devreq123"
         },
         "supportingInfo": [
