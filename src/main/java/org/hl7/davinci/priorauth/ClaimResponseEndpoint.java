@@ -17,6 +17,8 @@ import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The ClaimResponse endpoint to READ, SEARCH for, and DELETE ClaimResponses to submitted claims.
@@ -24,6 +26,8 @@ import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 @RequestScoped
 @Path("ClaimResponse")
 public class ClaimResponseEndpoint {
+
+  static final Logger logger = LoggerFactory.getLogger(ClaimEndpoint.class);
 
   String REQUIRES_ID = "Instance ID is required: DELETE ClaimResponse/{id}";
   String DELETED_MSG = "Deleted ClaimResponse and all related and referenced resources.";

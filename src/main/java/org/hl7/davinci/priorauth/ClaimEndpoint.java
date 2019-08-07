@@ -30,6 +30,8 @@ import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ResourceType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The Claim endpoint to READ, SEARCH for, and DELETE submitted claims.
@@ -37,6 +39,8 @@ import org.hl7.fhir.r4.model.ResourceType;
 @RequestScoped
 @Path("Claim")
 public class ClaimEndpoint {
+
+  static final Logger logger = LoggerFactory.getLogger(ClaimEndpoint.class);
 
   String REQUIRES_BUNDLE = "Prior Authorization Claim/$submit Operation requires a Bundle with a single Claim as the first entry and supporting resources.";
   String REQUIRES_ID = "Instance ID is required: DELETE Claim/{id}";
@@ -48,6 +52,7 @@ public class ClaimEndpoint {
   @GET
   @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
   public Response searchClaims() {
+    logger.info("GET /Claim fhir+json");
     App.DB.setBaseUrl(uri.getBaseUri());
     Bundle claims = App.DB.search(Database.CLAIM);
     String json = App.DB.json(claims);
@@ -57,6 +62,7 @@ public class ClaimEndpoint {
   @GET
   @Produces({MediaType.APPLICATION_XML, "application/fhir+xml"})
   public Response searchClaimsXml() {
+    logger.info("GET /Claim fhir+xml");
     App.DB.setBaseUrl(uri.getBaseUri());
     Bundle claims = App.DB.search(Database.CLAIM);
     String xml = App.DB.xml(claims);
@@ -67,6 +73,7 @@ public class ClaimEndpoint {
   @Path("/{id}")
   @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
   public Response readClaim(@PathParam("id") String id) {
+    logger.info("GET /Claim/" + id + " fhir+json");
     String json = null;
     if (id == null) {
       // Search
@@ -88,6 +95,7 @@ public class ClaimEndpoint {
   @Path("/{id}")
   @Produces({MediaType.APPLICATION_XML, "application/fhir+xml"})
   public Response readClaimXml(@PathParam("id") String id) {
+    logger.info("GET /Claim/" + id + " fhir+xml");
     String xml = null;
     if (id == null) {
       // Search
@@ -109,6 +117,7 @@ public class ClaimEndpoint {
   @Path("/{id}")
   @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
   public Response deleteClaim(@PathParam("id") String id) {
+    logger.info("DELETE /Claim/" + id + " fhir+json");
     Status status = Status.OK;
     OperationOutcome outcome = null;
     if (id == null) {
@@ -131,6 +140,7 @@ public class ClaimEndpoint {
   @Path("/{id}")
   @Produces({MediaType.APPLICATION_JSON, "application/fhir+xml"})
   public Response deleteClaimXml(@PathParam("id") String id) {
+    logger.info("DELETE /Claim/" + id + " fhir+xml");
     Status status = Status.OK;
     OperationOutcome outcome = null;
     if (id == null) {
@@ -153,6 +163,7 @@ public class ClaimEndpoint {
   @Path("/$submit")
   @Consumes({MediaType.APPLICATION_JSON, "application/fhir+json"})
   public Response submitOperation(String body) {
+    logger.info("POST /Claim/$submit fhir+json");
     String id = null;
     Status status = Status.OK;
     String json = null;
@@ -198,6 +209,7 @@ public class ClaimEndpoint {
   @Path("/$submit")
   @Consumes({MediaType.APPLICATION_XML, "application/fhir+xml"})
   public Response submitOperationXml(String body) {
+    logger.info("POST /Claim/$submit fhir+xml");
     String id = null;
     Status status = Status.OK;
     String xml = null;
@@ -246,6 +258,7 @@ public class ClaimEndpoint {
    * @return ClaimResponse with the result.
    */
   private IBaseResource processBundle(Bundle bundle) {
+    logger.info("processBundle");
     // Store the submission...
     // Generate a shared id...
     String id = UUID.randomUUID().toString();

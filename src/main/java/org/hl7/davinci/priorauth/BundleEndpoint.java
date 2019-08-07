@@ -16,6 +16,8 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The Bundle endpoint to READ, SEARCH for, and DELETE submitted Bundles.
@@ -23,6 +25,8 @@ import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 @RequestScoped
 @Path("Bundle")
 public class BundleEndpoint {
+
+  static final Logger logger = LoggerFactory.getLogger(ClaimEndpoint.class);
 
   String REQUIRES_ID = "Instance ID is required: DELETE Bundle/{id}";
   String DELETED_MSG = "Deleted Bundle and all related and referenced resources.";
@@ -33,6 +37,7 @@ public class BundleEndpoint {
   @GET
   @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
   public Response searchBundles() {
+    logger.info("GET /Bundle fhir+json");
     App.DB.setBaseUrl(uri.getBaseUri());
     Bundle bundles = App.DB.search(Database.BUNDLE);
     String json = App.DB.json(bundles);
@@ -42,6 +47,7 @@ public class BundleEndpoint {
   @GET
   @Produces({MediaType.APPLICATION_XML, "application/fhir+xml"})
   public Response searchBundlesXml() {
+    logger.info("GET /Bundle fhir+xml");
     App.DB.setBaseUrl(uri.getBaseUri());
     Bundle bundles = App.DB.search(Database.BUNDLE);
     String xml = App.DB.xml(bundles);
@@ -52,6 +58,7 @@ public class BundleEndpoint {
   @Path("/{id}")
   @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
   public Response readBundle(@PathParam("id") String id) {
+    logger.info("GET /Bundle/" + id + " fhir+json");
     String json = null;
     if (id == null) {
       // Search
@@ -73,6 +80,7 @@ public class BundleEndpoint {
   @Path("/{id}")
   @Produces({MediaType.APPLICATION_XML, "application/fhir+xml"})
   public Response readBundleXml(@PathParam("id") String id) {
+    logger.info("GET /Bundle/" + id + " fhir+xml");
     String xml = null;
     if (id == null) {
       // Search
@@ -94,6 +102,7 @@ public class BundleEndpoint {
   @Path("/{id}")
   @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
   public Response deleteBundle(@PathParam("id") String id) {
+    logger.info("DELETE /Bundle/" + id + " fhir+json");
     Status status = Status.OK;
     OperationOutcome outcome = null;
     if (id == null) {
@@ -116,6 +125,7 @@ public class BundleEndpoint {
   @Path("/{id}")
   @Produces({MediaType.APPLICATION_JSON, "application/fhir+xml"})
   public Response deleteBundleXml(@PathParam("id") String id) {
+    logger.info("DELETE /Bundle/" + id + " fhir+xml");
     Status status = Status.OK;
     OperationOutcome outcome = null;
     if (id == null) {

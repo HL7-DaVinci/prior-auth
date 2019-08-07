@@ -20,6 +20,9 @@ repositories {
 }
 
 dependencies {
+  compile "org.slf4j:slf4j-api:1.7.25"
+  compile "org.slf4j:slf4j-jdk14:1.7.25"
+  
   // This dependency is found on compile classpath of this component and consumers.
   implementation 'com.google.guava:guava:27.0.1-jre'
   implementation 'org.apache.meecrowave:meecrowave-core:1.2.6'
