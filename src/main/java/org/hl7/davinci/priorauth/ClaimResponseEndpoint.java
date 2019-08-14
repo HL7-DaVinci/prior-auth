@@ -1,11 +1,7 @@
 package org.hl7.davinci.priorauth;
 
 import javax.enterprise.context.RequestScoped;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -27,45 +23,33 @@ import org.slf4j.LoggerFactory;
 @Path("ClaimResponse")
 public class ClaimResponseEndpoint {
 
-  static final Logger logger = LoggerFactory.getLogger(ClaimEndpoint.class);
+  static final Logger logger = LoggerFactory.getLogger(ClaimResponseEndpoint.class);
 
-  String REQUIRES_ID = "Instance ID is required: DELETE ClaimResponse/{id}";
+  String REQUIRES_ID = "Instance ID is required: DELETE ClaimResponse?identifier=";
+  String REQUIRES_PATIENT = "Patient Identifier is required: DELETE ClaimResponse?patient.identifier=";
   String DELETED_MSG = "Deleted ClaimResponse and all related and referenced resources.";
 
   @Context
   private UriInfo uri;
   
   @GET
+  @Path("/")
   @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
-  public Response searchClaimResponses() {
-    App.DB.setBaseUrl(uri.getBaseUri());
-    Bundle claimResponses = App.DB.search(Database.CLAIM_RESPONSE);
-    String json = App.DB.json(claimResponses);
-    return Response.ok(json).build();
-  }
-
-  @GET
-  @Produces({MediaType.APPLICATION_XML, "application/fhir+xml"})
-  public Response searchClaimResponsesXml() {
-    App.DB.setBaseUrl(uri.getBaseUri());
-    Bundle claimResponses = App.DB.search(Database.CLAIM_RESPONSE);
-    String xml = App.DB.xml(claimResponses);
-    return Response.ok(xml).build();
-  }
-  
-  @GET
-  @Path("/{id}")
-  @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
-  public Response readClaimResponse(@PathParam("id") String id) {
+  public Response readClaimResponse(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
+    logger.info("GET /ClaimResponse:" + id + "/" + patient + " fhir+json");
+    if (patient == null) {
+      logger.info("patient null");
+      return Response.status(Status.UNAUTHORIZED).build();
+    }
     String json = null;
     if (id == null) {
       // Search
       App.DB.setBaseUrl(uri.getBaseUri());
-      Bundle claimResponses = App.DB.search(Database.CLAIM_RESPONSE);
+      Bundle claimResponses = App.DB.search(Database.CLAIM_RESPONSE, patient);
       json = App.DB.json(claimResponses);
     } else {
       // Read
-      ClaimResponse claimResponse = (ClaimResponse) App.DB.read(Database.CLAIM_RESPONSE, id);
+      ClaimResponse claimResponse = (ClaimResponse) App.DB.read(Database.CLAIM_RESPONSE, id, patient);
       if (claimResponse == null) {
         return Response.status(Status.NOT_FOUND).build();
       }
@@ -75,18 +59,23 @@ public class ClaimResponseEndpoint {
   }
 
   @GET
-  @Path("/{id}")
+  @Path("/")
   @Produces({MediaType.APPLICATION_XML, "application/fhir+xml"})
-  public Response readClaimResponseXml(@PathParam("id") String id) {
+  public Response readClaimResponseXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
+    logger.info("GET /ClaimResponse:" + id + "/" + patient + " fhir+json");
+    if (patient == null) {
+      logger.info("patient null");
+      return Response.status(Status.UNAUTHORIZED).build();
+    }
     String xml = null;
     if (id == null) {
       // Search
       App.DB.setBaseUrl(uri.getBaseUri());
-      Bundle claimResponses = App.DB.search(Database.CLAIM_RESPONSE);
+      Bundle claimResponses = App.DB.search(Database.CLAIM_RESPONSE, patient);
       xml = App.DB.xml(claimResponses);
     } else {
       // Read
-      ClaimResponse claimResponse = (ClaimResponse) App.DB.read(Database.CLAIM_RESPONSE, id);
+      ClaimResponse claimResponse = (ClaimResponse) App.DB.read(Database.CLAIM_RESPONSE, id, patient);
       if (claimResponse == null) {
         return Response.status(Status.NOT_FOUND).build();
       }
@@ -96,9 +85,10 @@ public class ClaimResponseEndpoint {
   }
 
   @DELETE
-  @Path("/{id}")
+  @Path("/")
   @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
-  public Response deleteClaimResponse(@PathParam("id") String id) {
+  public Response deleteClaimResponse(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient) {
+    logger.info("DELETE /ClaimResponse:" + id + "/" + patient + " fhir+json");
     Status status = Status.OK;
     OperationOutcome outcome = null;
     if (id == null) {
@@ -106,11 +96,16 @@ public class ClaimResponseEndpoint {
       // ID is required...
       status = Status.BAD_REQUEST;
       outcome = App.DB.outcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_ID);
+    } else if (patient == null) {
+      // Do not delete everything
+      // Patient ID is required...
+      status = Status.UNAUTHORIZED;
+      outcome = App.DB.outcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_PATIENT);
     } else {
       // Cascading delete
-      App.DB.delete(Database.BUNDLE, id);
-      App.DB.delete(Database.CLAIM, id);
-      App.DB.delete(Database.CLAIM_RESPONSE, id);
+      App.DB.delete(Database.BUNDLE, id, patient);
+      App.DB.delete(Database.CLAIM, id, patient);
+      App.DB.delete(Database.CLAIM_RESPONSE, id, patient);
       outcome = App.DB.outcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
     }
     String json = App.DB.json(outcome);
@@ -118,9 +113,10 @@ public class ClaimResponseEndpoint {
   }
 
   @DELETE
-  @Path("/{id}")
+  @Path("/")
   @Produces({MediaType.APPLICATION_JSON, "application/fhir+xml"})
-  public Response deleteClaimResponseXml(@PathParam("id") String id) {
+  public Response deleteClaimResponseXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient) {
+    logger.info("DELETE /ClaimResponse:" + id + "/" + patient + " fhir+xml");
     Status status = Status.OK;
     OperationOutcome outcome = null;
     if (id == null) {
@@ -128,11 +124,16 @@ public class ClaimResponseEndpoint {
       // ID is required...
       status = Status.BAD_REQUEST;
       outcome = App.DB.outcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_ID);
+    } else if (patient == null) {
+      // Do not delete everything
+      // Patient ID is required...
+      status = Status.UNAUTHORIZED;
+      outcome = App.DB.outcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_PATIENT);
     } else {
       // Cascading delete
-      App.DB.delete(Database.BUNDLE, id);
-      App.DB.delete(Database.CLAIM, id);
-      App.DB.delete(Database.CLAIM_RESPONSE, id);
+      App.DB.delete(Database.BUNDLE, id, patient);
+      App.DB.delete(Database.CLAIM, id, patient);
+      App.DB.delete(Database.CLAIM_RESPONSE, id, patient);
       outcome = App.DB.outcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
     }
     String xml = App.DB.xml(outcome);

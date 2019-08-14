@@ -38,12 +38,12 @@ public class ClaimResponseEndpointTest {
     Path fixture = modulesFolder.resolve("claimresponse-minimal.json");
     FileInputStream inputStream = new FileInputStream(fixture.toString());
     ClaimResponse claimResponse = (ClaimResponse) App.FHIR_CTX.newJsonParser().parseResource(inputStream);
-    App.DB.write(Database.CLAIM_RESPONSE, "minimal", claimResponse);
+    App.DB.write(Database.CLAIM_RESPONSE, "minimal", "1", claimResponse);
   }
 
   @AfterClass
   public static void cleanup() {
-    App.DB.delete(Database.CLAIM_RESPONSE, "minimal");
+    App.DB.delete(Database.CLAIM_RESPONSE, "minimal", "1");
   }
 
   @Test
@@ -52,7 +52,7 @@ public class ClaimResponseEndpointTest {
 
     // Test that we can GET /fhir/ClaimResponse.
     Request request = new Request.Builder()
-        .url(base + "/ClaimResponse")
+        .url(base + "/ClaimResponse?patient.identifier=1")
         .header("Accept", "application/fhir+json")
         .build();
     Response response = client.newCall(request).execute();
@@ -79,7 +79,7 @@ public class ClaimResponseEndpointTest {
 
     // Test that we can GET /fhir/ClaimResponse.
     Request request = new Request.Builder()
-        .url(base + "/ClaimResponse")
+        .url(base + "/ClaimResponse?patient.identifier=1")
         .header("Accept", "application/fhir+xml")
         .build();
     Response response = client.newCall(request).execute();
@@ -102,7 +102,7 @@ public class ClaimResponseEndpointTest {
 
   @Test
   public void claimResponseExists() {
-    ClaimResponse claimResponse = (ClaimResponse) App.DB.read(Database.CLAIM_RESPONSE, "minimal");
+    ClaimResponse claimResponse = (ClaimResponse) App.DB.read(Database.CLAIM_RESPONSE, "minimal", "1");
     Assert.assertNotNull(claimResponse);
   }
 
@@ -112,7 +112,7 @@ public class ClaimResponseEndpointTest {
 
     // Test that we can GET /fhir/ClaimResponse/minimal
     Request request = new Request.Builder()
-       .url(base + "/ClaimResponse/minimal")
+        .url(base + "/ClaimResponse?identifier=minimal&patient.identifier=1")
        .header("Accept", "application/fhir+json")
        .build();
     Response response = client.newCall(request).execute();
@@ -139,7 +139,7 @@ public class ClaimResponseEndpointTest {
 
     // Test that we can GET /fhir/ClaimResponse/minimal
     Request request = new Request.Builder()
-       .url(base + "/ClaimResponse/minimal")
+        .url(base + "/ClaimResponse?identifier=minimal&patient.identifier=1")
        .header("Accept", "application/fhir+xml")
        .build();
     Response response = client.newCall(request).execute();
@@ -166,7 +166,7 @@ public class ClaimResponseEndpointTest {
 
     // Test that non-existent ClaimResponse returns 404.
     Request request = new Request.Builder()
-        .url(base + "/ClaimResponse/ClaimResponseThatDoesNotExist")
+        .url(base + "/ClaimResponse?identifier=ClaimResponseThatDoesNotExist&patient.identifier=45")
         .build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(404, response.code());
