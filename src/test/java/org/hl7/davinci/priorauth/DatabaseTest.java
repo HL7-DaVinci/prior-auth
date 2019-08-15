@@ -11,7 +11,7 @@ public class DatabaseTest {
 
   @Test
   public void testSearch() {
-    Bundle results = App.DB.search(Database.BUNDLE);
+    Bundle results = App.DB.search(Database.BUNDLE, "pat013");
     Assert.assertNotNull(results);
     Assert.assertEquals(BundleType.SEARCHSET, results.getType());
 

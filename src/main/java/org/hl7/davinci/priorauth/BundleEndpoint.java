@@ -4,7 +4,7 @@ import javax.enterprise.context.RequestScoped;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -26,48 +26,33 @@ import org.slf4j.LoggerFactory;
 @Path("Bundle")
 public class BundleEndpoint {
 
-  static final Logger logger = LoggerFactory.getLogger(ClaimEndpoint.class);
+  static final Logger logger = LoggerFactory.getLogger(BundleEndpoint.class);
 
-  String REQUIRES_ID = "Instance ID is required: DELETE Bundle/{id}";
+  String REQUIRES_ID = "Instance ID is required: DELETE Bundle?identifier=";
+  String REQUIRES_PATIENT = "Patient Identifier is required: DELETE Bundle?patient.identifier=";
   String DELETED_MSG = "Deleted Bundle and all related and referenced resources.";
 
   @Context
   private UriInfo uri;
-  
-  @GET
-  @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
-  public Response searchBundles() {
-    logger.info("GET /Bundle fhir+json");
-    App.DB.setBaseUrl(uri.getBaseUri());
-    Bundle bundles = App.DB.search(Database.BUNDLE);
-    String json = App.DB.json(bundles);
-    return Response.ok(json).build();
-  }
 
   @GET
-  @Produces({MediaType.APPLICATION_XML, "application/fhir+xml"})
-  public Response searchBundlesXml() {
-    logger.info("GET /Bundle fhir+xml");
-    App.DB.setBaseUrl(uri.getBaseUri());
-    Bundle bundles = App.DB.search(Database.BUNDLE);
-    String xml = App.DB.xml(bundles);
-    return Response.ok(xml).build();
-  }
-
-  @GET
-  @Path("/{id}")
+  @Path("/")
   @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
-  public Response readBundle(@PathParam("id") String id) {
-    logger.info("GET /Bundle/" + id + " fhir+json");
+  public Response readBundle(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
+    logger.info("GET /Bundle:" + id + "/" + patient + " fhir+json");
+    if (patient == null) {
+      logger.info("patient null");
+      return Response.status(Status.UNAUTHORIZED).build();
+    }
     String json = null;
     if (id == null) {
       // Search
       App.DB.setBaseUrl(uri.getBaseUri());
-      Bundle bundles = App.DB.search(Database.BUNDLE);
+      Bundle bundles = App.DB.search(Database.BUNDLE, patient);
       json = App.DB.json(bundles);
     } else {
       // Read
-      Bundle bundle = (Bundle) App.DB.read(Database.BUNDLE, id);
+      Bundle bundle = (Bundle) App.DB.read(Database.BUNDLE, id, patient);
       if (bundle == null) {
         return Response.status(Status.NOT_FOUND).build();
       }
@@ -77,19 +62,23 @@ public class BundleEndpoint {
   }
 
   @GET
-  @Path("/{id}")
+  @Path("/")
   @Produces({MediaType.APPLICATION_XML, "application/fhir+xml"})
-  public Response readBundleXml(@PathParam("id") String id) {
-    logger.info("GET /Bundle/" + id + " fhir+xml");
+  public Response readBundleXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
+    logger.info("GET /Bundle:" + id + "/" + patient + " fhir+xml");
+    if (patient == null) {
+      logger.info("patient null");
+      return Response.status(Status.UNAUTHORIZED).build();
+    }
     String xml = null;
     if (id == null) {
       // Search
       App.DB.setBaseUrl(uri.getBaseUri());
-      Bundle bundles = App.DB.search(Database.BUNDLE);
+      Bundle bundles = App.DB.search(Database.BUNDLE, patient);
       xml = App.DB.xml(bundles);
     } else {
       // Read
-      Bundle bundle = (Bundle) App.DB.read(Database.BUNDLE, id);
+      Bundle bundle = (Bundle) App.DB.read(Database.BUNDLE, id, patient);
       if (bundle == null) {
         return Response.status(Status.NOT_FOUND).build();
       }
@@ -99,10 +88,10 @@ public class BundleEndpoint {
   }
 
   @DELETE
-  @Path("/{id}")
+  @Path("/")
   @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
-  public Response deleteBundle(@PathParam("id") String id) {
-    logger.info("DELETE /Bundle/" + id + " fhir+json");
+  public Response deleteBundle(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient) {
+    logger.info("DELETE /Bundle:" + id + "/" + patient + " fhir+json");
     Status status = Status.OK;
     OperationOutcome outcome = null;
     if (id == null) {
@@ -110,11 +99,16 @@ public class BundleEndpoint {
       // ID is required...
       status = Status.BAD_REQUEST;
       outcome = App.DB.outcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_ID);
+    } else if (patient == null) {
+      // Do not delete everything
+      // Patient ID is required...
+      status = Status.UNAUTHORIZED;
+      outcome = App.DB.outcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_PATIENT);
     } else {
       // Cascading delete
-      App.DB.delete(Database.BUNDLE, id);
-      App.DB.delete(Database.CLAIM, id);
-      App.DB.delete(Database.CLAIM_RESPONSE, id);
+      App.DB.delete(Database.BUNDLE, id, patient);
+      App.DB.delete(Database.CLAIM, id, patient);
+      App.DB.delete(Database.CLAIM_RESPONSE, id, patient);
       outcome = App.DB.outcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
     }
     String json = App.DB.json(outcome);
@@ -122,10 +116,10 @@ public class BundleEndpoint {
   }
 
   @DELETE
-  @Path("/{id}")
+  @Path("/")
   @Produces({MediaType.APPLICATION_JSON, "application/fhir+xml"})
-  public Response deleteBundleXml(@PathParam("id") String id) {
-    logger.info("DELETE /Bundle/" + id + " fhir+xml");
+  public Response deleteBundleXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient) {
+    logger.info("DELETE /Bundle:" + id + "/" + patient + " fhir+xml");
     Status status = Status.OK;
     OperationOutcome outcome = null;
     if (id == null) {
@@ -133,11 +127,16 @@ public class BundleEndpoint {
       // ID is required...
       status = Status.BAD_REQUEST;
       outcome = App.DB.outcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_ID);
+    } else if (patient == null) {
+      // Do not delete everything
+      // Patient ID is required...
+      status = Status.UNAUTHORIZED;
+      outcome = App.DB.outcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_PATIENT);
     } else {
       // Cascading delete
-      App.DB.delete(Database.BUNDLE, id);
-      App.DB.delete(Database.CLAIM, id);
-      App.DB.delete(Database.CLAIM_RESPONSE, id);
+      App.DB.delete(Database.BUNDLE, id, patient);
+      App.DB.delete(Database.CLAIM, id, patient);
+      App.DB.delete(Database.CLAIM_RESPONSE, id, patient);
       outcome = App.DB.outcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
     }
     String xml = App.DB.xml(outcome);

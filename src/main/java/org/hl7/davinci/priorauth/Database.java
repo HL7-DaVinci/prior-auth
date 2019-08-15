@@ -17,11 +17,16 @@ import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.OperationOutcome.OperationOutcomeIssueComponent;
 import org.hl7.fhir.r4.model.Resource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The Database is responsible for storing and retrieving FHIR resources.
  */
 public class Database {
+
+  static final Logger logger = LoggerFactory.getLogger(Database.class);
+
   /** Bundle Resource */
   public static final String BUNDLE = "Bundle";
   /** Claim Resource */
@@ -55,7 +60,7 @@ public class Database {
     try (Connection connection = getConnection()) {
       for (String table : tables) {
         connection.prepareStatement(
-            "CREATE TABLE IF NOT EXISTS " + table + " (id varchar, resource clob)")
+            "CREATE TABLE IF NOT EXISTS " + table + " (id varchar, patient varchar, resource clob)")
         .execute();   
       }
     } catch (SQLException e) {
@@ -68,18 +73,23 @@ public class Database {
    * @param resourceType - the FHIR resourceType to search.
    * @return Bundle - the search result Bundle.
    */
-  public Bundle search(String resourceType) {
+  public Bundle search(String resourceType, String patient) {
+    logger.info("Database::search(" + resourceType + ", " + patient + ")");
     Bundle results = new Bundle();
     results.setType(BundleType.SEARCHSET);
     results.setTimestamp(new Date());
     try (Connection connection = getConnection()) {
       PreparedStatement stmt = connection.prepareStatement(
-          "SELECT id, resource FROM " + resourceType);
+          "SELECT id, patient, resource FROM " + resourceType + " WHERE patient = ?");
+      stmt.setString(1, patient);
+      logger.info("search query: " + stmt.toString());
       ResultSet rs = stmt.executeQuery();
       int total = 0;
       while (rs.next()) {
         String id = rs.getString("id");
+        String patientOut = rs.getString("patient");
         String json = rs.getString("resource");
+        logger.info("search: " + id + "/" + patientOut);
         Resource resource = (Resource) App.FHIR_CTX.newJsonParser().parseResource(json);
         resource.setId(id);
         BundleEntryComponent entry = new BundleEntryComponent();
@@ -101,16 +111,21 @@ public class Database {
    * @param id - the ID of the resource.
    * @return IBaseResource - if the resource exists, otherwise null.
    */
-  public IBaseResource read(String resourceType, String id) {
+  public IBaseResource read(String resourceType, String id, String patient) {
+    logger.info("Database::read(" + resourceType + ", " + id + ", " + patient + ")");
     IBaseResource result = null;
     if (resourceType != null && id != null) {
       try (Connection connection = getConnection()) {
         PreparedStatement stmt = connection.prepareStatement(
-            "SELECT id, resource FROM " + resourceType + " WHERE id = ?");
+            "SELECT id, patient, resource FROM " + resourceType + " WHERE id = ? AND patient = ?");
         stmt.setString(1, id);
+        stmt.setString(2, patient);
+        logger.info("read query: " + stmt.toString());
         ResultSet rs = stmt.executeQuery();
         if (rs.next()) {
           String json = rs.getString("resource");
+          String patientOut = rs.getString("patient");
+          logger.info("read: " + id + "/" + patientOut);
           Resource resource = (Resource) App.FHIR_CTX.newJsonParser().parseResource(json);
           resource.setId(id);
           result = resource;
@@ -129,14 +144,15 @@ public class Database {
    * @param resource - the resource itself.
    * @return boolean - whether or not the resource was written.
    */
-  public boolean write(String resourceType, String id, IBaseResource resource) {
+  public boolean write(String resourceType, String id, String patient, IBaseResource resource) {
     boolean result = false;
     if (resourceType != null && id != null && resource != null) {
       try (Connection connection = getConnection()) {
         PreparedStatement stmt = connection.prepareStatement(
-            "INSERT INTO " + resourceType + " (id, resource) VALUES (?,?);");
+            "INSERT INTO " + resourceType + " (id, patient, resource) VALUES (?,?,?);");
         stmt.setString(1, id);
-        stmt.setString(2, json(resource));
+        stmt.setString(2, patient);
+        stmt.setString(3, json(resource));
         result = stmt.execute();
       } catch (SQLException e) {
         e.printStackTrace();
@@ -151,17 +167,18 @@ public class Database {
    * @param id - the id of the resource to delete.
    * @return boolean - whether or not the resource was deleted.
    */
-  public boolean delete(String resourceType, String id) {
+  public boolean delete(String resourceType, String id, String patient) {
     boolean result = false;
     if (resourceType != null && id != null) {
       try (Connection connection = getConnection()) {
         PreparedStatement stmt = connection.prepareStatement(
-            "DELETE FROM " + resourceType + " WHERE id = ?;");
+            "DELETE FROM " + resourceType + " WHERE id = ? AND patient = ?;");
         stmt.setString(1, id);
+        stmt.setString(2, patient);
         result = stmt.execute();
       } catch (SQLException e) {
         e.printStackTrace();
-      } 
+      }
     }
     return result;
   }

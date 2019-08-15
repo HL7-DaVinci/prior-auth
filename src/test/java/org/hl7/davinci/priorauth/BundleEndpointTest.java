@@ -37,12 +37,12 @@ public class BundleEndpointTest {
     Path fixture = modulesFolder.resolve("bundle-minimal.json");
     FileInputStream inputStream = new FileInputStream(fixture.toString());
     Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(inputStream);
-    App.DB.write(Database.BUNDLE, "minimal", bundle);
+    App.DB.write(Database.BUNDLE, "minimal", "1", bundle);
   }
 
   @AfterClass
   public static void cleanup() {
-    App.DB.delete(Database.BUNDLE, "minimal");
+    App.DB.delete(Database.BUNDLE, "minimal", "1");
   }
 
   @Test
@@ -51,7 +51,7 @@ public class BundleEndpointTest {
 
     // Test that we can GET /fhir/Bundle.
     Request request = new Request.Builder()
-        .url(base + "/Bundle")
+        .url(base + "/Bundle?patient.identifier=1")
         .header("Accept", "application/fhir+json")
         .build();
     Response response = client.newCall(request).execute();
@@ -78,7 +78,7 @@ public class BundleEndpointTest {
 
     // Test that we can GET /fhir/Bundle.
     Request request = new Request.Builder()
-        .url(base + "/Bundle")
+        .url(base + "/Bundle?patient.identifier=1")
         .header("Accept", "application/fhir+xml")
         .build();
     Response response = client.newCall(request).execute();
@@ -101,7 +101,7 @@ public class BundleEndpointTest {
 
   @Test
   public void bundleExists() {
-    Bundle bundle = (Bundle) App.DB.read(Database.BUNDLE, "minimal");
+    Bundle bundle = (Bundle) App.DB.read(Database.BUNDLE, "minimal", "1");
     Assert.assertNotNull(bundle);
   }
 
@@ -111,7 +111,7 @@ public class BundleEndpointTest {
 
     // Test that we can get fhir/Bundle/minimal
     Request request = new Request.Builder()
-        .url(base + "/Bundle/minimal")
+        .url(base + "/Bundle?identifier=minimal&patient.identifier=1")
         .header("Accept", "application/fhir+json")
         .build();
     Response response = client.newCall(request).execute();
@@ -138,7 +138,7 @@ public class BundleEndpointTest {
 
     // Test that we can get fhir/Bundle/minimal
     Request request = new Request.Builder()
-        .url(base + "/Bundle/minimal")
+        .url(base + "/Bundle?identifier=minimal&patient.identifier=1")
         .header("Accept", "application/fhir+xml")
         .build();
     Response response = client.newCall(request).execute();
@@ -165,7 +165,7 @@ public class BundleEndpointTest {
 
     // Test that non-existent Bundle returns 404.
     Request request = new Request.Builder()
-        .url(base + "/Bundle/BundlemThatDoesNotExist")
+        .url(base + "/Bundle?identifier=BundleThatDoesNotExist&patient.identifier=45")
         .build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(404, response.code());
