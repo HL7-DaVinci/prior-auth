@@ -17,7 +17,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The ClaimResponse endpoint to READ, SEARCH for, and DELETE ClaimResponses to submitted claims.
+ * The ClaimResponse endpoint to READ, SEARCH for, and DELETE ClaimResponses to
+ * submitted claims.
  */
 @RequestScoped
 @Path("ClaimResponse")
@@ -31,12 +32,13 @@ public class ClaimResponseEndpoint {
 
   @Context
   private UriInfo uri;
-  
+
   @GET
   @Path("/")
-  @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
-  public Response readClaimResponse(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
-    logger.info("GET /ClaimResponse:" + id + "/" + patient + " fhir+json");
+  @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
+  public Response readClaimResponse(@QueryParam("identifier") String id,
+      @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
+    logger.info("GET /ClaimResponse:" + id + "/" + patient + "/" + status + " fhir+json");
     if (patient == null) {
       logger.info("patient null");
       return Response.status(Status.UNAUTHORIZED).build();
@@ -45,11 +47,21 @@ public class ClaimResponseEndpoint {
     if (id == null) {
       // Search
       App.DB.setBaseUrl(uri.getBaseUri());
-      Bundle claimResponses = App.DB.search(Database.CLAIM_RESPONSE, patient);
+      Bundle claimResponses;
+      if (status == null) {
+        claimResponses = App.DB.search(Database.CLAIM_RESPONSE, patient);
+      } else {
+        claimResponses = App.DB.search(Database.CLAIM_RESPONSE, patient, status);
+      }
       json = App.DB.json(claimResponses);
     } else {
       // Read
-      ClaimResponse claimResponse = (ClaimResponse) App.DB.read(Database.CLAIM_RESPONSE, id, patient);
+      ClaimResponse claimResponse;
+      if (status == null) {
+        claimResponse = (ClaimResponse) App.DB.read(Database.CLAIM_RESPONSE, id, patient);
+      } else {
+        claimResponse = (ClaimResponse) App.DB.read(Database.CLAIM_RESPONSE, id, patient, status);
+      }
       if (claimResponse == null) {
         return Response.status(Status.NOT_FOUND).build();
       }
@@ -60,8 +72,9 @@ public class ClaimResponseEndpoint {
 
   @GET
   @Path("/")
-  @Produces({MediaType.APPLICATION_XML, "application/fhir+xml"})
-  public Response readClaimResponseXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
+  @Produces({ MediaType.APPLICATION_XML, "application/fhir+xml" })
+  public Response readClaimResponseXml(@QueryParam("identifier") String id,
+      @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
     logger.info("GET /ClaimResponse:" + id + "/" + patient + " fhir+json");
     if (patient == null) {
       logger.info("patient null");
@@ -71,11 +84,21 @@ public class ClaimResponseEndpoint {
     if (id == null) {
       // Search
       App.DB.setBaseUrl(uri.getBaseUri());
-      Bundle claimResponses = App.DB.search(Database.CLAIM_RESPONSE, patient);
+      Bundle claimResponses;
+      if (status == null) {
+        claimResponses = App.DB.search(Database.CLAIM_RESPONSE, patient);
+      } else {
+        claimResponses = App.DB.search(Database.CLAIM_RESPONSE, patient, status);
+      }
       xml = App.DB.xml(claimResponses);
     } else {
       // Read
-      ClaimResponse claimResponse = (ClaimResponse) App.DB.read(Database.CLAIM_RESPONSE, id, patient);
+      ClaimResponse claimResponse;
+      if (status == null) {
+        claimResponse = (ClaimResponse) App.DB.read(Database.CLAIM_RESPONSE, id, patient);
+      } else {
+        claimResponse = (ClaimResponse) App.DB.read(Database.CLAIM_RESPONSE, id, patient, status);
+      }
       if (claimResponse == null) {
         return Response.status(Status.NOT_FOUND).build();
       }
@@ -86,8 +109,9 @@ public class ClaimResponseEndpoint {
 
   @DELETE
   @Path("/")
-  @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
-  public Response deleteClaimResponse(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient) {
+  @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
+  public Response deleteClaimResponse(@QueryParam("identifier") String id,
+      @QueryParam("patient.identifier") String patient) {
     logger.info("DELETE /ClaimResponse:" + id + "/" + patient + " fhir+json");
     Status status = Status.OK;
     OperationOutcome outcome = null;
@@ -114,8 +138,9 @@ public class ClaimResponseEndpoint {
 
   @DELETE
   @Path("/")
-  @Produces({MediaType.APPLICATION_JSON, "application/fhir+xml"})
-  public Response deleteClaimResponseXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient) {
+  @Produces({ MediaType.APPLICATION_JSON, "application/fhir+xml" })
+  public Response deleteClaimResponseXml(@QueryParam("identifier") String id,
+      @QueryParam("patient.identifier") String patient) {
     logger.info("DELETE /ClaimResponse:" + id + "/" + patient + " fhir+xml");
     Status status = Status.OK;
     OperationOutcome outcome = null;
