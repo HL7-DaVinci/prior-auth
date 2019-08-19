@@ -79,35 +79,7 @@ public class Database {
    * @return Bundle - the search result Bundle.
    */
   public Bundle search(String resourceType, String patient) {
-    logger.info("Database::search(" + resourceType + ", " + patient + ")");
-    Bundle results = new Bundle();
-    results.setType(BundleType.SEARCHSET);
-    results.setTimestamp(new Date());
-    try (Connection connection = getConnection()) {
-      PreparedStatement stmt = connection
-          .prepareStatement("SELECT id, patient, resource FROM " + resourceType + " WHERE patient = ?");
-      stmt.setString(1, patient);
-      logger.info("search query: " + stmt.toString());
-      ResultSet rs = stmt.executeQuery();
-      int total = 0;
-      while (rs.next()) {
-        String id = rs.getString("id");
-        String patientOut = rs.getString("patient");
-        String json = rs.getString("resource");
-        logger.info("search: " + id + "/" + patientOut);
-        Resource resource = (Resource) App.FHIR_CTX.newJsonParser().parseResource(json);
-        resource.setId(id);
-        BundleEntryComponent entry = new BundleEntryComponent();
-        entry.setFullUrl(baseUrl + resourceType + "/" + id);
-        entry.setResource(resource);
-        results.addEntry(entry);
-        total += 1;
-      }
-      results.setTotal(total);
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-    return results;
+    return search(resourceType, patient, null);
   }
 
   /**
@@ -118,15 +90,17 @@ public class Database {
    * @return Bundle - the search result Bundle.
    */
   public Bundle search(String resourceType, String patient, String status) {
-    logger.info("Database::search(" + resourceType + ", " + patient + ")");
+    logger.info("Database::search(" + resourceType + ", " + patient + "," + status + ")");
     Bundle results = new Bundle();
     results.setType(BundleType.SEARCHSET);
     results.setTimestamp(new Date());
     try (Connection connection = getConnection()) {
+      String statusQuery = status == null ? "" : " AND status = ?";
       PreparedStatement stmt = connection
-          .prepareStatement("SELECT id, patient, resource FROM " + resourceType + " WHERE patient = ? AND status = ?");
+          .prepareStatement("SELECT id, patient, resource FROM " + resourceType + " WHERE patient = ?" + statusQuery);
       stmt.setString(1, patient);
-      stmt.setString(2, status.toLowerCase());
+      if (status != null)
+        stmt.setString(2, status.toLowerCase());
       logger.info("search query: " + stmt.toString());
       ResultSet rs = stmt.executeQuery();
       int total = 0;
@@ -158,29 +132,7 @@ public class Database {
    * @return IBaseResource - if the resource exists, otherwise null.
    */
   public IBaseResource read(String resourceType, String id, String patient) {
-    logger.info("Database::read(" + resourceType + ", " + id + ", " + patient + ")");
-    IBaseResource result = null;
-    if (resourceType != null && id != null) {
-      try (Connection connection = getConnection()) {
-        PreparedStatement stmt = connection
-            .prepareStatement("SELECT id, patient, resource FROM " + resourceType + " WHERE id = ? AND patient = ?");
-        stmt.setString(1, id);
-        stmt.setString(2, patient);
-        logger.info("read query: " + stmt.toString());
-        ResultSet rs = stmt.executeQuery();
-        if (rs.next()) {
-          String json = rs.getString("resource");
-          String patientOut = rs.getString("patient");
-          logger.info("read: " + id + "/" + patientOut);
-          Resource resource = (Resource) App.FHIR_CTX.newJsonParser().parseResource(json);
-          resource.setId(id);
-          result = resource;
-        }
-      } catch (SQLException e) {
-        e.printStackTrace();
-      }
-    }
-    return result;
+    return read(resourceType, id, patient, null);
   }
 
   /**
@@ -196,11 +148,13 @@ public class Database {
     IBaseResource result = null;
     if (resourceType != null && id != null) {
       try (Connection connection = getConnection()) {
+        String statusQuery = status == null ? "" : " AND status = ?";
         PreparedStatement stmt = connection.prepareStatement(
-            "SELECT id, patient, resource FROM " + resourceType + " WHERE id = ? AND patient = ? AND status = ?");
+            "SELECT id, patient, resource FROM " + resourceType + " WHERE id = ? AND patient = ?" + statusQuery);
         stmt.setString(1, id);
         stmt.setString(2, patient);
-        stmt.setString(3, status.toLowerCase());
+        if (status != null)
+          stmt.setString(3, status.toLowerCase());
         logger.info("read query: " + stmt.toString());
         ResultSet rs = stmt.executeQuery();
         if (rs.next()) {
