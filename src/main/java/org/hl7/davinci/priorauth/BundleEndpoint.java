@@ -49,7 +49,12 @@ public class BundleEndpoint {
     if (id == null) {
       // Search
       App.DB.setBaseUrl(uri.getBaseUri());
-      Bundle bundles = App.DB.search(Database.BUNDLE, patient);
+      Bundle bundles;
+      if (status == null) {
+        bundles = App.DB.search(Database.BUNDLE, patient);
+      } else {
+        bundles = App.DB.search(Database.BUNDLE, patient, status);
+      }
       json = App.DB.json(bundles);
     } else {
       // Read
