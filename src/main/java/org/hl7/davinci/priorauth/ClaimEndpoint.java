@@ -52,9 +52,10 @@ public class ClaimEndpoint {
 
   @GET
   @Path("/")
-  @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
-  public Response readClaim(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
-    logger.info("GET /Claim:" + id + "/" + patient + " fhir+json");
+  @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
+  public Response readClaim(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient,
+      @QueryParam("status") String status) {
+    logger.info("GET /Claim:" + id + "/" + patient + "/" + status + " fhir+json");
     if (patient == null) {
       logger.info("patient null");
       return Response.status(Status.UNAUTHORIZED).build();
@@ -63,11 +64,21 @@ public class ClaimEndpoint {
     if (id == null) {
       // Search
       App.DB.setBaseUrl(uri.getBaseUri());
-      Bundle claims = App.DB.search(Database.CLAIM, patient);
+      Bundle claims;
+      if (status == null) {
+        claims = App.DB.search(Database.CLAIM, patient);
+      } else {
+        claims = App.DB.search(Database.CLAIM, patient, status);
+      }
       json = App.DB.json(claims);
     } else {
       // Read
-      Claim claim = (Claim) App.DB.read(Database.CLAIM, id, patient);
+      Claim claim;
+      if (status == null) {
+        claim = (Claim) App.DB.read(Database.CLAIM, id, patient);
+      } else {
+        claim = (Claim) App.DB.read(Database.CLAIM, id, patient, status);
+      }
       if (claim == null) {
         return Response.status(Status.NOT_FOUND).build();
       }
@@ -78,9 +89,10 @@ public class ClaimEndpoint {
 
   @GET
   @Path("/")
-  @Produces({MediaType.APPLICATION_XML, "application/fhir+xml"})
-  public Response readClaimXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
-    logger.info("GET /Claim:" + id + "/" + patient + " fhir+xml");
+  @Produces({ MediaType.APPLICATION_XML, "application/fhir+xml" })
+  public Response readClaimXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient,
+      @QueryParam("status") String status) {
+    logger.info("GET /Claim:" + id + "/" + patient + "/" + status + " fhir+xml");
     if (patient == null) {
       logger.info("patient null");
       return Response.status(Status.UNAUTHORIZED).build();
@@ -89,11 +101,21 @@ public class ClaimEndpoint {
     if (id == null) {
       // Search
       App.DB.setBaseUrl(uri.getBaseUri());
-      Bundle claims = App.DB.search(Database.CLAIM, patient);
+      Bundle claims;
+      if (status == null) {
+        claims = App.DB.search(Database.CLAIM, patient);
+      } else {
+        claims = App.DB.search(Database.CLAIM, patient, status);
+      }
       xml = App.DB.xml(claims);
     } else {
       // Read
-      Claim claim = (Claim) App.DB.read(Database.CLAIM, id, patient);
+      Claim claim;
+      if (status == null) {
+        claim = (Claim) App.DB.read(Database.CLAIM, id, patient);
+      } else {
+        claim = (Claim) App.DB.read(Database.CLAIM, id, patient, status);
+      }
       if (claim == null) {
         return Response.status(Status.NOT_FOUND).build();
       }
@@ -104,7 +126,7 @@ public class ClaimEndpoint {
 
   @DELETE
   @Path("/")
-  @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
+  @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
   public Response deleteClaim(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient) {
     logger.info("DELETE /Claim:" + id + "/" + patient + " fhir+json");
     Status status = Status.OK;
@@ -132,8 +154,9 @@ public class ClaimEndpoint {
 
   @DELETE
   @Path("/")
-  @Produces({MediaType.APPLICATION_JSON, "application/fhir+xml"})
-  public Response deleteClaimXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient) {
+  @Produces({ MediaType.APPLICATION_JSON, "application/fhir+xml" })
+  public Response deleteClaimXml(@QueryParam("identifier") String id,
+      @QueryParam("patient.identifier") String patient) {
     logger.info("DELETE /Claim:" + id + "/" + patient + " fhir+xml");
     Status status = Status.OK;
     OperationOutcome outcome = null;
@@ -160,7 +183,7 @@ public class ClaimEndpoint {
 
   @POST
   @Path("/$submit")
-  @Consumes({MediaType.APPLICATION_JSON, "application/fhir+json"})
+  @Consumes({ MediaType.APPLICATION_JSON, "application/fhir+json" })
   public Response submitOperation(String body) {
     logger.info("POST /Claim/$submit fhir+json");
     String id = null;
@@ -170,8 +193,7 @@ public class ClaimEndpoint {
       IBaseResource resource = App.FHIR_CTX.newJsonParser().parseResource(body);
       if (resource instanceof Bundle) {
         Bundle bundle = (Bundle) resource;
-        if (bundle.hasEntry() && (bundle.getEntry().size() > 1)
-            && bundle.getEntryFirstRep().hasResource()
+        if (bundle.hasEntry() && (bundle.getEntry().size() > 1) && bundle.getEntryFirstRep().hasResource()
             && bundle.getEntryFirstRep().getResource().getResourceType() == ResourceType.Claim) {
           IBaseResource response = processBundle(bundle);
           if (response.getIdElement().hasIdPart()) {
@@ -206,7 +228,7 @@ public class ClaimEndpoint {
 
   @POST
   @Path("/$submit")
-  @Consumes({MediaType.APPLICATION_XML, "application/fhir+xml"})
+  @Consumes({ MediaType.APPLICATION_XML, "application/fhir+xml" })
   public Response submitOperationXml(String body) {
     logger.info("POST /Claim/$submit fhir+xml");
     String id = null;
@@ -216,8 +238,7 @@ public class ClaimEndpoint {
       IBaseResource resource = App.FHIR_CTX.newXmlParser().parseResource(body);
       if (resource instanceof Bundle) {
         Bundle bundle = (Bundle) resource;
-        if (bundle.hasEntry() && (bundle.getEntry().size() > 1)
-            && bundle.getEntryFirstRep().hasResource()
+        if (bundle.hasEntry() && (bundle.getEntry().size() > 1) && bundle.getEntryFirstRep().hasResource()
             && bundle.getEntryFirstRep().getResource().getResourceType() == ResourceType.Claim) {
           IBaseResource response = processBundle(bundle);
           if (response.getIdElement().hasIdPart()) {
@@ -251,8 +272,9 @@ public class ClaimEndpoint {
   }
 
   /**
-   * Process the $submit operation Bundle.
-   * Theoretically, this is where business logic should be implemented or overridden.
+   * Process the $submit operation Bundle. Theoretically, this is where business
+   * logic should be implemented or overridden.
+   * 
    * @param bundle Bundle with a Claim followed by other required resources.
    * @return ClaimResponse with the result.
    */
@@ -267,8 +289,8 @@ public class ClaimEndpoint {
     String patient = "";
     try {
       String[] patientParts = claim.getPatient().getReference().split("/");
-      patient = patientParts[patientParts.length-1];
-      logger.info("processBundle: patient: " + patientParts[patientParts.length-1]);
+      patient = patientParts[patientParts.length - 1];
+      logger.info("processBundle: patient: " + patientParts[patientParts.length - 1]);
     } catch (Exception e) {
       logger.error("processBundle: error procesing patient: " + e.toString());
     }

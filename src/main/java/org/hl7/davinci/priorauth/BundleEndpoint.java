@@ -37,8 +37,9 @@ public class BundleEndpoint {
 
   @GET
   @Path("/")
-  @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
-  public Response readBundle(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
+  @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
+  public Response readBundle(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient,
+      @QueryParam("status") String status) {
     logger.info("GET /Bundle:" + id + "/" + patient + " fhir+json");
     if (patient == null) {
       logger.info("patient null");
@@ -48,11 +49,21 @@ public class BundleEndpoint {
     if (id == null) {
       // Search
       App.DB.setBaseUrl(uri.getBaseUri());
-      Bundle bundles = App.DB.search(Database.BUNDLE, patient);
+      Bundle bundles;
+      if (status == null) {
+        bundles = App.DB.search(Database.BUNDLE, patient);
+      } else {
+        bundles = App.DB.search(Database.BUNDLE, patient, status);
+      }
       json = App.DB.json(bundles);
     } else {
       // Read
-      Bundle bundle = (Bundle) App.DB.read(Database.BUNDLE, id, patient);
+      Bundle bundle;
+      if (status == null) {
+        bundle = (Bundle) App.DB.read(Database.BUNDLE, id, patient);
+      } else {
+        bundle = (Bundle) App.DB.read(Database.BUNDLE, id, patient, status);
+      }
       if (bundle == null) {
         return Response.status(Status.NOT_FOUND).build();
       }
@@ -63,8 +74,9 @@ public class BundleEndpoint {
 
   @GET
   @Path("/")
-  @Produces({MediaType.APPLICATION_XML, "application/fhir+xml"})
-  public Response readBundleXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
+  @Produces({ MediaType.APPLICATION_XML, "application/fhir+xml" })
+  public Response readBundleXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient,
+      @QueryParam("status") String status) {
     logger.info("GET /Bundle:" + id + "/" + patient + " fhir+xml");
     if (patient == null) {
       logger.info("patient null");
@@ -74,11 +86,21 @@ public class BundleEndpoint {
     if (id == null) {
       // Search
       App.DB.setBaseUrl(uri.getBaseUri());
-      Bundle bundles = App.DB.search(Database.BUNDLE, patient);
+      Bundle bundles;
+      if (status == null) {
+        bundles = App.DB.search(Database.BUNDLE, patient);
+      } else {
+        bundles = App.DB.search(Database.BUNDLE, patient, status);
+      }
       xml = App.DB.xml(bundles);
     } else {
       // Read
-      Bundle bundle = (Bundle) App.DB.read(Database.BUNDLE, id, patient);
+      Bundle bundle;
+      if (status == null) {
+        bundle = (Bundle) App.DB.read(Database.BUNDLE, id, patient);
+      } else {
+        bundle = (Bundle) App.DB.read(Database.BUNDLE, id, patient, status);
+      }
       if (bundle == null) {
         return Response.status(Status.NOT_FOUND).build();
       }
@@ -89,7 +111,7 @@ public class BundleEndpoint {
 
   @DELETE
   @Path("/")
-  @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
+  @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
   public Response deleteBundle(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient) {
     logger.info("DELETE /Bundle:" + id + "/" + patient + " fhir+json");
     Status status = Status.OK;
@@ -117,8 +139,9 @@ public class BundleEndpoint {
 
   @DELETE
   @Path("/")
-  @Produces({MediaType.APPLICATION_JSON, "application/fhir+xml"})
-  public Response deleteBundleXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient) {
+  @Produces({ MediaType.APPLICATION_JSON, "application/fhir+xml" })
+  public Response deleteBundleXml(@QueryParam("identifier") String id,
+      @QueryParam("patient.identifier") String patient) {
     logger.info("DELETE /Bundle:" + id + "/" + patient + " fhir+xml");
     Status status = Status.OK;
     OperationOutcome outcome = null;
