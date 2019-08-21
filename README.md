@@ -82,6 +82,8 @@ The body of the `/Claim/$submit` operation are as follows:
 
 The first `entry` of the submitted `Bundle` should contain a `Claim`, followed by a `QuestionnaireResponse` which includes answers in response to questions presented by Da Vinci [Documentation Templates and Rules](https://github.com/HL7-DaVinci/dtr) (DTR), then the `DeviceRequest` (or other resource type) that actually requires the prior authorization, followed by all supporting FHIR resources including the `Patient`, `Practitioner`, `Coverage`, and relevant `Condition` and `Observation` resources used in DTR calculations or otherwise used as supporting information.
 
+To cancel the Claim submit a `Claim` resource with the `id` of the Claim to cancel and set the `status` to `cancelled`. If the Claim exists and is not already cancelled the database will be update to reflect the cancellation.
+
 ## Response of the `/Claim/$submit` Operation
 
 Assuming the structure and contents of the submitted `Bundle` are adequate, the service will responsed with a `ClaimResponse` as detailed below. Otherwise, the service will respond with an `OperationalOutcome` containing an error message.
