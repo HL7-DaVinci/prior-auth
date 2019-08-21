@@ -5,6 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
+import java.util.HashMap;
 
 import org.apache.meecrowave.Meecrowave;
 import org.apache.meecrowave.junit.MonoMeecrowave;
@@ -37,8 +39,12 @@ public class BundleEndpointTest {
     Path fixture = modulesFolder.resolve("bundle-minimal.json");
     FileInputStream inputStream = new FileInputStream(fixture.toString());
     Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(inputStream);
-    String[] bundleValues = { "minimal", "1", Database.getStatusFromResource(bundle) };
-    App.DB.write(Database.BUNDLE, Database.BUNDLE_KEYS, bundleValues, bundle);
+    Map<String, Object> bundleMap = new HashMap<String, Object>();
+    bundleMap.put("id", "minimal");
+    bundleMap.put("patient", "1");
+    bundleMap.put("status", Database.getStatusFromResource(bundle));
+    bundleMap.put("resource", bundle);
+    App.DB.write(Database.BUNDLE, bundleMap);
   }
 
   @AfterClass

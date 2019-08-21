@@ -5,6 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
+import java.util.HashMap;
 
 import org.apache.meecrowave.Meecrowave;
 import org.apache.meecrowave.junit.MonoMeecrowave;
@@ -38,8 +40,12 @@ public class ClaimEndpointTest {
     Path fixture = modulesFolder.resolve("claim-minimal.json");
     FileInputStream inputStream = new FileInputStream(fixture.toString());
     Claim claim = (Claim) App.FHIR_CTX.newJsonParser().parseResource(inputStream);
-    String[] claimValues = { "minimal", "1", Database.getStatusFromResource(claim) };
-    App.DB.write(Database.CLAIM, Database.CLAIM_KEYS, claimValues, claim);
+    Map<String, Object> claimMap = new HashMap<String, Object>();
+    claimMap.put("id", "minimal");
+    claimMap.put("patient", "1");
+    claimMap.put("status", Database.getStatusFromResource(claim));
+    claimMap.put("resource", claim);
+    App.DB.write(Database.CLAIM, claimMap);
   }
 
   @AfterClass
