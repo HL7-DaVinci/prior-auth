@@ -21,9 +21,9 @@ public class Endpoint {
     static final Boolean requestXml = false;
     static final Boolean requestJson = true;
 
-    static String REQUIRES_ID = "Instance ID is required: DELETE ClaimResponse?identifier=";
-    static String REQUIRES_PATIENT = "Patient Identifier is required: DELETE ClaimResponse?patient.identifier=";
-    static String DELETED_MSG = "Deleted ClaimResponse and all related and referenced resources.";
+    static String REQUIRES_ID = "Instance ID is required: DELETE {resourceType}?identifier=";
+    static String REQUIRES_PATIENT = "Patient Identifier is required: DELETE {resourceType}?patient.identifier=";
+    static String DELETED_MSG = "Deleted resource and all related and referenced resources.";
 
     /**
      * Read a resource from an endpoint in either JSON or XML

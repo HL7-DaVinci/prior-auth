@@ -1,5 +1,7 @@
 package org.hl7.davinci.priorauth;
 
+import java.util.*;
+
 import java.net.URI;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -35,6 +37,12 @@ public class Database {
   public static final String CLAIM = "Claim";
   /** ClaimResponse Resource */
   public static final String CLAIM_RESPONSE = "ClaimResponse";
+  /** Bundle Table Keys */
+  public static final String[] BUNDLE_KEYS = { "id", "patient", "status", "resource" };
+  /** Claim Table Keys */
+  public static final String[] CLAIM_KEYS = { "id", "patient", "status", "resource" };
+  /** ClaimResponse Table Keys */
+  public static final String[] CLAIM_RESPONSE_KEYS = { "id", "claimId", "patient", "status", "resource" };
 
   // DB_CLOSE_DELAY=-1 maintains the DB in memory after all connections closed
   // (so that we don't lose everything between a connection closing and the next
@@ -59,14 +67,18 @@ public class Database {
   private String baseUrl;
 
   public Database() {
-    String[] tables = { BUNDLE, CLAIM, CLAIM_RESPONSE };
     try (Connection connection = getConnection()) {
-      for (String table : tables) {
-        connection
-            .prepareStatement(
-                "CREATE TABLE IF NOT EXISTS " + table + " (id varchar, patient varchar, status varchar, resource clob)")
-            .execute();
-      }
+      // TODO: make these use the {RESOURCE}_KEYS array
+      String bundleTableStmt = "CREATE TABLE IF NOT EXISTS " + BUNDLE
+          + "(id varchar, patient varchar, status varchar, resource clob);";
+      String claimTableStmt = "CREATE TABLE IF NOT EXISTS " + CLAIM
+          + "(id varchar, patient varchar, status varchar, resource clob);";
+      String claimResponseTableStmt = "CREATE TABLE IF NOT EXISTS " + CLAIM_RESPONSE
+          + "(id varchar, claimId varchar, patient varchar, status varchar, resource clob);";
+
+      connection.prepareStatement(bundleTableStmt).execute();
+      connection.prepareStatement(claimTableStmt).execute();
+      connection.prepareStatement(claimResponseTableStmt).execute();
     } catch (SQLException e) {
       e.printStackTrace();
     }
@@ -173,39 +185,55 @@ public class Database {
   }
 
   /**
-   * Insert a resource into the database.
+   * Insert a resource into database.
    * 
-   * @param resourceType - the resource type.
-   * @param id           - the resource id.
+   * @param resourceType - the tpye of the resource.
+   * @param keys         - string array of key (table column) names.
+   * @param values       - string array of values to add into the columns.
    * @param resource     - the resource itself.
    * @return boolean - whether or not the resource was written.
    */
-  public boolean write(String resourceType, String id, String patient, IBaseResource resource) {
+  public boolean write(String resourceType, String[] keys, String[] values, IBaseResource resource) {
+    final String commaSeperator = ", ";
+    final String quoteSeperator = "', '";
+    logger.info("Database::write(" + resourceType + ", (" + reduceArray(keys, commaSeperator) + "), ("
+        + reduceArray(values, commaSeperator) + "))");
     boolean result = false;
-    if (resourceType != null && id != null && resource != null) {
+    if (keys != null && values != null && resource != null && keys.length == (values.length + 1)) {
+      try (Connection connection = getConnection()) {
+        String sql = "INSERT INTO " + resourceType + " (" + reduceArray(keys, commaSeperator) + ") VALUES ('"
+            + reduceArray(values, quoteSeperator) + "',?);";
+        PreparedStatement stmt = connection.prepareStatement(sql);
+        stmt.setString(1, json(resource));
+        result = stmt.execute();
+        logger.info(sql);
+      } catch (SQLException e) {
+        e.printStackTrace();
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Update a single column in a row to a new value
+   * 
+   * @param resourceType - the resource type.
+   * @param id           - the resource id.
+   * @param column       - the name of the column to update.
+   * @param value        - the new value.
+   * @return boolean - whether or not the update was successful
+   */
+  public boolean update(String resourceType, String id, String column, String value) {
+    logger.info("Database::update(" + resourceType + ", " + id + ", " + column + ", " + value + ")");
+    boolean result = false;
+    if (resourceType != null && id != null && column != null) {
       try (Connection connection = getConnection()) {
         PreparedStatement stmt = connection
-            .prepareStatement("INSERT INTO " + resourceType + " (id, patient, status, resource) VALUES (?,?,?,?);");
-        String queryStmt = stmt.toString();
-        String status;
-        if (resource instanceof Claim) {
-          Claim claim = (Claim) resource;
-          status = claim.getStatus().getDisplay();
-        } else if (resource instanceof ClaimResponse) {
-          ClaimResponse claimResponse = (ClaimResponse) resource;
-          status = claimResponse.getStatus().getDisplay();
-        } else if (resource instanceof Bundle) {
-          status = "valid";
-        } else {
-          status = "unkown";
-        }
-        status = status.toLowerCase();
-        stmt.setString(1, id);
-        stmt.setString(2, patient);
-        stmt.setString(3, status);
-        stmt.setString(4, json(resource));
+            .prepareStatement("UPDATE " + resourceType + " SET " + column + " = ? WHERE id = ?;");
+        stmt.setString(1, value);
+        stmt.setString(2, id);
+        logger.info(stmt.toString());
         result = stmt.execute();
-        logger.info("write: " + queryStmt + "{1: " + id + ", 2: " + patient + ", 3: " + status + ", 4: Resource}");
       } catch (SQLException e) {
         e.printStackTrace();
       }
@@ -256,6 +284,30 @@ public class Database {
   }
 
   /**
+   * Internal function to get the correct status from a resource depebdibg on the
+   * type
+   * 
+   * @param resource - the resource.
+   * @return - the status of the resource.
+   */
+  public static String getStatusFromResource(IBaseResource resource) {
+    String status;
+    if (resource instanceof Claim) {
+      Claim claim = (Claim) resource;
+      status = claim.getStatus().getDisplay();
+    } else if (resource instanceof ClaimResponse) {
+      ClaimResponse claimResponse = (ClaimResponse) resource;
+      status = claimResponse.getStatus().getDisplay();
+    } else if (resource instanceof Bundle) {
+      status = "valid";
+    } else {
+      status = "unkown";
+    }
+    status = status.toLowerCase();
+    return status;
+  }
+
+  /**
    * Set the base URI for the microservice. This is necessary so
    * Bundle.entry.fullUrl data is accurately populated.
    * 
@@ -302,5 +354,17 @@ public class Database {
     issue.setCode(type);
     issue.setDiagnostics(message);
     return error;
+  }
+
+  /**
+   * Internal method for reducing an array into a string
+   * 
+   * @param arr       - the string array to reduce.
+   * @param separator - the string to connect elements together.
+   * @return a single string representation of the array
+   */
+  private String reduceArray(String[] arr, String separator) {
+    Optional<String> reducedArr = Arrays.stream(arr).reduce((str1, str2) -> str1 + separator + str2);
+    return reducedArr.get();
   }
 }

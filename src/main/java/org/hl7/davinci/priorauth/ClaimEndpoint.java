@@ -30,6 +30,7 @@ import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ResourceType;
+import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -172,20 +173,32 @@ public class ClaimEndpoint {
       logger.error("processBundle: error procesing patient: " + e.toString());
     }
 
-    // Store the bundle...
-    bundle.setId(id);
-    App.DB.write(Database.BUNDLE, id, patient, bundle);
+    String claimId = id;
+    ClaimResponseStatus responseStatus = ClaimResponseStatus.ACTIVE;
+    ClaimStatus status = claim.getStatus();
+    if (status == Claim.ClaimStatus.CANCELLED) {
+      // Cancel the claim
+      claimId = claim.getIdElement().getIdPart();
+      App.DB.update(Database.CLAIM, claimId, "status", status.getDisplay().toLowerCase());
+      responseStatus = ClaimResponseStatus.CANCELLED;
+    } else {
+      // Store the bundle...
+      bundle.setId(id);
+      String[] bundleValues = { id, patient, Database.getStatusFromResource(bundle) };
+      App.DB.write(Database.BUNDLE, Database.BUNDLE_KEYS, bundleValues, bundle);
 
-    // Store the claim...
-    claim.setId(id);
-    App.DB.write(Database.CLAIM, id, patient, claim);
+      // Store the claim...
+      claim.setId(id);
+      String[] claimValues = { id, patient, Database.getStatusFromResource(claim) };
+      App.DB.write(Database.CLAIM, Database.CLAIM_KEYS, claimValues, claim);
 
+    }
     // Process the claim...
     // TODO
 
     // Generate the claim response...
     ClaimResponse response = new ClaimResponse();
-    response.setStatus(ClaimResponseStatus.ACTIVE);
+    response.setStatus(responseStatus);
     response.setType(claim.getType());
     response.setUse(Use.PREAUTHORIZATION);
     response.setPatient(claim.getPatient());
@@ -202,7 +215,8 @@ public class ClaimEndpoint {
     // TODO response.setPreAuthPeriod(period)?
     // Store the claim response...
     response.setId(id);
-    App.DB.write(Database.CLAIM_RESPONSE, id, patient, response);
+    String[] responseValues = { id, claimId, patient, Database.getStatusFromResource(response) };
+    App.DB.write(Database.CLAIM_RESPONSE, Database.CLAIM_RESPONSE_KEYS, responseValues, response);
 
     // Respond...
     return response;
