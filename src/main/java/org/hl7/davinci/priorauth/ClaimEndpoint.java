@@ -182,6 +182,7 @@ public class ClaimEndpoint {
     }
 
     String claimId = id;
+    String responseDisposition = "Unknown";
     ClaimResponseStatus responseStatus = ClaimResponseStatus.ACTIVE;
     ClaimStatus status = claim.getStatus();
     if (status == Claim.ClaimStatus.CANCELLED) {
@@ -192,6 +193,7 @@ public class ClaimEndpoint {
         if (initialClaim.getStatus() != Claim.ClaimStatus.CANCELLED) {
           App.DB.update(Database.CLAIM, claimId, "status", status.getDisplay().toLowerCase());
           responseStatus = ClaimResponseStatus.CANCELLED;
+          responseDisposition = "Cancelled";
         } else {
           logger.info("Claim " + claimId + " is already cancelled");
           return null;
@@ -211,6 +213,8 @@ public class ClaimEndpoint {
       String[] claimValues = { id, patient, Database.getStatusFromResource(claim) };
       App.DB.write(Database.CLAIM, Database.CLAIM_KEYS, claimValues, claim);
 
+      // Make up a disposition
+      responseDisposition = "Granted";
     }
     // Process the claim...
     // TODO
@@ -229,7 +233,7 @@ public class ClaimEndpoint {
     }
     response.setRequest(new Reference(uri.getBaseUri() + "Claim/" + id));
     response.setOutcome(RemittanceOutcome.COMPLETE);
-    response.setDisposition("Granted");
+    response.setDisposition(responseDisposition);
     response.setPreAuthRef(id);
     // TODO response.setPreAuthPeriod(period)?
     // Store the claim response...

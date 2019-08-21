@@ -284,7 +284,7 @@ public class Database {
   }
 
   /**
-   * Internal function to get the correct status from a resource depebdibg on the
+   * Internal function to get the correct status from a resource depending on the
    * type
    * 
    * @param resource - the resource.
