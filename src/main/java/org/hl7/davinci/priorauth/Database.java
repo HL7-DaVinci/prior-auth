@@ -37,12 +37,6 @@ public class Database {
   public static final String CLAIM = "Claim";
   /** ClaimResponse Resource */
   public static final String CLAIM_RESPONSE = "ClaimResponse";
-  /** Bundle Table Keys */
-  public static final String[] BUNDLE_KEYS = { "id", "patient", "status", "resource" };
-  /** Claim Table Keys */
-  public static final String[] CLAIM_KEYS = { "id", "patient", "status", "resource" };
-  /** ClaimResponse Table Keys */
-  public static final String[] CLAIM_RESPONSE_KEYS = { "id", "claimId", "patient", "status", "resource" };
 
   // DB_CLOSE_DELAY=-1 maintains the DB in memory after all connections closed
   // (so that we don't lose everything between a connection closing and the next
@@ -68,7 +62,6 @@ public class Database {
 
   public Database() {
     try (Connection connection = getConnection()) {
-      // TODO: make these use the {RESOURCE}_KEYS array
       String bundleTableStmt = "CREATE TABLE IF NOT EXISTS " + BUNDLE
           + "(id varchar, patient varchar, status varchar, resource clob);";
       String claimTableStmt = "CREATE TABLE IF NOT EXISTS " + CLAIM
@@ -188,23 +181,17 @@ public class Database {
    * Insert a resource into database.
    * 
    * @param resourceType - the tpye of the resource.
-   * @param keys         - string array of key (table column) names.
-   * @param values       - string array of values to add into the columns.
-   * @param resource     - the resource itself.
+   * @param data         - map of columns (keys) and values.
    * @return boolean - whether or not the resource was written.
    */
-  public boolean write(String resourceType, String[] keys, String[] values, IBaseResource resource) {
-    final String commaSeperator = ", ";
-    final String quoteSeperator = "', '";
-    logger.info("Database::write(" + resourceType + ", (" + reduceArray(keys, commaSeperator) + "), ("
-        + reduceArray(values, commaSeperator) + "))");
+  public boolean write(String resourceType, Map<String, Object> data) {
+    logger.info("Database::write(" + resourceType + ", " + data.toString() + ")");
     boolean result = false;
-    if (keys != null && values != null && resource != null && keys.length == (values.length + 1)) {
+    if (data != null) {
       try (Connection connection = getConnection()) {
-        String sql = "INSERT INTO " + resourceType + " (" + reduceArray(keys, commaSeperator) + ") VALUES ('"
-            + reduceArray(values, quoteSeperator) + "',?);";
+        String sql = "INSERT INTO " + resourceType + " (" + setColumns(data.keySet()) + ") VALUES "
+            + setValues(data.values()) + ";";
         PreparedStatement stmt = connection.prepareStatement(sql);
-        stmt.setString(1, json(resource));
         result = stmt.execute();
         logger.info(sql);
       } catch (SQLException e) {
@@ -357,14 +344,40 @@ public class Database {
   }
 
   /**
-   * Internal method for reducing an array into a string
+   * Internal function to map the keys to a string
    * 
-   * @param arr       - the string array to reduce.
-   * @param separator - the string to connect elements together.
-   * @return a single string representation of the array
+   * @param keys - the set of keys to be reduced.
+   * @return a string of each key concatenated by ", "
    */
-  private String reduceArray(String[] arr, String separator) {
-    Optional<String> reducedArr = Arrays.stream(arr).reduce((str1, str2) -> str1 + separator + str2);
+  private String setColumns(Set<String> keys) {
+    Optional<String> reducedArr = Arrays.stream(keys.toArray(new String[0])).reduce((str1, str2) -> str1 + ", " + str2);
     return reducedArr.get();
+  }
+
+  /**
+   * Internal function to map the values to a string
+   * 
+   * @param values - the collection of values to be reduced.
+   * @return a single string of each value represented as a string concatenated by
+   *         ", " and wrapped in ' '
+   */
+  private String setValues(Collection<Object> values) {
+    String sqlStr = "(";
+    for (Iterator<Object> iterator = values.iterator(); iterator.hasNext();) {
+      Object value = iterator.next();
+      sqlStr += "'";
+      if (value instanceof String)
+        sqlStr += (String) value;
+      else if (value instanceof IBaseResource)
+        sqlStr += json((IBaseResource) value);
+      else
+        sqlStr += value.toString();
+
+      if (iterator.hasNext())
+        sqlStr += "', ";
+      else
+        sqlStr += "')";
+    }
+    return sqlStr;
   }
 }

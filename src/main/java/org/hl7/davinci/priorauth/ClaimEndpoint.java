@@ -1,6 +1,8 @@
 package org.hl7.davinci.priorauth;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.enterprise.context.RequestScoped;
@@ -205,13 +207,21 @@ public class ClaimEndpoint {
     } else {
       // Store the bundle...
       bundle.setId(id);
-      String[] bundleValues = { id, patient, Database.getStatusFromResource(bundle) };
-      App.DB.write(Database.BUNDLE, Database.BUNDLE_KEYS, bundleValues, bundle);
+      Map<String, Object> bundleMap = new HashMap<String, Object>();
+      bundleMap.put("id", id);
+      bundleMap.put("patient", patient);
+      bundleMap.put("status", Database.getStatusFromResource(bundle));
+      bundleMap.put("resource", bundle);
+      App.DB.write(Database.BUNDLE, bundleMap);
 
       // Store the claim...
       claim.setId(id);
-      String[] claimValues = { id, patient, Database.getStatusFromResource(claim) };
-      App.DB.write(Database.CLAIM, Database.CLAIM_KEYS, claimValues, claim);
+      Map<String, Object> claimMap = new HashMap<String, Object>();
+      claimMap.put("id", id);
+      claimMap.put("patient", patient);
+      claimMap.put("status", Database.getStatusFromResource(claim));
+      claimMap.put("resource", claim);
+      App.DB.write(Database.CLAIM, claimMap);
 
       // Make up a disposition
       responseDisposition = "Granted";
@@ -236,10 +246,16 @@ public class ClaimEndpoint {
     response.setDisposition(responseDisposition);
     response.setPreAuthRef(id);
     // TODO response.setPreAuthPeriod(period)?
-    // Store the claim response...
     response.setId(id);
-    String[] responseValues = { id, claimId, patient, Database.getStatusFromResource(response) };
-    App.DB.write(Database.CLAIM_RESPONSE, Database.CLAIM_RESPONSE_KEYS, responseValues, response);
+
+    // Store the claim respnose...
+    Map<String, Object> responseMap = new HashMap<String, Object>();
+    responseMap.put("id", id);
+    responseMap.put("claimId", claimId);
+    responseMap.put("patient", patient);
+    responseMap.put("status", Database.getStatusFromResource(response));
+    responseMap.put("resource", response);
+    App.DB.write(Database.CLAIM_RESPONSE, responseMap);
 
     // Respond...
     return response;
