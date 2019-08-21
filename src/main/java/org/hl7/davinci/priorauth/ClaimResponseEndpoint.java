@@ -7,6 +7,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import org.hl7.davinci.priorauth.Endpoint.RequestType;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +30,7 @@ public class ClaimResponseEndpoint {
   @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
   public Response readClaimResponse(@QueryParam("identifier") String id,
       @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
-    return Endpoint.read(id, patient, status, Database.CLAIM_RESPONSE, uri, Endpoint.requestJson);
+    return Endpoint.read(id, patient, status, Database.CLAIM_RESPONSE, uri, RequestType.JSON);
   }
 
   @GET
@@ -36,7 +38,7 @@ public class ClaimResponseEndpoint {
   @Produces({ MediaType.APPLICATION_XML, "application/fhir+xml" })
   public Response readClaimResponseXml(@QueryParam("identifier") String id,
       @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
-    return Endpoint.read(id, patient, status, Database.CLAIM_RESPONSE, uri, Endpoint.requestXml);
+    return Endpoint.read(id, patient, status, Database.CLAIM_RESPONSE, uri, RequestType.XML);
   }
 
   @DELETE
@@ -44,7 +46,7 @@ public class ClaimResponseEndpoint {
   @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
   public Response deleteClaimResponse(@QueryParam("identifier") String id,
       @QueryParam("patient.identifier") String patient) {
-    return Endpoint.delete(id, patient, Database.CLAIM_RESPONSE, Endpoint.requestJson);
+    return Endpoint.delete(id, patient, Database.CLAIM_RESPONSE, RequestType.JSON);
   }
 
   @DELETE
@@ -52,7 +54,7 @@ public class ClaimResponseEndpoint {
   @Produces({ MediaType.APPLICATION_JSON, "application/fhir+xml" })
   public Response deleteClaimResponseXml(@QueryParam("identifier") String id,
       @QueryParam("patient.identifier") String patient) {
-    return Endpoint.delete(id, patient, Database.CLAIM_RESPONSE, Endpoint.requestXml);
+    return Endpoint.delete(id, patient, Database.CLAIM_RESPONSE, RequestType.XML);
   }
 
 }

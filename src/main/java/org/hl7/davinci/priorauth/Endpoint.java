@@ -18,8 +18,9 @@ public class Endpoint {
 
     static final Logger logger = LoggerFactory.getLogger(Endpoint.class);
 
-    static final Boolean requestXml = false;
-    static final Boolean requestJson = true;
+    public enum RequestType {
+        XML, JSON
+    }
 
     static String REQUIRES_ID = "Instance ID is required: DELETE ClaimResponse?identifier=";
     static String REQUIRES_PATIENT = "Patient Identifier is required: DELETE ClaimResponse?patient.identifier=";
@@ -28,19 +29,17 @@ public class Endpoint {
     /**
      * Read a resource from an endpoint in either JSON or XML
      * 
-     * @param id            - the ID of the resource.
-     * @param patient       - the patient ID.
-     * @param status        - the current status.
-     * @param resourceType  - the FHIR resourceType to read.
-     * @param uri           - the base URI for the microservice.
-     * @param isJsonRequest - true if the request is to return JSON and false for
-     *                      XML
+     * @param id           - the ID of the resource.
+     * @param patient      - the patient ID.
+     * @param status       - the current status.
+     * @param resourceType - the FHIR resourceType to read.
+     * @param uri          - the base URI for the microservice.
+     * @param requestType  - the RequestType of the request.
      * @return the desired resource if successful and an error message otherwise
      */
     public static Response read(String id, String patient, String status, String resourceType, UriInfo uri,
-            Boolean isJsonRequest) {
-        logger.info("GET /" + resourceType + ":" + id + "/" + patient + "/" + status + " fhir+json: "
-                + isJsonRequest.toString());
+            RequestType requestType) {
+        logger.info("GET /" + resourceType + ":" + id + "/" + patient + "/" + status + " fhir+" + requestType.name());
         if (patient == null) {
             logger.info("patient null");
             return Response.status(Status.UNAUTHORIZED).build();
@@ -55,7 +54,7 @@ public class Endpoint {
             } else {
                 searchBundle = App.DB.search(resourceType, patient, status);
             }
-            formattedData = isJsonRequest ? App.DB.json(searchBundle) : App.DB.xml(searchBundle);
+            formattedData = requestType == RequestType.JSON ? App.DB.json(searchBundle) : App.DB.xml(searchBundle);
         } else {
             // Read
             IBaseResource baseResource;
@@ -70,13 +69,14 @@ public class Endpoint {
             // Convert to correct resourceType
             if (resourceType == Database.BUNDLE) {
                 Bundle bundle = (Bundle) baseResource;
-                formattedData = isJsonRequest ? App.DB.json(bundle) : App.DB.xml(bundle);
+                formattedData = requestType == RequestType.JSON ? App.DB.json(bundle) : App.DB.xml(bundle);
             } else if (resourceType == Database.CLAIM) {
                 Claim claim = (Claim) baseResource;
-                formattedData = isJsonRequest ? App.DB.json(claim) : App.DB.xml(claim);
+                formattedData = requestType == RequestType.JSON ? App.DB.json(claim) : App.DB.xml(claim);
             } else if (resourceType == Database.CLAIM_RESPONSE) {
                 ClaimResponse claimResponse = (ClaimResponse) baseResource;
-                formattedData = isJsonRequest ? App.DB.json(claimResponse) : App.DB.xml(claimResponse);
+                formattedData = requestType == RequestType.JSON ? App.DB.json(claimResponse)
+                        : App.DB.xml(claimResponse);
             } else {
                 logger.info("invalid resourceType: " + resourceType);
                 return Response.status(Status.BAD_REQUEST).build();
@@ -88,15 +88,14 @@ public class Endpoint {
     /**
      * Read a resource from an endpoint in either JSON or XML
      * 
-     * @param id            - the ID of the resource.
-     * @param patient       - the patient ID.
-     * @param resourceType  - the FHIR resourceType to read.
-     * @param isJsonRequest - true if the request is to return JSON and false for
-     *                      XML
+     * @param id           - the ID of the resource.
+     * @param patient      - the patient ID.
+     * @param resourceType - the FHIR resourceType to read.
+     * @param requestType  - the RequestType of the request.
      * @return status of the deleted resource
      */
-    public static Response delete(String id, String patient, String resourceType, Boolean isJsonRequest) {
-        logger.info("DELETE /" + resourceType + ":" + id + "/" + patient + " fhir+json: " + isJsonRequest.toString());
+    public static Response delete(String id, String patient, String resourceType, RequestType requestType) {
+        logger.info("DELETE /" + resourceType + ":" + id + "/" + patient + " fhir+" + requestType.name());
         Status status = Status.OK;
         OperationOutcome outcome = null;
         if (id == null) {
@@ -116,7 +115,7 @@ public class Endpoint {
             App.DB.delete(Database.CLAIM_RESPONSE, id, patient);
             outcome = App.DB.outcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
         }
-        String formattedData = isJsonRequest ? App.DB.json(outcome) : App.DB.xml(outcome);
+        String formattedData = requestType == RequestType.JSON ? App.DB.json(outcome) : App.DB.xml(outcome);
         return Response.status(status).entity(formattedData).build();
     }
 }
