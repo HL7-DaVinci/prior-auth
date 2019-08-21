@@ -18,6 +18,7 @@ import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
+import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
@@ -54,7 +55,7 @@ public class ClaimEndpoint {
   @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
   public Response readClaimJson(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient,
       @QueryParam("status") String status) {
-    return Endpoint.read(id, patient, status, Database.CLAIM, uri, Endpoint.requestJson);
+    return Endpoint.read(id, patient, status, Database.CLAIM, uri, RequestType.JSON);
   }
 
   @GET
@@ -62,7 +63,7 @@ public class ClaimEndpoint {
   @Produces({ MediaType.APPLICATION_XML, "application/fhir+xml" })
   public Response readClaimXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient,
       @QueryParam("status") String status) {
-    return Endpoint.read(id, patient, status, Database.CLAIM, uri, Endpoint.requestXml);
+    return Endpoint.read(id, patient, status, Database.CLAIM, uri, RequestType.XML);
   }
 
   @DELETE
@@ -70,7 +71,7 @@ public class ClaimEndpoint {
   @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
   public Response deleteClaimJson(@QueryParam("identifier") String id,
       @QueryParam("patient.identifier") String patient) {
-    return Endpoint.delete(id, patient, Database.CLAIM, Endpoint.requestJson);
+    return Endpoint.delete(id, patient, Database.CLAIM, RequestType.JSON);
   }
 
   @DELETE
@@ -78,38 +79,37 @@ public class ClaimEndpoint {
   @Produces({ MediaType.APPLICATION_JSON, "application/fhir+xml" })
   public Response deleteClaimXml(@QueryParam("identifier") String id,
       @QueryParam("patient.identifier") String patient) {
-    return Endpoint.delete(id, patient, Database.CLAIM, Endpoint.requestXml);
+    return Endpoint.delete(id, patient, Database.CLAIM, RequestType.XML);
   }
 
   @POST
   @Path("/$submit")
   @Consumes({ MediaType.APPLICATION_JSON, "application/fhir+json" })
   public Response submitOperationJson(String body) {
-    return submitOperation(body, Endpoint.requestJson);
+    return submitOperation(body, RequestType.JSON);
   }
 
   @POST
   @Path("/$submit")
   @Consumes({ MediaType.APPLICATION_XML, "application/fhir+xml" })
   public Response submitOperationXml(String body) {
-    return submitOperation(body, Endpoint.requestXml);
+    return submitOperation(body, RequestType.XML);
   }
 
   /**
    * The submitOperation function for both json and xml
    * 
-   * @param body          - the body of the post request
-   * @param isJsonRequest - true if the request is submitted in JSON and false for
-   *                      XML
+   * @param body        - the body of the post request.
+   * @param requestType - the RequestType of the request.
    * @return - claimResponse response
    */
-  private Response submitOperation(String body, Boolean isJsonRequested) {
-    logger.info("POST /Claim/$submit fhir+json: " + isJsonRequested.toString());
+  private Response submitOperation(String body, RequestType requestType) {
+    logger.info("POST /Claim/$submit fhir+" + requestType.name());
     String id = null;
     Status status = Status.OK;
     String formattedData = null;
     try {
-      IParser parser = isJsonRequested ? App.FHIR_CTX.newJsonParser() : App.FHIR_CTX.newXmlParser();
+      IParser parser = requestType == RequestType.JSON ? App.FHIR_CTX.newJsonParser() : App.FHIR_CTX.newXmlParser();
       IBaseResource resource = parser.parseResource(body);
       if (resource instanceof Bundle) {
         Bundle bundle = (Bundle) resource;
@@ -119,27 +119,27 @@ public class ClaimEndpoint {
           if (response.getIdElement().hasIdPart()) {
             id = response.getIdElement().getIdPart();
           }
-          formattedData = isJsonRequested ? App.DB.json(response) : App.DB.xml(response);
+          formattedData = requestType == RequestType.JSON ? App.DB.json(response) : App.DB.xml(response);
         } else {
           // Claim is required...
           status = Status.BAD_REQUEST;
           OperationOutcome error = App.DB.outcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
-          formattedData = isJsonRequested ? App.DB.json(error) : App.DB.xml(error);
+          formattedData = requestType == RequestType.JSON ? App.DB.json(error) : App.DB.xml(error);
         }
       } else {
         // Bundle is required...
         status = Status.BAD_REQUEST;
         OperationOutcome error = App.DB.outcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
-        formattedData = isJsonRequested ? App.DB.json(error) : App.DB.xml(error);
+        formattedData = requestType == RequestType.JSON ? App.DB.json(error) : App.DB.xml(error);
       }
     } catch (Exception e) {
       // The submission failed so spectacularly that we need
       // catch an exception and send back an error message...
       status = Status.BAD_REQUEST;
       OperationOutcome error = App.DB.outcome(IssueSeverity.FATAL, IssueType.STRUCTURE, e.getMessage());
-      formattedData = isJsonRequested ? App.DB.json(error) : App.DB.xml(error);
+      formattedData = requestType == RequestType.JSON ? App.DB.json(error) : App.DB.xml(error);
     }
-    ResponseBuilder builder = isJsonRequested
+    ResponseBuilder builder = requestType == RequestType.JSON
         ? Response.status(status).type("application/fhir+json").entity(formattedData)
         : Response.status(status).type("application/fhir+xml").entity(formattedData);
     if (id != null) {
