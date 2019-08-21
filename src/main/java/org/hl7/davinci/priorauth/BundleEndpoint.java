@@ -11,6 +11,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import org.hl7.davinci.priorauth.Endpoint.RequestType;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +33,7 @@ public class BundleEndpoint {
   @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
   public Response readBundle(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient,
       @QueryParam("status") String status) {
-    return Endpoint.read(id, patient, status, Database.BUNDLE, uri, Endpoint.requestJson);
+    return Endpoint.read(id, patient, status, Database.BUNDLE, uri, RequestType.JSON);
   }
 
   @GET
@@ -39,14 +41,14 @@ public class BundleEndpoint {
   @Produces({ MediaType.APPLICATION_XML, "application/fhir+xml" })
   public Response readBundleXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient,
       @QueryParam("status") String status) {
-    return Endpoint.read(id, patient, status, Database.BUNDLE, uri, Endpoint.requestXml);
+    return Endpoint.read(id, patient, status, Database.BUNDLE, uri, RequestType.XML);
   }
 
   @DELETE
   @Path("/")
   @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
   public Response deleteBundle(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient) {
-    return Endpoint.delete(id, patient, Database.BUNDLE, Endpoint.requestJson);
+    return Endpoint.delete(id, patient, Database.BUNDLE, RequestType.JSON);
   }
 
   @DELETE
@@ -54,6 +56,6 @@ public class BundleEndpoint {
   @Produces({ MediaType.APPLICATION_JSON, "application/fhir+xml" })
   public Response deleteBundleXml(@QueryParam("identifier") String id,
       @QueryParam("patient.identifier") String patient) {
-    return Endpoint.delete(id, patient, Database.BUNDLE, Endpoint.requestXml);
+    return Endpoint.delete(id, patient, Database.BUNDLE, RequestType.XML);
   }
 }
