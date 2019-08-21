@@ -38,7 +38,7 @@ public class ClaimResponseEndpointTest {
     Path fixture = modulesFolder.resolve("claimresponse-minimal.json");
     FileInputStream inputStream = new FileInputStream(fixture.toString());
     ClaimResponse claimResponse = (ClaimResponse) App.FHIR_CTX.newJsonParser().parseResource(inputStream);
-    String[] claimResponseValues = { "minimal", "1", Database.getStatusFromResource(claimResponse) };
+    String[] claimResponseValues = { "minimal", "minimal", "1", Database.getStatusFromResource(claimResponse) };
     App.DB.write(Database.CLAIM_RESPONSE, Database.CLAIM_RESPONSE_KEYS, claimResponseValues, claimResponse);
   }
 
