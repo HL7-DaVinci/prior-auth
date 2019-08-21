@@ -1,8 +1,10 @@
 package org.hl7.davinci.priorauth;
 
 import java.util.*;
-
+import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -38,6 +40,8 @@ public class Database {
   /** ClaimResponse Resource */
   public static final String CLAIM_RESPONSE = "ClaimResponse";
 
+  private static final String createSqlFile = "src/main/java/org/hl7/davinci/priorauth/CreateDatabase.sql";
+
   // DB_CLOSE_DELAY=-1 maintains the DB in memory after all connections closed
   // (so that we don't lose everything between a connection closing and the next
   // being opened)
@@ -62,17 +66,13 @@ public class Database {
 
   public Database() {
     try (Connection connection = getConnection()) {
-      String bundleTableStmt = "CREATE TABLE IF NOT EXISTS " + BUNDLE
-          + "(id varchar, patient varchar, status varchar, resource clob);";
-      String claimTableStmt = "CREATE TABLE IF NOT EXISTS " + CLAIM
-          + "(id varchar, patient varchar, status varchar, resource clob);";
-      String claimResponseTableStmt = "CREATE TABLE IF NOT EXISTS " + CLAIM_RESPONSE
-          + "(id varchar, claimId varchar, patient varchar, status varchar, resource clob);";
-
-      connection.prepareStatement(bundleTableStmt).execute();
-      connection.prepareStatement(claimTableStmt).execute();
-      connection.prepareStatement(claimResponseTableStmt).execute();
+      String sql = new String(Files.readAllBytes(Paths.get(createSqlFile).toAbsolutePath()));
+      connection.prepareStatement(sql).execute();
+      logger.info(sql);
     } catch (SQLException e) {
+      e.printStackTrace();
+    } catch (IOException e) {
+      logger.info("IOException");
       e.printStackTrace();
     }
   }
