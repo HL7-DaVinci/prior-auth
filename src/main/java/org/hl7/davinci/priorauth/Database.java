@@ -68,19 +68,7 @@ public class Database {
   public Database() {
     try (Connection connection = getConnection()) {
       String sql = new String(Files.readAllBytes(Paths.get(createSqlFile).toAbsolutePath()));
-      // logger.info(sql.replace("\"", ""));
-      // String sql = "BEGIN TRANSACTION; CREATE TABLE IF NOT EXISTS Bundle ( id
-      // varchar PRIMARY KEY, patient varchar, status varchar, timestamp datetime
-      // DEFAULT CURRENT_TIMESTAMP, resource clob); CREATE TABLE IF NOT EXISTS Claim (
-      // id varchar PRIMARY KEY, patient varchar, related varchar DEFAULT NULL, status
-      // varchar, timestamp datetime DEFAULT CURRENT_TIMESTAMP, resource clob, FOREIGN
-      // KEY (related) REFERENCES Claim(id)); CREATE TABLE IF NOT EXISTS ClaimResponse
-      // ( id varchar PRIMARY KEY, claimId varchar, patient varchar, status varchar,
-      // timestamp datetime DEFAULT CURRENT_TIMESTAMP, resource clob, FOREIGN KEY
-      // (claimId) REFERENCES Claim(id)); ";
-
       connection.prepareStatement(sql.replace("\"", "")).execute();
-      // connection.prepareStatement(sql).execute();
       logger.info(sql);
     } catch (SQLException e) {
       e.printStackTrace();

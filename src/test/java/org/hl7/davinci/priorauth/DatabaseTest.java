@@ -22,7 +22,7 @@ public class DatabaseTest {
   public static void setup() throws FileNotFoundException {
     // Create a single test Claim
     Path modulesFolder = Paths.get("src/test/resources");
-    Path fixture = modulesFolder.resolve("bundle-minimal.json");
+    Path fixture = modulesFolder.resolve("bundle-prior-auth.json");
     FileInputStream inputStream = new FileInputStream(fixture.toString());
     Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(inputStream);
     Map<String, Object> bundleMap = new HashMap<String, Object>();
