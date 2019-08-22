@@ -28,4 +28,13 @@ BEGIN TRANSACTION;
         FOREIGN KEY ("claimId") REFERENCES Claim("id")
     );
 
+    CREATE TABLE IF NOT EXISTS ClaimItem (
+        "id" varchar,
+        "sequence" varchar,
+        "status" varchar,
+        "timestamp" datetime DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT pk_claimitems PRIMARY KEY ("id", "sequence"),
+        FOREIGN KEY ("id") REFERENCES Claim("id")
+    );
+
 COMMIT;

@@ -38,6 +38,8 @@ public class Database {
   public static final String BUNDLE = "Bundle";
   /** Claim Resource */
   public static final String CLAIM = "Claim";
+  /** Claim Item */
+  public static final String CLAIM_ITEM = "ClaimItem";
   /** ClaimResponse Resource */
   public static final String CLAIM_RESPONSE = "ClaimResponse";
 
@@ -67,21 +69,15 @@ public class Database {
 
   public Database() {
     try (Connection connection = getConnection()) {
-      // String sql = new
-      // String(Files.readAllBytes(Paths.get(createSqlFile).toAbsolutePath()));
-      // logger.info(sql.replace("\"", ""));
-      String sql = "BEGIN TRANSACTION; CREATE TABLE IF NOT EXISTS Bundle ( id varchar PRIMARY KEY, patient varchar, status varchar, timestamp datetime DEFAULT CURRENT_TIMESTAMP, resource clob); CREATE TABLE IF NOT EXISTS Claim ( id varchar PRIMARY KEY, patient varchar, related varchar DEFAULT NULL, status varchar, timestamp datetime DEFAULT CURRENT_TIMESTAMP, resource clob, FOREIGN KEY (related) REFERENCES Claim(id)); CREATE TABLE IF NOT EXISTS ClaimResponse ( id varchar PRIMARY KEY, claimId varchar, patient varchar, status varchar, timestamp datetime DEFAULT CURRENT_TIMESTAMP, resource clob, FOREIGN KEY (claimId) REFERENCES Claim(id)); ";
-
-      // connection.prepareStatement(sql.replace("\"", "")).execute();
-      connection.prepareStatement(sql).execute();
+      String sql = new String(Files.readAllBytes(Paths.get(createSqlFile).toAbsolutePath()));
+      connection.prepareStatement(sql.replace("\"", "")).execute();
       logger.info(sql);
     } catch (SQLException e) {
       e.printStackTrace();
+    } catch (IOException e) {
+      logger.info("IOException");
+      e.printStackTrace();
     }
-    // catch (IOException e) {
-    // logger.info("IOException");
-    // e.printStackTrace();
-    // }
   }
 
   /**
@@ -220,17 +216,16 @@ public class Database {
    * @param value        - the new value.
    * @return boolean - whether or not the update was successful
    */
-  public boolean update(String resourceType, String id, String column, String value) {
-    logger.info("Database::update(" + resourceType + ", " + id + ", " + column + ", " + value + ")");
+  public boolean update(String resourceType, Map<String, Object> constraintParams, Map<String, Object> data) {
+    logger.info("Database::update(" + resourceType + ", " + constraintParams.toString() + ", " + data.toString() + ")");
     boolean result = false;
-    if (resourceType != null && id != null && column != null) {
+    if (resourceType != null && constraintParams != null && data != null) {
       try (Connection connection = getConnection()) {
-        PreparedStatement stmt = connection
-            .prepareStatement("UPDATE " + resourceType + " SET " + column + " = ? WHERE id = ?;");
-        stmt.setString(1, value);
-        stmt.setString(2, id);
-        logger.info(stmt.toString());
+        String sql = "UPDATE " + resourceType + " SET " + reduceMap(data, ", ") + " WHERE "
+            + reduceMap(constraintParams, " AND ") + ";";
+        PreparedStatement stmt = connection.prepareStatement(sql);
         result = stmt.execute();
+        logger.info(sql);
       } catch (SQLException e) {
         e.printStackTrace();
       }
@@ -351,6 +346,38 @@ public class Database {
     issue.setCode(type);
     issue.setDiagnostics(message);
     return error;
+  }
+
+  /**
+   * Reduce a Map to a single string in the form "{key} = '{value}'" +
+   * concatonator
+   * 
+   * @param map          - key value pair of columns and values.
+   * @param concatonator - the string to connect a set of key value with another
+   *                     set.
+   * @return string in the form "{key} = '{value}'" + concatonator...
+   */
+  private String reduceMap(Map<String, Object> map, String concatonator) {
+    String sqlStr = "";
+    String column;
+    Object value;
+    for (Iterator<String> iterator = map.keySet().iterator(); iterator.hasNext();) {
+      column = iterator.next();
+      sqlStr += column + " = '";
+      value = map.get(column);
+      if (value instanceof String)
+        sqlStr += (String) value;
+      else if (value instanceof IBaseResource)
+        sqlStr += json((IBaseResource) value);
+      else
+        sqlStr += value.toString();
+
+      sqlStr += "'";
+      if (iterator.hasNext())
+        sqlStr += concatonator;
+    }
+
+    return sqlStr;
   }
 
   /**

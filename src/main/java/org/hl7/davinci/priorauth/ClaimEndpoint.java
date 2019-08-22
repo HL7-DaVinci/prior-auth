@@ -36,6 +36,7 @@ import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
+import org.hl7.fhir.r4.model.Claim.ItemComponent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -200,14 +201,15 @@ public class ClaimEndpoint {
     } else {
       // Store the claim...
       claim.setId(id);
+      String claimStatusStr = Database.getStatusFromResource(claim);
       Map<String, Object> claimMap = new HashMap<String, Object>();
       claimMap.put("id", id);
       claimMap.put("patient", patient);
-      claimMap.put("status", Database.getStatusFromResource(claim));
+      claimMap.put("status", claimStatusStr);
       claimMap.put("resource", claim);
-      String related = getRelatedId(claim);
+      RelatedClaimComponent related = getRelatedComponent(claim);
       if (related != null)
-        claimMap.put("related", related);
+        claimMap.put("related", related.getIdElement().asStringValue());
       if (!App.DB.write(Database.CLAIM, claimMap))
         return null;
 
@@ -219,6 +221,31 @@ public class ClaimEndpoint {
       bundleMap.put("status", Database.getStatusFromResource(bundle));
       bundleMap.put("resource", bundle);
       App.DB.write(Database.BUNDLE, bundleMap);
+
+      // Store the claim items...
+      if (claim.hasItem()) {
+        if (related != null) {
+          // Update the items...
+          for (ItemComponent item : claim.getItem()) {
+            Map<String, Object> dataMap = new HashMap<String, Object>();
+            Map<String, Object> constraintMap = new HashMap<String, Object>();
+            constraintMap.put("id", related.getIdElement().asStringValue());
+            constraintMap.put("sequence", item.getSequence());
+            dataMap.put("id", id);
+            dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
+            App.DB.update(Database.CLAIM_ITEM, constraintMap, dataMap);
+          }
+        } else {
+          // Add the claim items...
+          for (ItemComponent item : claim.getItem()) {
+            Map<String, Object> itemMap = new HashMap<String, Object>();
+            itemMap.put("id", id);
+            itemMap.put("sequence", item.getSequence());
+            itemMap.put("status", claimStatusStr);
+            App.DB.write(Database.CLAIM_ITEM, itemMap);
+          }
+        }
+      }
 
       // Make up a disposition
       responseDisposition = "Granted";
@@ -255,7 +282,11 @@ public class ClaimEndpoint {
     Claim initialClaim = (Claim) App.DB.read(Database.CLAIM, claimId, patient);
     if (initialClaim != null) {
       if (initialClaim.getStatus() != Claim.ClaimStatus.CANCELLED) {
-        App.DB.update(Database.CLAIM, claimId, "status", Claim.ClaimStatus.CANCELLED.getDisplay().toLowerCase());
+        Map<String, Object> dataMap = new HashMap<String, Object>();
+        Map<String, Object> constraintMap = new HashMap<String, Object>();
+        constraintMap.put("id", claimId);
+        dataMap.put("status", Claim.ClaimStatus.CANCELLED.getDisplay().toLowerCase());
+        App.DB.update(Database.CLAIM, constraintMap, dataMap);
         result = true;
       } else {
         logger.info("Claim " + claimId + " is already cancelled");
@@ -269,20 +300,20 @@ public class ClaimEndpoint {
   }
 
   /**
-   * Get the related claim id for an update to a claim (replaces relationship)
+   * Get the related claim for an update to a claim (replaces relationship)
    * 
    * @param claim - the base Claim resource.
-   * @return the id of the first related claim with relationship "replaces" or
-   *         null if no matching related resource.
+   * @return the first related claim with relationship "replaces" or null if no
+   *         matching related resource.
    */
-  private String getRelatedId(Claim claim) {
+  private RelatedClaimComponent getRelatedComponent(Claim claim) {
     if (claim.hasRelated()) {
       for (RelatedClaimComponent relatedComponent : claim.getRelated()) {
         if (relatedComponent.hasRelationship()) {
           for (Coding code : relatedComponent.getRelationship().getCoding()) {
             if (code.getCode().equals("replaces")) {
               // This claim is an update to an old claim
-              return relatedComponent.getIdElement().asStringValue();
+              return relatedComponent;
             }
           }
         }
