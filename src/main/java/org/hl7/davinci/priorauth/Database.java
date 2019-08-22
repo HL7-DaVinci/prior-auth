@@ -1,5 +1,7 @@
 package org.hl7.davinci.priorauth;
 
+import java.util.*;
+
 import java.net.URI;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -59,14 +61,17 @@ public class Database {
   private String baseUrl;
 
   public Database() {
-    String[] tables = { BUNDLE, CLAIM, CLAIM_RESPONSE };
     try (Connection connection = getConnection()) {
-      for (String table : tables) {
-        connection
-            .prepareStatement(
-                "CREATE TABLE IF NOT EXISTS " + table + " (id varchar, patient varchar, status varchar, resource clob)")
-            .execute();
-      }
+      String bundleTableStmt = "CREATE TABLE IF NOT EXISTS " + BUNDLE
+          + "(id varchar, patient varchar, status varchar, resource clob);";
+      String claimTableStmt = "CREATE TABLE IF NOT EXISTS " + CLAIM
+          + "(id varchar, patient varchar, status varchar, resource clob);";
+      String claimResponseTableStmt = "CREATE TABLE IF NOT EXISTS " + CLAIM_RESPONSE
+          + "(id varchar, claimId varchar, patient varchar, status varchar, resource clob);";
+
+      connection.prepareStatement(bundleTableStmt).execute();
+      connection.prepareStatement(claimTableStmt).execute();
+      connection.prepareStatement(claimResponseTableStmt).execute();
     } catch (SQLException e) {
       e.printStackTrace();
     }
@@ -173,39 +178,49 @@ public class Database {
   }
 
   /**
-   * Insert a resource into the database.
+   * Insert a resource into database.
+   * 
+   * @param resourceType - the tpye of the resource.
+   * @param data         - map of columns (keys) and values.
+   * @return boolean - whether or not the resource was written.
+   */
+  public boolean write(String resourceType, Map<String, Object> data) {
+    logger.info("Database::write(" + resourceType + ", " + data.toString() + ")");
+    boolean result = false;
+    if (data != null) {
+      try (Connection connection = getConnection()) {
+        String sql = "INSERT INTO " + resourceType + " (" + setColumns(data.keySet()) + ") VALUES "
+            + setValues(data.values()) + ";";
+        PreparedStatement stmt = connection.prepareStatement(sql);
+        result = stmt.execute();
+        logger.info(sql);
+      } catch (SQLException e) {
+        e.printStackTrace();
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Update a single column in a row to a new value
    * 
    * @param resourceType - the resource type.
    * @param id           - the resource id.
-   * @param resource     - the resource itself.
-   * @return boolean - whether or not the resource was written.
+   * @param column       - the name of the column to update.
+   * @param value        - the new value.
+   * @return boolean - whether or not the update was successful
    */
-  public boolean write(String resourceType, String id, String patient, IBaseResource resource) {
+  public boolean update(String resourceType, String id, String column, String value) {
+    logger.info("Database::update(" + resourceType + ", " + id + ", " + column + ", " + value + ")");
     boolean result = false;
-    if (resourceType != null && id != null && resource != null) {
+    if (resourceType != null && id != null && column != null) {
       try (Connection connection = getConnection()) {
         PreparedStatement stmt = connection
-            .prepareStatement("INSERT INTO " + resourceType + " (id, patient, status, resource) VALUES (?,?,?,?);");
-        String queryStmt = stmt.toString();
-        String status;
-        if (resource instanceof Claim) {
-          Claim claim = (Claim) resource;
-          status = claim.getStatus().getDisplay();
-        } else if (resource instanceof ClaimResponse) {
-          ClaimResponse claimResponse = (ClaimResponse) resource;
-          status = claimResponse.getStatus().getDisplay();
-        } else if (resource instanceof Bundle) {
-          status = "valid";
-        } else {
-          status = "unkown";
-        }
-        status = status.toLowerCase();
-        stmt.setString(1, id);
-        stmt.setString(2, patient);
-        stmt.setString(3, status);
-        stmt.setString(4, json(resource));
+            .prepareStatement("UPDATE " + resourceType + " SET " + column + " = ? WHERE id = ?;");
+        stmt.setString(1, value);
+        stmt.setString(2, id);
+        logger.info(stmt.toString());
         result = stmt.execute();
-        logger.info("write: " + queryStmt + "{1: " + id + ", 2: " + patient + ", 3: " + status + ", 4: Resource}");
       } catch (SQLException e) {
         e.printStackTrace();
       }
@@ -256,6 +271,30 @@ public class Database {
   }
 
   /**
+   * Internal function to get the correct status from a resource depending on the
+   * type
+   * 
+   * @param resource - the resource.
+   * @return - the status of the resource.
+   */
+  public static String getStatusFromResource(IBaseResource resource) {
+    String status;
+    if (resource instanceof Claim) {
+      Claim claim = (Claim) resource;
+      status = claim.getStatus().getDisplay();
+    } else if (resource instanceof ClaimResponse) {
+      ClaimResponse claimResponse = (ClaimResponse) resource;
+      status = claimResponse.getStatus().getDisplay();
+    } else if (resource instanceof Bundle) {
+      status = "valid";
+    } else {
+      status = "unkown";
+    }
+    status = status.toLowerCase();
+    return status;
+  }
+
+  /**
    * Set the base URI for the microservice. This is necessary so
    * Bundle.entry.fullUrl data is accurately populated.
    * 
@@ -302,5 +341,43 @@ public class Database {
     issue.setCode(type);
     issue.setDiagnostics(message);
     return error;
+  }
+
+  /**
+   * Internal function to map the keys to a string
+   * 
+   * @param keys - the set of keys to be reduced.
+   * @return a string of each key concatenated by ", "
+   */
+  private String setColumns(Set<String> keys) {
+    Optional<String> reducedArr = Arrays.stream(keys.toArray(new String[0])).reduce((str1, str2) -> str1 + ", " + str2);
+    return reducedArr.get();
+  }
+
+  /**
+   * Internal function to map the values to a string
+   * 
+   * @param values - the collection of values to be reduced.
+   * @return a single string of each value represented as a string concatenated by
+   *         ", " and wrapped in ' '
+   */
+  private String setValues(Collection<Object> values) {
+    String sqlStr = "(";
+    for (Iterator<Object> iterator = values.iterator(); iterator.hasNext();) {
+      Object value = iterator.next();
+      sqlStr += "'";
+      if (value instanceof String)
+        sqlStr += (String) value;
+      else if (value instanceof IBaseResource)
+        sqlStr += json((IBaseResource) value);
+      else
+        sqlStr += value.toString();
+
+      if (iterator.hasNext())
+        sqlStr += "', ";
+      else
+        sqlStr += "')";
+    }
+    return sqlStr;
   }
 }

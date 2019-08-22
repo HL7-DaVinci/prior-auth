@@ -5,6 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
+import java.util.HashMap;
 
 import org.apache.meecrowave.Meecrowave;
 import org.apache.meecrowave.junit.MonoMeecrowave;
@@ -28,7 +30,7 @@ public class ClaimEndpointTest {
   @ConfigurationInject
   private Meecrowave.Builder config;
   private static OkHttpClient client;
-   
+
   @BeforeClass
   public static void setup() throws FileNotFoundException {
     client = new OkHttpClient();
@@ -38,7 +40,12 @@ public class ClaimEndpointTest {
     Path fixture = modulesFolder.resolve("claim-minimal.json");
     FileInputStream inputStream = new FileInputStream(fixture.toString());
     Claim claim = (Claim) App.FHIR_CTX.newJsonParser().parseResource(inputStream);
-    App.DB.write(Database.CLAIM, "minimal", "1", claim);
+    Map<String, Object> claimMap = new HashMap<String, Object>();
+    claimMap.put("id", "minimal");
+    claimMap.put("patient", "1");
+    claimMap.put("status", Database.getStatusFromResource(claim));
+    claimMap.put("resource", claim);
+    App.DB.write(Database.CLAIM, claimMap);
   }
 
   @AfterClass
@@ -51,10 +58,8 @@ public class ClaimEndpointTest {
     String base = "http://localhost:" + config.getHttpPort();
 
     // Test that we can GET /fhir/Claim.
-    Request request = new Request.Builder()
-        .url(base + "/Claim?patient.identifier=1")
-        .header("Accept", "application/fhir+json")
-        .build();
+    Request request = new Request.Builder().url(base + "/Claim?patient.identifier=1")
+        .header("Accept", "application/fhir+json").build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(200, response.code());
 
@@ -64,8 +69,7 @@ public class ClaimEndpointTest {
 
     // Test the response is a JSON Bundle
     String body = response.body().string();
-    Bundle bundle =
-        (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
+    Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
     Assert.assertNotNull(bundle);
 
     // Validate the response.
@@ -78,10 +82,8 @@ public class ClaimEndpointTest {
     String base = "http://localhost:" + config.getHttpPort();
 
     // Test that we can GET /fhir/Claim.
-    Request request = new Request.Builder()
-        .url(base + "/Claim?patient.identifier=1")
-        .header("Accept", "application/fhir+xml")
-        .build();
+    Request request = new Request.Builder().url(base + "/Claim?patient.identifier=1")
+        .header("Accept", "application/fhir+xml").build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(200, response.code());
 
@@ -91,8 +93,7 @@ public class ClaimEndpointTest {
 
     // Test the response is an XML Bundle
     String body = response.body().string();
-    Bundle bundle =
-        (Bundle) App.FHIR_CTX.newXmlParser().parseResource(body);
+    Bundle bundle = (Bundle) App.FHIR_CTX.newXmlParser().parseResource(body);
     Assert.assertNotNull(bundle);
 
     // Validate the response.
@@ -111,10 +112,8 @@ public class ClaimEndpointTest {
     String base = "http://localhost:" + config.getHttpPort();
 
     // Test that we can GET /fhir/Claim/minimal.
-    Request request = new Request.Builder()
-        .url(base + "/Claim?identifier=minimal&patient.identifier=1")
-        .header("Accept", "application/fhir+json")
-        .build();
+    Request request = new Request.Builder().url(base + "/Claim?identifier=minimal&patient.identifier=1")
+        .header("Accept", "application/fhir+json").build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(200, response.code());
 
@@ -124,8 +123,7 @@ public class ClaimEndpointTest {
 
     // Test the response is a JSON Bundle
     String body = response.body().string();
-    Claim claim =
-        (Claim) App.FHIR_CTX.newJsonParser().parseResource(body);
+    Claim claim = (Claim) App.FHIR_CTX.newJsonParser().parseResource(body);
     Assert.assertNotNull(claim);
 
     // Validate the response.
@@ -138,10 +136,8 @@ public class ClaimEndpointTest {
     String base = "http://localhost:" + config.getHttpPort();
 
     // Test that we can GET /fhir/Claim/minimal.
-    Request request = new Request.Builder()
-        .url(base + "/Claim?identifier=minimal&patient.identifier=1")
-        .header("Accept", "application/fhir+xml")
-        .build();
+    Request request = new Request.Builder().url(base + "/Claim?identifier=minimal&patient.identifier=1")
+        .header("Accept", "application/fhir+xml").build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(200, response.code());
 
@@ -151,8 +147,7 @@ public class ClaimEndpointTest {
 
     // Test the response is an XML Bundle
     String body = response.body().string();
-    Claim claim =
-        (Claim) App.FHIR_CTX.newXmlParser().parseResource(body);
+    Claim claim = (Claim) App.FHIR_CTX.newXmlParser().parseResource(body);
     Assert.assertNotNull(claim);
 
     // Validate the response.
@@ -165,8 +160,7 @@ public class ClaimEndpointTest {
     String base = "http://localhost:" + config.getHttpPort();
 
     // Test that non-existent Claim returns 404.
-    Request request = new Request.Builder()
-        .url(base + "/Claim?identifier=ClaimThatDoesNotExist&patient.identifier=45")
+    Request request = new Request.Builder().url(base + "/Claim?identifier=ClaimThatDoesNotExist&patient.identifier=45")
         .build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(404, response.code());

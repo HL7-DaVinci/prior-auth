@@ -5,6 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
+import java.util.HashMap;
 
 import org.apache.meecrowave.Meecrowave;
 import org.apache.meecrowave.junit.MonoMeecrowave;
@@ -28,7 +30,7 @@ public class ClaimResponseEndpointTest {
   @ConfigurationInject
   private Meecrowave.Builder config;
   private static OkHttpClient client;
-   
+
   @BeforeClass
   public static void setup() throws FileNotFoundException {
     client = new OkHttpClient();
@@ -38,7 +40,13 @@ public class ClaimResponseEndpointTest {
     Path fixture = modulesFolder.resolve("claimresponse-minimal.json");
     FileInputStream inputStream = new FileInputStream(fixture.toString());
     ClaimResponse claimResponse = (ClaimResponse) App.FHIR_CTX.newJsonParser().parseResource(inputStream);
-    App.DB.write(Database.CLAIM_RESPONSE, "minimal", "1", claimResponse);
+    Map<String, Object> claimResponseMap = new HashMap<String, Object>();
+    claimResponseMap.put("id", "minimal");
+    claimResponseMap.put("claimId", "minimal");
+    claimResponseMap.put("patient", "1");
+    claimResponseMap.put("status", Database.getStatusFromResource(claimResponse));
+    claimResponseMap.put("resource", claimResponse);
+    App.DB.write(Database.CLAIM_RESPONSE, claimResponseMap);
   }
 
   @AfterClass
@@ -51,10 +59,8 @@ public class ClaimResponseEndpointTest {
     String base = "http://localhost:" + config.getHttpPort();
 
     // Test that we can GET /fhir/ClaimResponse.
-    Request request = new Request.Builder()
-        .url(base + "/ClaimResponse?patient.identifier=1")
-        .header("Accept", "application/fhir+json")
-        .build();
+    Request request = new Request.Builder().url(base + "/ClaimResponse?patient.identifier=1")
+        .header("Accept", "application/fhir+json").build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(200, response.code());
 
@@ -64,8 +70,7 @@ public class ClaimResponseEndpointTest {
 
     // Test the response is a JSON Bundle
     String body = response.body().string();
-    Bundle bundle =
-        (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
+    Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
     Assert.assertNotNull(bundle);
 
     // Validate the response.
@@ -78,10 +83,8 @@ public class ClaimResponseEndpointTest {
     String base = "http://localhost:" + config.getHttpPort();
 
     // Test that we can GET /fhir/ClaimResponse.
-    Request request = new Request.Builder()
-        .url(base + "/ClaimResponse?patient.identifier=1")
-        .header("Accept", "application/fhir+xml")
-        .build();
+    Request request = new Request.Builder().url(base + "/ClaimResponse?patient.identifier=1")
+        .header("Accept", "application/fhir+xml").build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(200, response.code());
 
@@ -91,8 +94,7 @@ public class ClaimResponseEndpointTest {
 
     // Test the response is an XML Bundle
     String body = response.body().string();
-    Bundle bundle =
-        (Bundle) App.FHIR_CTX.newXmlParser().parseResource(body);
+    Bundle bundle = (Bundle) App.FHIR_CTX.newXmlParser().parseResource(body);
     Assert.assertNotNull(bundle);
 
     // Validate the response.
@@ -111,21 +113,18 @@ public class ClaimResponseEndpointTest {
     String base = "http://localhost:" + config.getHttpPort();
 
     // Test that we can GET /fhir/ClaimResponse/minimal
-    Request request = new Request.Builder()
-        .url(base + "/ClaimResponse?identifier=minimal&patient.identifier=1")
-       .header("Accept", "application/fhir+json")
-       .build();
+    Request request = new Request.Builder().url(base + "/ClaimResponse?identifier=minimal&patient.identifier=1")
+        .header("Accept", "application/fhir+json").build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(200, response.code());
- 
+
     // Test the response has CORS headers
     String cors = response.header("Access-Control-Allow-Origin");
     Assert.assertEquals("*", cors);
 
     // Test the response is a JSON Bundle
     String body = response.body().string();
-    ClaimResponse claimResponse =
-        (ClaimResponse) App.FHIR_CTX.newJsonParser().parseResource(body);
+    ClaimResponse claimResponse = (ClaimResponse) App.FHIR_CTX.newJsonParser().parseResource(body);
     Assert.assertNotNull(claimResponse);
 
     // Validate the response.
@@ -138,10 +137,8 @@ public class ClaimResponseEndpointTest {
     String base = "http://localhost:" + config.getHttpPort();
 
     // Test that we can GET /fhir/ClaimResponse/minimal
-    Request request = new Request.Builder()
-        .url(base + "/ClaimResponse?identifier=minimal&patient.identifier=1")
-       .header("Accept", "application/fhir+xml")
-       .build();
+    Request request = new Request.Builder().url(base + "/ClaimResponse?identifier=minimal&patient.identifier=1")
+        .header("Accept", "application/fhir+xml").build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(200, response.code());
 
@@ -151,8 +148,7 @@ public class ClaimResponseEndpointTest {
 
     // Test the response is an XML Bundle
     String body = response.body().string();
-    ClaimResponse claimResponse =
-        (ClaimResponse) App.FHIR_CTX.newXmlParser().parseResource(body);
+    ClaimResponse claimResponse = (ClaimResponse) App.FHIR_CTX.newXmlParser().parseResource(body);
     Assert.assertNotNull(claimResponse);
 
     // Validate the response.
@@ -166,8 +162,7 @@ public class ClaimResponseEndpointTest {
 
     // Test that non-existent ClaimResponse returns 404.
     Request request = new Request.Builder()
-        .url(base + "/ClaimResponse?identifier=ClaimResponseThatDoesNotExist&patient.identifier=45")
-        .build();
+        .url(base + "/ClaimResponse?identifier=ClaimResponseThatDoesNotExist&patient.identifier=45").build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(404, response.code());
   }

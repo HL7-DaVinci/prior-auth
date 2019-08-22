@@ -1,6 +1,8 @@
 package org.hl7.davinci.priorauth;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.enterprise.context.RequestScoped;
@@ -31,6 +33,7 @@ import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ResourceType;
+import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +49,7 @@ public class ClaimEndpoint {
   static final Logger logger = LoggerFactory.getLogger(ClaimEndpoint.class);
 
   String REQUIRES_BUNDLE = "Prior Authorization Claim/$submit Operation requires a Bundle with a single Claim as the first entry and supporting resources.";
+  String PROCESS_FAILED = "Unable to process the request properly. This may be from a request to a cancel a Claim which does not exist or is already cancelled. Check the log for more details";
 
   @Context
   private UriInfo uri;
@@ -116,10 +120,17 @@ public class ClaimEndpoint {
         if (bundle.hasEntry() && (bundle.getEntry().size() > 1) && bundle.getEntryFirstRep().hasResource()
             && bundle.getEntryFirstRep().getResource().getResourceType() == ResourceType.Claim) {
           IBaseResource response = processBundle(bundle);
-          if (response.getIdElement().hasIdPart()) {
-            id = response.getIdElement().getIdPart();
+          if (response == null) {
+            // Failed processing bundle...
+            status = Status.BAD_REQUEST;
+            OperationOutcome error = App.DB.outcome(IssueSeverity.ERROR, IssueType.INVALID, PROCESS_FAILED);
+            formattedData = requestType == RequestType.JSON ? App.DB.json(error) : App.DB.xml(error);
+          } else {
+            if (response.getIdElement().hasIdPart()) {
+              id = response.getIdElement().getIdPart();
+            }
+            formattedData = requestType == RequestType.JSON ? App.DB.json(response) : App.DB.xml(response);
           }
-          formattedData = requestType == RequestType.JSON ? App.DB.json(response) : App.DB.xml(response);
         } else {
           // Claim is required...
           status = Status.BAD_REQUEST;
@@ -172,20 +183,55 @@ public class ClaimEndpoint {
       logger.error("processBundle: error procesing patient: " + e.toString());
     }
 
-    // Store the bundle...
-    bundle.setId(id);
-    App.DB.write(Database.BUNDLE, id, patient, bundle);
+    String claimId = id;
+    String responseDisposition = "Unknown";
+    ClaimResponseStatus responseStatus = ClaimResponseStatus.ACTIVE;
+    ClaimStatus status = claim.getStatus();
+    if (status == Claim.ClaimStatus.CANCELLED) {
+      // Cancel the claim
+      claimId = claim.getIdElement().getIdPart();
+      Claim initialClaim = (Claim) App.DB.read(Database.CLAIM, claimId, patient);
+      if (initialClaim != null) {
+        if (initialClaim.getStatus() != Claim.ClaimStatus.CANCELLED) {
+          App.DB.update(Database.CLAIM, claimId, "status", status.getDisplay().toLowerCase());
+          responseStatus = ClaimResponseStatus.CANCELLED;
+          responseDisposition = "Cancelled";
+        } else {
+          logger.info("Claim " + claimId + " is already cancelled");
+          return null;
+        }
+      } else {
+        logger.info("Claim " + claimId + " does not exist. Unable to cancel");
+        return null;
+      }
+    } else {
+      // Store the bundle...
+      bundle.setId(id);
+      Map<String, Object> bundleMap = new HashMap<String, Object>();
+      bundleMap.put("id", id);
+      bundleMap.put("patient", patient);
+      bundleMap.put("status", Database.getStatusFromResource(bundle));
+      bundleMap.put("resource", bundle);
+      App.DB.write(Database.BUNDLE, bundleMap);
 
-    // Store the claim...
-    claim.setId(id);
-    App.DB.write(Database.CLAIM, id, patient, claim);
+      // Store the claim...
+      claim.setId(id);
+      Map<String, Object> claimMap = new HashMap<String, Object>();
+      claimMap.put("id", id);
+      claimMap.put("patient", patient);
+      claimMap.put("status", Database.getStatusFromResource(claim));
+      claimMap.put("resource", claim);
+      App.DB.write(Database.CLAIM, claimMap);
 
+      // Make up a disposition
+      responseDisposition = "Granted";
+    }
     // Process the claim...
     // TODO
 
     // Generate the claim response...
     ClaimResponse response = new ClaimResponse();
-    response.setStatus(ClaimResponseStatus.ACTIVE);
+    response.setStatus(responseStatus);
     response.setType(claim.getType());
     response.setUse(Use.PREAUTHORIZATION);
     response.setPatient(claim.getPatient());
@@ -197,12 +243,19 @@ public class ClaimEndpoint {
     }
     response.setRequest(new Reference(uri.getBaseUri() + "Claim/" + id));
     response.setOutcome(RemittanceOutcome.COMPLETE);
-    response.setDisposition("Granted");
+    response.setDisposition(responseDisposition);
     response.setPreAuthRef(id);
     // TODO response.setPreAuthPeriod(period)?
-    // Store the claim response...
     response.setId(id);
-    App.DB.write(Database.CLAIM_RESPONSE, id, patient, response);
+
+    // Store the claim respnose...
+    Map<String, Object> responseMap = new HashMap<String, Object>();
+    responseMap.put("id", id);
+    responseMap.put("claimId", claimId);
+    responseMap.put("patient", patient);
+    responseMap.put("status", Database.getStatusFromResource(response));
+    responseMap.put("resource", response);
+    App.DB.write(Database.CLAIM_RESPONSE, responseMap);
 
     // Respond...
     return response;
