@@ -15,7 +15,7 @@ BEGIN TRANSACTION;
         "status" varchar,
         "timestamp" datetime DEFAULT CURRENT_TIMESTAMP,
         "resource" clob,
-        FOREIGN KEY ("related") REFERENCES Claim("id")
+        FOREIGN KEY ("related") REFERENCES Claim("id") ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS ClaimResponse (
@@ -25,7 +25,7 @@ BEGIN TRANSACTION;
         "status" varchar,
         "timestamp" datetime DEFAULT CURRENT_TIMESTAMP,
         "resource" clob,
-        FOREIGN KEY ("claimId") REFERENCES Claim("id")
+        FOREIGN KEY ("claimId") REFERENCES Claim("id") ON DELETE CASCADE
     );
 
 COMMIT;

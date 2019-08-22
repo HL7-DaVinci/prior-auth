@@ -12,6 +12,7 @@ import org.apache.meecrowave.Meecrowave;
 import org.apache.meecrowave.junit.MonoMeecrowave;
 import org.apache.meecrowave.testing.ConfigurationInject;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -39,6 +40,17 @@ public class ClaimResponseEndpointTest {
     Path modulesFolder = Paths.get("src/test/resources");
     Path fixture = modulesFolder.resolve("claimresponse-minimal.json");
     FileInputStream inputStream = new FileInputStream(fixture.toString());
+
+    Path claimFixture = modulesFolder.resolve("claim-minimal.json");
+    FileInputStream claimInputStream = new FileInputStream(claimFixture.toString());
+    Claim claim = (Claim) App.FHIR_CTX.newJsonParser().parseResource(claimInputStream);
+    Map<String, Object> claimMap = new HashMap<String, Object>();
+    claimMap.put("id", "minimal");
+    claimMap.put("patient", "1");
+    claimMap.put("status", Database.getStatusFromResource(claim));
+    claimMap.put("resource", claim);
+    App.DB.write(Database.CLAIM, claimMap);
+
     ClaimResponse claimResponse = (ClaimResponse) App.FHIR_CTX.newJsonParser().parseResource(inputStream);
     Map<String, Object> claimResponseMap = new HashMap<String, Object>();
     claimResponseMap.put("id", "minimal");
@@ -51,6 +63,7 @@ public class ClaimResponseEndpointTest {
 
   @AfterClass
   public static void cleanup() {
+    App.DB.delete(Database.CLAIM, "minimal", "1");
     App.DB.delete(Database.CLAIM_RESPONSE, "minimal", "1");
   }
 
