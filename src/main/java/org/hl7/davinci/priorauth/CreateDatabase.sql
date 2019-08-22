@@ -34,7 +34,7 @@ BEGIN TRANSACTION;
         "status" varchar,
         "timestamp" datetime DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT pk_claimitems PRIMARY KEY ("id", "sequence"),
-        FOREIGN KEY ("id") REFERENCES Claim("id")
+        FOREIGN KEY ("id") REFERENCES Claim("id") ON DELETE CASCADE
     );
 
 COMMIT;

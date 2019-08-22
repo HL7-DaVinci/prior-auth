@@ -221,8 +221,8 @@ public class Database {
     boolean result = false;
     if (resourceType != null && constraintParams != null && data != null) {
       try (Connection connection = getConnection()) {
-        String sql = "UPDATE " + resourceType + " SET " + reduceMap(data, ", ") + " WHERE "
-            + reduceMap(constraintParams, " AND ") + ";";
+        String sql = "UPDATE " + resourceType + " SET " + reduceMap(data, ", ")
+            + ", timestamp = CURRENT_TIMESTAMP WHERE " + reduceMap(constraintParams, " AND ") + ";";
         PreparedStatement stmt = connection.prepareStatement(sql);
         result = stmt.execute();
         logger.info(sql);
