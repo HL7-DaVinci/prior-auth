@@ -191,32 +191,14 @@ public class ClaimEndpoint {
     ClaimResponseStatus responseStatus = ClaimResponseStatus.ACTIVE;
     ClaimStatus status = claim.getStatus();
     if (status == Claim.ClaimStatus.CANCELLED) {
-      // Cancel the claim
+      // Cancel the claim...
       claimId = claim.getIdElement().getIdPart();
-      Claim initialClaim = (Claim) App.DB.read(Database.CLAIM, claimId, patient);
-      if (initialClaim != null) {
-        if (initialClaim.getStatus() != Claim.ClaimStatus.CANCELLED) {
-          App.DB.update(Database.CLAIM, claimId, "status", status.getDisplay().toLowerCase());
-          responseStatus = ClaimResponseStatus.CANCELLED;
-          responseDisposition = "Cancelled";
-        } else {
-          logger.info("Claim " + claimId + " is already cancelled");
-          return null;
-        }
-      } else {
-        logger.info("Claim " + claimId + " does not exist. Unable to cancel");
+      if (cancelClaim(claimId, patient)) {
+        responseStatus = ClaimResponseStatus.CANCELLED;
+        responseDisposition = "Cancelled";
+      } else
         return null;
-      }
     } else {
-      // Store the bundle...
-      bundle.setId(id);
-      Map<String, Object> bundleMap = new HashMap<String, Object>();
-      bundleMap.put("id", id);
-      bundleMap.put("patient", patient);
-      bundleMap.put("status", Database.getStatusFromResource(bundle));
-      bundleMap.put("resource", bundle);
-      App.DB.write(Database.BUNDLE, bundleMap);
-
       // Store the claim...
       claim.setId(id);
       Map<String, Object> claimMap = new HashMap<String, Object>();
@@ -229,6 +211,15 @@ public class ClaimEndpoint {
         claimMap.put("related", related);
       if (!App.DB.write(Database.CLAIM, claimMap))
         return null;
+
+      // Store the bundle...
+      bundle.setId(id);
+      Map<String, Object> bundleMap = new HashMap<String, Object>();
+      bundleMap.put("id", id);
+      bundleMap.put("patient", patient);
+      bundleMap.put("status", Database.getStatusFromResource(bundle));
+      bundleMap.put("resource", bundle);
+      App.DB.write(Database.BUNDLE, bundleMap);
 
       // Make up a disposition
       responseDisposition = "Granted";
@@ -252,6 +243,39 @@ public class ClaimEndpoint {
     return response;
   }
 
+  /**
+   * Determine if a cancel can be performed and then update the DB to reflect the
+   * cancel
+   * 
+   * @param claimId - the claim id to cancel.
+   * @param patient - the patient for the claim to cancel.
+   * @return true if the claim was cancelled successfully and false otherwise
+   */
+  private boolean cancelClaim(String claimId, String patient) {
+    boolean result;
+    Claim initialClaim = (Claim) App.DB.read(Database.CLAIM, claimId, patient);
+    if (initialClaim != null) {
+      if (initialClaim.getStatus() != Claim.ClaimStatus.CANCELLED) {
+        App.DB.update(Database.CLAIM, claimId, "status", Claim.ClaimStatus.CANCELLED.getDisplay().toLowerCase());
+        result = true;
+      } else {
+        logger.info("Claim " + claimId + " is already cancelled");
+        result = false;
+      }
+    } else {
+      logger.info("Claim " + claimId + " does not exist. Unable to cancel");
+      result = false;
+    }
+    return result;
+  }
+
+  /**
+   * Get the related claim id for an update to a claim (replaces relationship)
+   * 
+   * @param claim - the base Claim resource.
+   * @return the id of the first related claim with relationship "replaces" or
+   *         null if no matching related resource.
+   */
   private String getRelatedId(Claim claim) {
     if (claim.hasRelated()) {
       for (RelatedClaimComponent relatedComponent : claim.getRelated()) {
@@ -268,6 +292,15 @@ public class ClaimEndpoint {
     return null;
   }
 
+  /**
+   * Internal function to create the ClaimResponse to be sent back
+   * 
+   * @param id                  - the id for this response.
+   * @param responseDisposition - the disposition.
+   * @param responseStatus      - the status.
+   * @param claim               - the Claim resource this is a response to.
+   * @return the ClaimResponse with properties set correctly.
+   */
   private ClaimResponse generateClaimResponse(String id, String responseDisposition, ClaimResponseStatus responseStatus,
       Claim claim) {
     ClaimResponse response = new ClaimResponse();
