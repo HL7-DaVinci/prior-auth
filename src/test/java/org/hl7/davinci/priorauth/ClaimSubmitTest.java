@@ -67,9 +67,9 @@ public class ClaimSubmitTest {
   public static void cleanup() {
     for (String id : resourceIds) {
       System.out.println("Deleting Resources with ID = " + id);
-      App.DB.delete(Database.BUNDLE, id);
-      App.DB.delete(Database.CLAIM, id);
-      App.DB.delete(Database.CLAIM_RESPONSE, id);
+      App.DB.delete(Database.BUNDLE, id, "pat013");
+      App.DB.delete(Database.CLAIM, id, "pat013");
+      App.DB.delete(Database.CLAIM_RESPONSE, id, "pat013");
     }
   }
 
@@ -121,9 +121,9 @@ public class ClaimSubmitTest {
     resourceIds.add(id);
 
     // Test that the database contains the proper entries
-    Assert.assertNotNull(App.DB.read(Database.BUNDLE, id));
-    Assert.assertNotNull(App.DB.read(Database.CLAIM, id));
-    Assert.assertNotNull(App.DB.read(Database.CLAIM_RESPONSE, id));
+    Assert.assertNotNull(App.DB.read(Database.BUNDLE, id, "pat013"));
+    Assert.assertNotNull(App.DB.read(Database.CLAIM, id, "pat013"));
+    Assert.assertNotNull(App.DB.read(Database.CLAIM_RESPONSE, id, "pat013"));
 
     // Validate the response.
     ValidationResult result = ValidationHelper.validate(claimResponse);

@@ -1,6 +1,8 @@
 package org.hl7.davinci.priorauth;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.enterprise.context.RequestScoped;
@@ -9,7 +11,7 @@ import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -18,6 +20,7 @@ import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
+import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
@@ -30,6 +33,11 @@ import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ResourceType;
+import org.hl7.fhir.r4.model.Claim.ClaimStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import ca.uhn.fhir.parser.IParser;
 
 /**
  * The Claim endpoint to READ, SEARCH for, and DELETE submitted claims.
@@ -38,201 +46,113 @@ import org.hl7.fhir.r4.model.ResourceType;
 @Path("Claim")
 public class ClaimEndpoint {
 
+  static final Logger logger = LoggerFactory.getLogger(ClaimEndpoint.class);
+
   String REQUIRES_BUNDLE = "Prior Authorization Claim/$submit Operation requires a Bundle with a single Claim as the first entry and supporting resources.";
-  String REQUIRES_ID = "Instance ID is required: DELETE Claim/{id}";
-  String DELETED_MSG = "Deleted Claim and all related and referenced resources.";
+  String PROCESS_FAILED = "Unable to process the request properly. This may be from a request to a cancel a Claim which does not exist or is already cancelled. Check the log for more details";
 
   @Context
   private UriInfo uri;
-  
+
   @GET
-  @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
-  public Response searchClaims() {
-    App.DB.setBaseUrl(uri.getBaseUri());
-    Bundle claims = App.DB.search(Database.CLAIM);
-    String json = App.DB.json(claims);
-    return Response.ok(json).build();
+  @Path("/")
+  @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
+  public Response readClaimJson(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient,
+      @QueryParam("status") String status) {
+    return Endpoint.read(id, patient, status, Database.CLAIM, uri, RequestType.JSON);
   }
 
   @GET
-  @Produces({MediaType.APPLICATION_XML, "application/fhir+xml"})
-  public Response searchClaimsXml() {
-    App.DB.setBaseUrl(uri.getBaseUri());
-    Bundle claims = App.DB.search(Database.CLAIM);
-    String xml = App.DB.xml(claims);
-    return Response.ok(xml).build();
-  }
-
-  @GET
-  @Path("/{id}")
-  @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
-  public Response readClaim(@PathParam("id") String id) {
-    String json = null;
-    if (id == null) {
-      // Search
-      App.DB.setBaseUrl(uri.getBaseUri());
-      Bundle claims = App.DB.search(Database.CLAIM);
-      json = App.DB.json(claims);
-    } else {
-      // Read
-      Claim claim = (Claim) App.DB.read(Database.CLAIM, id);
-      if (claim == null) {
-        return Response.status(Status.NOT_FOUND).build();
-      }
-      json = App.DB.json(claim);
-    }
-    return Response.ok(json).build();
-  }
-
-  @GET
-  @Path("/{id}")
-  @Produces({MediaType.APPLICATION_XML, "application/fhir+xml"})
-  public Response readClaimXml(@PathParam("id") String id) {
-    String xml = null;
-    if (id == null) {
-      // Search
-      App.DB.setBaseUrl(uri.getBaseUri());
-      Bundle claims = App.DB.search(Database.CLAIM);
-      xml = App.DB.xml(claims);
-    } else {
-      // Read
-      Claim claim = (Claim) App.DB.read(Database.CLAIM, id);
-      if (claim == null) {
-        return Response.status(Status.NOT_FOUND).build();
-      }
-      xml = App.DB.xml(claim);
-    }
-    return Response.ok(xml).build();
+  @Path("/")
+  @Produces({ MediaType.APPLICATION_XML, "application/fhir+xml" })
+  public Response readClaimXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient,
+      @QueryParam("status") String status) {
+    return Endpoint.read(id, patient, status, Database.CLAIM, uri, RequestType.XML);
   }
 
   @DELETE
-  @Path("/{id}")
-  @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
-  public Response deleteClaim(@PathParam("id") String id) {
-    Status status = Status.OK;
-    OperationOutcome outcome = null;
-    if (id == null) {
-      // Do not delete everything
-      // ID is required...
-      status = Status.BAD_REQUEST;
-      outcome = App.DB.outcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_ID);
-    } else {
-      // Cascading delete
-      App.DB.delete(Database.BUNDLE, id);
-      App.DB.delete(Database.CLAIM, id);
-      App.DB.delete(Database.CLAIM_RESPONSE, id);
-      outcome = App.DB.outcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
-    }
-    String json = App.DB.json(outcome);
-    return Response.status(status).entity(json).build();
+  @Path("/")
+  @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
+  public Response deleteClaimJson(@QueryParam("identifier") String id,
+      @QueryParam("patient.identifier") String patient) {
+    return Endpoint.delete(id, patient, Database.CLAIM, RequestType.JSON);
   }
 
   @DELETE
-  @Path("/{id}")
-  @Produces({MediaType.APPLICATION_JSON, "application/fhir+xml"})
-  public Response deleteClaimXml(@PathParam("id") String id) {
-    Status status = Status.OK;
-    OperationOutcome outcome = null;
-    if (id == null) {
-      // Do not delete everything
-      // ID is required...
-      status = Status.BAD_REQUEST;
-      outcome = App.DB.outcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_ID);
-    } else {
-      // Cascading delete
-      App.DB.delete(Database.BUNDLE, id);
-      App.DB.delete(Database.CLAIM, id);
-      App.DB.delete(Database.CLAIM_RESPONSE, id);
-      outcome = App.DB.outcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
-    }
-    String xml = App.DB.xml(outcome);
-    return Response.status(status).entity(xml).build();
+  @Path("/")
+  @Produces({ MediaType.APPLICATION_JSON, "application/fhir+xml" })
+  public Response deleteClaimXml(@QueryParam("identifier") String id,
+      @QueryParam("patient.identifier") String patient) {
+    return Endpoint.delete(id, patient, Database.CLAIM, RequestType.XML);
   }
 
   @POST
   @Path("/$submit")
-  @Consumes({MediaType.APPLICATION_JSON, "application/fhir+json"})
-  public Response submitOperation(String body) {
-    String id = null;
-    Status status = Status.OK;
-    String json = null;
-    try {
-      IBaseResource resource = App.FHIR_CTX.newJsonParser().parseResource(body);
-      if (resource instanceof Bundle) {
-        Bundle bundle = (Bundle) resource;
-        if (bundle.hasEntry() && (bundle.getEntry().size() > 1)
-            && bundle.getEntryFirstRep().hasResource()
-            && bundle.getEntryFirstRep().getResource().getResourceType() == ResourceType.Claim) {
-          IBaseResource response = processBundle(bundle);
-          if (response.getIdElement().hasIdPart()) {
-            id = response.getIdElement().getIdPart();
-          }
-          json = App.DB.json(response);
-        } else {
-          // Claim is required...
-          status = Status.BAD_REQUEST;
-          OperationOutcome error = App.DB.outcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
-          json = App.DB.json(error);
-        }
-      } else {
-        // Bundle is required...
-        status = Status.BAD_REQUEST;
-        OperationOutcome error = App.DB.outcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
-        json = App.DB.json(error);
-      }
-    } catch (Exception e) {
-      // The submission failed so spectacularly that we need
-      // catch an exception and send back an error message...
-      status = Status.BAD_REQUEST;
-      OperationOutcome error = App.DB.outcome(IssueSeverity.FATAL, IssueType.STRUCTURE, e.getMessage());
-      json = App.DB.json(error);
-    }
-    ResponseBuilder builder = Response.status(status).type("application/fhir+json").entity(json);
-    if (id != null) {
-      builder = builder.header("Location", uri.getBaseUri() + "ClaimResponse/" + id);
-    }
-    return builder.build();
+  @Consumes({ MediaType.APPLICATION_JSON, "application/fhir+json" })
+  public Response submitOperationJson(String body) {
+    return submitOperation(body, RequestType.JSON);
   }
 
   @POST
   @Path("/$submit")
-  @Consumes({MediaType.APPLICATION_XML, "application/fhir+xml"})
+  @Consumes({ MediaType.APPLICATION_XML, "application/fhir+xml" })
   public Response submitOperationXml(String body) {
+    return submitOperation(body, RequestType.XML);
+  }
+
+  /**
+   * The submitOperation function for both json and xml
+   * 
+   * @param body        - the body of the post request.
+   * @param requestType - the RequestType of the request.
+   * @return - claimResponse response
+   */
+  private Response submitOperation(String body, RequestType requestType) {
+    logger.info("POST /Claim/$submit fhir+" + requestType.name());
     String id = null;
     Status status = Status.OK;
-    String xml = null;
+    String formattedData = null;
     try {
-      IBaseResource resource = App.FHIR_CTX.newXmlParser().parseResource(body);
+      IParser parser = requestType == RequestType.JSON ? App.FHIR_CTX.newJsonParser() : App.FHIR_CTX.newXmlParser();
+      IBaseResource resource = parser.parseResource(body);
       if (resource instanceof Bundle) {
         Bundle bundle = (Bundle) resource;
-        if (bundle.hasEntry() && (bundle.getEntry().size() > 1)
-            && bundle.getEntryFirstRep().hasResource()
+        if (bundle.hasEntry() && (bundle.getEntry().size() > 1) && bundle.getEntryFirstRep().hasResource()
             && bundle.getEntryFirstRep().getResource().getResourceType() == ResourceType.Claim) {
           IBaseResource response = processBundle(bundle);
-          if (response.getIdElement().hasIdPart()) {
-            id = response.getIdElement().getIdPart();
+          if (response == null) {
+            // Failed processing bundle...
+            status = Status.BAD_REQUEST;
+            OperationOutcome error = App.DB.outcome(IssueSeverity.ERROR, IssueType.INVALID, PROCESS_FAILED);
+            formattedData = requestType == RequestType.JSON ? App.DB.json(error) : App.DB.xml(error);
+          } else {
+            if (response.getIdElement().hasIdPart()) {
+              id = response.getIdElement().getIdPart();
+            }
+            formattedData = requestType == RequestType.JSON ? App.DB.json(response) : App.DB.xml(response);
           }
-          xml = App.DB.xml(response);
         } else {
           // Claim is required...
           status = Status.BAD_REQUEST;
           OperationOutcome error = App.DB.outcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
-          xml = App.DB.xml(error);
+          formattedData = requestType == RequestType.JSON ? App.DB.json(error) : App.DB.xml(error);
         }
       } else {
         // Bundle is required...
         status = Status.BAD_REQUEST;
         OperationOutcome error = App.DB.outcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
-        xml = App.DB.xml(error);
+        formattedData = requestType == RequestType.JSON ? App.DB.json(error) : App.DB.xml(error);
       }
     } catch (Exception e) {
       // The submission failed so spectacularly that we need
       // catch an exception and send back an error message...
       status = Status.BAD_REQUEST;
       OperationOutcome error = App.DB.outcome(IssueSeverity.FATAL, IssueType.STRUCTURE, e.getMessage());
-      xml = App.DB.xml(error);
+      formattedData = requestType == RequestType.JSON ? App.DB.json(error) : App.DB.xml(error);
     }
-    ResponseBuilder builder = Response.status(status).type("application/fhir+xml").entity(xml);
+    ResponseBuilder builder = requestType == RequestType.JSON
+        ? Response.status(status).type("application/fhir+json").entity(formattedData)
+        : Response.status(status).type("application/fhir+xml").entity(formattedData);
     if (id != null) {
       builder = builder.header("Location", uri.getBaseUri() + "ClaimResponse/" + id);
     }
@@ -240,31 +160,78 @@ public class ClaimEndpoint {
   }
 
   /**
-   * Process the $submit operation Bundle.
-   * Theoretically, this is where business logic should be implemented or overridden.
+   * Process the $submit operation Bundle. Theoretically, this is where business
+   * logic should be implemented or overridden.
+   * 
    * @param bundle Bundle with a Claim followed by other required resources.
    * @return ClaimResponse with the result.
    */
   private IBaseResource processBundle(Bundle bundle) {
+    logger.info("processBundle");
     // Store the submission...
     // Generate a shared id...
     String id = UUID.randomUUID().toString();
 
-    // Store the bundle...
-    bundle.setId(id);
-    App.DB.write(Database.BUNDLE, id, bundle);
-
-    // Store the claim...
+    // get the patient
     Claim claim = (Claim) bundle.getEntryFirstRep().getResource();
-    claim.setId(id);
-    App.DB.write(Database.CLAIM, id, claim);
+    String patient = "";
+    try {
+      String[] patientParts = claim.getPatient().getReference().split("/");
+      patient = patientParts[patientParts.length - 1];
+      logger.info("processBundle: patient: " + patientParts[patientParts.length - 1]);
+    } catch (Exception e) {
+      logger.error("processBundle: error procesing patient: " + e.toString());
+    }
 
+    String claimId = id;
+    String responseDisposition = "Unknown";
+    ClaimResponseStatus responseStatus = ClaimResponseStatus.ACTIVE;
+    ClaimStatus status = claim.getStatus();
+    if (status == Claim.ClaimStatus.CANCELLED) {
+      // Cancel the claim
+      claimId = claim.getIdElement().getIdPart();
+      Claim initialClaim = (Claim) App.DB.read(Database.CLAIM, claimId, patient);
+      if (initialClaim != null) {
+        if (initialClaim.getStatus() != Claim.ClaimStatus.CANCELLED) {
+          App.DB.update(Database.CLAIM, claimId, "status", status.getDisplay().toLowerCase());
+          responseStatus = ClaimResponseStatus.CANCELLED;
+          responseDisposition = "Cancelled";
+        } else {
+          logger.info("Claim " + claimId + " is already cancelled");
+          return null;
+        }
+      } else {
+        logger.info("Claim " + claimId + " does not exist. Unable to cancel");
+        return null;
+      }
+    } else {
+      // Store the bundle...
+      bundle.setId(id);
+      Map<String, Object> bundleMap = new HashMap<String, Object>();
+      bundleMap.put("id", id);
+      bundleMap.put("patient", patient);
+      bundleMap.put("status", Database.getStatusFromResource(bundle));
+      bundleMap.put("resource", bundle);
+      App.DB.write(Database.BUNDLE, bundleMap);
+
+      // Store the claim...
+      claim.setId(id);
+      Map<String, Object> claimMap = new HashMap<String, Object>();
+      claimMap.put("id", id);
+      claimMap.put("patient", patient);
+      claimMap.put("status", Database.getStatusFromResource(claim));
+      claimMap.put("resource", claim);
+      App.DB.write(Database.CLAIM, claimMap);
+
+      // Make up a disposition
+      responseDisposition = "Granted";
+    }
     // Process the claim...
     // TODO
 
     // Generate the claim response...
     ClaimResponse response = new ClaimResponse();
-    response.setStatus(ClaimResponseStatus.ACTIVE);
+    response.setStatus(responseStatus);
     response.setType(claim.getType());
     response.setUse(Use.PREAUTHORIZATION);
     response.setPatient(claim.getPatient());
@@ -276,12 +243,19 @@ public class ClaimEndpoint {
     }
     response.setRequest(new Reference(uri.getBaseUri() + "Claim/" + id));
     response.setOutcome(RemittanceOutcome.COMPLETE);
-    response.setDisposition("Granted");
+    response.setDisposition(responseDisposition);
     response.setPreAuthRef(id);
     // TODO response.setPreAuthPeriod(period)?
-    // Store the claim response...
     response.setId(id);
-    App.DB.write(Database.CLAIM_RESPONSE, id, response);
+
+    // Store the claim respnose...
+    Map<String, Object> responseMap = new HashMap<String, Object>();
+    responseMap.put("id", id);
+    responseMap.put("claimId", claimId);
+    responseMap.put("patient", patient);
+    responseMap.put("status", Database.getStatusFromResource(response));
+    responseMap.put("resource", response);
+    App.DB.write(Database.CLAIM_RESPONSE, responseMap);
 
     // Respond...
     return response;
