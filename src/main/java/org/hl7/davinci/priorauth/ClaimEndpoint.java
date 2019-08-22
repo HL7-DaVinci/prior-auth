@@ -2,6 +2,7 @@ package org.hl7.davinci.priorauth;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -24,7 +25,9 @@ import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
+import org.hl7.fhir.r4.model.Claim.RelatedClaimComponent;
 import org.hl7.fhir.r4.model.ClaimResponse;
+import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.ClaimResponse.ClaimResponseStatus;
 import org.hl7.fhir.r4.model.ClaimResponse.RemittanceOutcome;
 import org.hl7.fhir.r4.model.ClaimResponse.Use;
@@ -49,7 +52,7 @@ public class ClaimEndpoint {
   static final Logger logger = LoggerFactory.getLogger(ClaimEndpoint.class);
 
   String REQUIRES_BUNDLE = "Prior Authorization Claim/$submit Operation requires a Bundle with a single Claim as the first entry and supporting resources.";
-  String PROCESS_FAILED = "Unable to process the request properly. This may be from a request to a cancel a Claim which does not exist or is already cancelled. Check the log for more details";
+  String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
 
   @Context
   private UriInfo uri;
@@ -221,7 +224,11 @@ public class ClaimEndpoint {
       claimMap.put("patient", patient);
       claimMap.put("status", Database.getStatusFromResource(claim));
       claimMap.put("resource", claim);
-      App.DB.write(Database.CLAIM, claimMap);
+      String related = getRelatedId(claim);
+      if (related != null)
+        claimMap.put("related", related);
+      if (!App.DB.write(Database.CLAIM, claimMap))
+        return null;
 
       // Make up a disposition
       responseDisposition = "Granted";
@@ -230,6 +237,39 @@ public class ClaimEndpoint {
     // TODO
 
     // Generate the claim response...
+    ClaimResponse response = generateClaimResponse(id, responseDisposition, responseStatus, claim);
+
+    // Store the claim respnose...
+    Map<String, Object> responseMap = new HashMap<String, Object>();
+    responseMap.put("id", id);
+    responseMap.put("claimId", claimId);
+    responseMap.put("patient", patient);
+    responseMap.put("status", Database.getStatusFromResource(response));
+    responseMap.put("resource", response);
+    App.DB.write(Database.CLAIM_RESPONSE, responseMap);
+
+    // Respond...
+    return response;
+  }
+
+  private String getRelatedId(Claim claim) {
+    if (claim.hasRelated()) {
+      for (RelatedClaimComponent relatedComponent : claim.getRelated()) {
+        if (relatedComponent.hasRelationship()) {
+          for (Coding code : relatedComponent.getRelationship().getCoding()) {
+            if (code.getCode().equals("replaces")) {
+              // This claim is an update to an old claim
+              return relatedComponent.getIdElement().asStringValue();
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  private ClaimResponse generateClaimResponse(String id, String responseDisposition, ClaimResponseStatus responseStatus,
+      Claim claim) {
     ClaimResponse response = new ClaimResponse();
     response.setStatus(responseStatus);
     response.setType(claim.getType());
@@ -247,17 +287,6 @@ public class ClaimEndpoint {
     response.setPreAuthRef(id);
     // TODO response.setPreAuthPeriod(period)?
     response.setId(id);
-
-    // Store the claim respnose...
-    Map<String, Object> responseMap = new HashMap<String, Object>();
-    responseMap.put("id", id);
-    responseMap.put("claimId", claimId);
-    responseMap.put("patient", patient);
-    responseMap.put("status", Database.getStatusFromResource(response));
-    responseMap.put("resource", response);
-    App.DB.write(Database.CLAIM_RESPONSE, responseMap);
-
-    // Respond...
     return response;
   }
 }

@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
 
+import org.h2.jdbc.JdbcSQLIntegrityConstraintViolationException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
@@ -67,7 +68,7 @@ public class Database {
   public Database() {
     try (Connection connection = getConnection()) {
       String sql = new String(Files.readAllBytes(Paths.get(createSqlFile).toAbsolutePath()));
-      connection.prepareStatement(sql).execute();
+      connection.prepareStatement(sql.replace("\"", "")).execute();
       logger.info(sql);
     } catch (SQLException e) {
       e.printStackTrace();
@@ -194,6 +195,9 @@ public class Database {
         PreparedStatement stmt = connection.prepareStatement(sql);
         result = stmt.execute();
         logger.info(sql);
+        result = true;
+      } catch (JdbcSQLIntegrityConstraintViolationException e) {
+        logger.info("ERROR: Attempting to insert foreign key which does not exist");
       } catch (SQLException e) {
         e.printStackTrace();
       }
