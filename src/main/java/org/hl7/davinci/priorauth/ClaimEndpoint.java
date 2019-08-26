@@ -27,6 +27,7 @@ import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.Claim.RelatedClaimComponent;
 import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.Coding;
+import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.ClaimResponse.ClaimResponseStatus;
 import org.hl7.fhir.r4.model.ClaimResponse.RemittanceOutcome;
 import org.hl7.fhir.r4.model.ClaimResponse.Use;
@@ -35,6 +36,7 @@ import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ResourceType;
+import org.hl7.fhir.r4.model.Type;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
 import org.slf4j.Logger;
@@ -120,6 +122,7 @@ public class ClaimEndpoint {
       IBaseResource resource = parser.parseResource(body);
       if (resource instanceof Bundle) {
         Bundle bundle = (Bundle) resource;
+        logger.info(bundle.getEntryFirstRep().getResource().getResourceType().name());
         if (bundle.hasEntry() && (bundle.getEntry().size() > 1) && bundle.getEntryFirstRep().hasResource()
             && bundle.getEntryFirstRep().getResource().getResourceType() == ResourceType.Claim) {
           IBaseResource response = processBundle(bundle);
@@ -224,27 +227,7 @@ public class ClaimEndpoint {
 
       // Store the claim items...
       if (claim.hasItem()) {
-        if (related != null) {
-          // Update the items...
-          for (ItemComponent item : claim.getItem()) {
-            Map<String, Object> dataMap = new HashMap<String, Object>();
-            Map<String, Object> constraintMap = new HashMap<String, Object>();
-            constraintMap.put("id", related.getIdElement().asStringValue());
-            constraintMap.put("sequence", item.getSequence());
-            dataMap.put("id", id);
-            dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
-            App.DB.update(Database.CLAIM_ITEM, constraintMap, dataMap);
-          }
-        } else {
-          // Add the claim items...
-          for (ItemComponent item : claim.getItem()) {
-            Map<String, Object> itemMap = new HashMap<String, Object>();
-            itemMap.put("id", id);
-            itemMap.put("sequence", item.getSequence());
-            itemMap.put("status", claimStatusStr);
-            App.DB.write(Database.CLAIM_ITEM, itemMap);
-          }
-        }
+        processClaimItems(claim, related, id);
       }
 
       // Make up a disposition
@@ -270,6 +253,53 @@ public class ClaimEndpoint {
   }
 
   /**
+   * Process the claim items in the database. For a new claim add the items, for
+   * an updated claim update the items.
+   * 
+   * @param claim   - the claim the items belong to.
+   * @param related - the related claim (old claim this is replacing).
+   * @param id      - the id of the claim.
+   * @return true if all updates successful, false otherwise.
+   */
+  private boolean processClaimItems(Claim claim, RelatedClaimComponent related, String id) {
+    boolean ret = true;
+    String claimStatusStr = Database.getStatusFromResource(claim);
+    if (related != null) {
+      // Update the items...
+      for (ItemComponent item : claim.getItem()) {
+        boolean itemIsCancelled = false;
+        String extUrl = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemCancelled";
+        if (item.hasExtension(extUrl)) {
+          Extension ext = item.getExtensionsByUrl(extUrl).get(0);
+          if (ext.hasValue()) {
+            Type type = ext.getValue();
+            itemIsCancelled = type.castToBoolean(type).booleanValue();
+          }
+        }
+        Map<String, Object> dataMap = new HashMap<String, Object>();
+        Map<String, Object> constraintMap = new HashMap<String, Object>();
+        constraintMap.put("id", related.getIdElement().asStringValue());
+        constraintMap.put("sequence", item.getSequence());
+        dataMap.put("id", id);
+        dataMap.put("status", itemIsCancelled ? ClaimStatus.CANCELLED.getDisplay().toLowerCase() : claimStatusStr);
+        if (!App.DB.update(Database.CLAIM_ITEM, constraintMap, dataMap))
+          ret = false;
+      }
+    } else {
+      // Add the claim items...
+      for (ItemComponent item : claim.getItem()) {
+        Map<String, Object> itemMap = new HashMap<String, Object>();
+        itemMap.put("id", id);
+        itemMap.put("sequence", item.getSequence());
+        itemMap.put("status", claimStatusStr);
+        if (!App.DB.write(Database.CLAIM_ITEM, itemMap))
+          ret = false;
+      }
+    }
+    return ret;
+  }
+
+  /**
    * Determine if a cancel can be performed and then update the DB to reflect the
    * cancel
    * 
@@ -282,11 +312,23 @@ public class ClaimEndpoint {
     Claim initialClaim = (Claim) App.DB.read(Database.CLAIM, claimId, patient);
     if (initialClaim != null) {
       if (initialClaim.getStatus() != Claim.ClaimStatus.CANCELLED) {
+        // Cancel the claim...
         Map<String, Object> dataMap = new HashMap<String, Object>();
         Map<String, Object> constraintMap = new HashMap<String, Object>();
         constraintMap.put("id", claimId);
         dataMap.put("status", Claim.ClaimStatus.CANCELLED.getDisplay().toLowerCase());
         App.DB.update(Database.CLAIM, constraintMap, dataMap);
+
+        // Cancel the claim items
+        for (ItemComponent item : initialClaim.getItem()) {
+          dataMap = new HashMap<String, Object>();
+          constraintMap = new HashMap<String, Object>();
+          constraintMap.put("id", claimId);
+          constraintMap.put("sequence", item.getSequence());
+          dataMap.put("id", claimId);
+          dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
+          App.DB.update(Database.CLAIM_ITEM, constraintMap, dataMap);
+        }
         result = true;
       } else {
         logger.info("Claim " + claimId + " is already cancelled");

@@ -196,7 +196,7 @@ public class Database {
             + setValues(data.values()) + ";";
         PreparedStatement stmt = connection.prepareStatement(sql);
         result = stmt.execute();
-        logger.info(sql);
+        // logger.info(sql);
         result = true;
       } catch (JdbcSQLIntegrityConstraintViolationException e) {
         logger.info("ERROR: Attempting to insert foreign key which does not exist");
@@ -217,7 +217,8 @@ public class Database {
    * @return boolean - whether or not the update was successful
    */
   public boolean update(String resourceType, Map<String, Object> constraintParams, Map<String, Object> data) {
-    logger.info("Database::update(" + resourceType + ", " + constraintParams.toString() + ", " + data.toString() + ")");
+    logger.info("Database::update(" + resourceType + ", WHERE " + constraintParams.toString() + ", SET"
+        + data.toString() + ")");
     boolean result = false;
     if (resourceType != null && constraintParams != null && data != null) {
       try (Connection connection = getConnection()) {
