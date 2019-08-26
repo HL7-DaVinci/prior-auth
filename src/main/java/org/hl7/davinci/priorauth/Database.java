@@ -1,8 +1,10 @@
 package org.hl7.davinci.priorauth;
 
 import java.util.*;
-
+import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -10,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
 
+import org.h2.jdbc.JdbcSQLIntegrityConstraintViolationException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
@@ -35,8 +38,12 @@ public class Database {
   public static final String BUNDLE = "Bundle";
   /** Claim Resource */
   public static final String CLAIM = "Claim";
+  /** Claim Item */
+  public static final String CLAIM_ITEM = "ClaimItem";
   /** ClaimResponse Resource */
   public static final String CLAIM_RESPONSE = "ClaimResponse";
+
+  private static final String createSqlFile = "src/main/java/org/hl7/davinci/priorauth/CreateDatabase.sql";
 
   // DB_CLOSE_DELAY=-1 maintains the DB in memory after all connections closed
   // (so that we don't lose everything between a connection closing and the next
@@ -62,17 +69,13 @@ public class Database {
 
   public Database() {
     try (Connection connection = getConnection()) {
-      String bundleTableStmt = "CREATE TABLE IF NOT EXISTS " + BUNDLE
-          + "(id varchar, patient varchar, status varchar, resource clob);";
-      String claimTableStmt = "CREATE TABLE IF NOT EXISTS " + CLAIM
-          + "(id varchar, patient varchar, status varchar, resource clob);";
-      String claimResponseTableStmt = "CREATE TABLE IF NOT EXISTS " + CLAIM_RESPONSE
-          + "(id varchar, claimId varchar, patient varchar, status varchar, resource clob);";
-
-      connection.prepareStatement(bundleTableStmt).execute();
-      connection.prepareStatement(claimTableStmt).execute();
-      connection.prepareStatement(claimResponseTableStmt).execute();
+      String sql = new String(Files.readAllBytes(Paths.get(createSqlFile).toAbsolutePath()));
+      connection.prepareStatement(sql.replace("\"", "")).execute();
+      logger.info(sql);
     } catch (SQLException e) {
+      e.printStackTrace();
+    } catch (IOException e) {
+      logger.info("IOException");
       e.printStackTrace();
     }
   }
@@ -194,6 +197,9 @@ public class Database {
         PreparedStatement stmt = connection.prepareStatement(sql);
         result = stmt.execute();
         logger.info(sql);
+        result = true;
+      } catch (JdbcSQLIntegrityConstraintViolationException e) {
+        logger.info("ERROR: Attempting to insert foreign key which does not exist");
       } catch (SQLException e) {
         e.printStackTrace();
       }
@@ -210,17 +216,16 @@ public class Database {
    * @param value        - the new value.
    * @return boolean - whether or not the update was successful
    */
-  public boolean update(String resourceType, String id, String column, String value) {
-    logger.info("Database::update(" + resourceType + ", " + id + ", " + column + ", " + value + ")");
+  public boolean update(String resourceType, Map<String, Object> constraintParams, Map<String, Object> data) {
+    logger.info("Database::update(" + resourceType + ", " + constraintParams.toString() + ", " + data.toString() + ")");
     boolean result = false;
-    if (resourceType != null && id != null && column != null) {
+    if (resourceType != null && constraintParams != null && data != null) {
       try (Connection connection = getConnection()) {
-        PreparedStatement stmt = connection
-            .prepareStatement("UPDATE " + resourceType + " SET " + column + " = ? WHERE id = ?;");
-        stmt.setString(1, value);
-        stmt.setString(2, id);
-        logger.info(stmt.toString());
+        String sql = "UPDATE " + resourceType + " SET " + reduceMap(data, ", ")
+            + ", timestamp = CURRENT_TIMESTAMP WHERE " + reduceMap(constraintParams, " AND ") + ";";
+        PreparedStatement stmt = connection.prepareStatement(sql);
         result = stmt.execute();
+        logger.info(sql);
       } catch (SQLException e) {
         e.printStackTrace();
       }
@@ -341,6 +346,38 @@ public class Database {
     issue.setCode(type);
     issue.setDiagnostics(message);
     return error;
+  }
+
+  /**
+   * Reduce a Map to a single string in the form "{key} = '{value}'" +
+   * concatonator
+   * 
+   * @param map          - key value pair of columns and values.
+   * @param concatonator - the string to connect a set of key value with another
+   *                     set.
+   * @return string in the form "{key} = '{value}'" + concatonator...
+   */
+  private String reduceMap(Map<String, Object> map, String concatonator) {
+    String sqlStr = "";
+    String column;
+    Object value;
+    for (Iterator<String> iterator = map.keySet().iterator(); iterator.hasNext();) {
+      column = iterator.next();
+      sqlStr += column + " = '";
+      value = map.get(column);
+      if (value instanceof String)
+        sqlStr += (String) value;
+      else if (value instanceof IBaseResource)
+        sqlStr += json((IBaseResource) value);
+      else
+        sqlStr += value.toString();
+
+      sqlStr += "'";
+      if (iterator.hasNext())
+        sqlStr += concatonator;
+    }
+
+    return sqlStr;
   }
 
   /**
