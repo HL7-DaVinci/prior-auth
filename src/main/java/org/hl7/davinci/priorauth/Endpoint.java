@@ -49,19 +49,12 @@ public class Endpoint {
             // Search
             App.DB.setBaseUrl(uri.getBaseUri());
             Bundle searchBundle;
-            if (status == null) {
-                searchBundle = App.DB.search(resourceType, patient);
-            } else {
-                searchBundle = App.DB.search(resourceType, patient, status);
-            }
+            searchBundle = App.DB.search(resourceType, patient, status);
             formattedData = requestType == RequestType.JSON ? App.DB.json(searchBundle) : App.DB.xml(searchBundle);
         } else {
             // Read
             IBaseResource baseResource;
-            if (status == null)
-                baseResource = App.DB.read(resourceType, id, patient);
-            else
-                baseResource = App.DB.read(resourceType, id, patient, status);
+            baseResource = App.DB.read(resourceType, id, patient, status);
 
             if (baseResource == null)
                 return Response.status(Status.NOT_FOUND).build();
@@ -102,18 +95,18 @@ public class Endpoint {
             // Do not delete everything
             // ID is required...
             status = Status.BAD_REQUEST;
-            outcome = App.DB.outcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_ID);
+            outcome = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_ID);
         } else if (patient == null) {
             // Do not delete everything
             // Patient ID is required...
             status = Status.UNAUTHORIZED;
-            outcome = App.DB.outcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_PATIENT);
+            outcome = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_PATIENT);
         } else {
             // Cascading delete
             App.DB.delete(Database.BUNDLE, id, patient);
             App.DB.delete(Database.CLAIM, id, patient);
             App.DB.delete(Database.CLAIM_RESPONSE, id, patient);
-            outcome = App.DB.outcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
+            outcome = FhirUtils.buildOutcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
         }
         String formattedData = requestType == RequestType.JSON ? App.DB.json(outcome) : App.DB.xml(outcome);
         return Response.status(status).entity(formattedData).build();

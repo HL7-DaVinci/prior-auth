@@ -28,7 +28,7 @@ public class DatabaseTest {
     Map<String, Object> bundleMap = new HashMap<String, Object>();
     bundleMap.put("id", "minimal");
     bundleMap.put("patient", "1");
-    bundleMap.put("status", Database.getStatusFromResource(bundle));
+    bundleMap.put("status", FhirUtils.getStatusFromResource(bundle));
     bundleMap.put("resource", bundle);
     App.DB.write(Database.BUNDLE, bundleMap);
   }
@@ -40,7 +40,7 @@ public class DatabaseTest {
 
   @Test
   public void testSearch() {
-    Bundle results = App.DB.search(Database.BUNDLE, "pat013");
+    Bundle results = App.DB.search(Database.BUNDLE, "pat013", null);
     Assert.assertNotNull(results);
     Assert.assertEquals(BundleType.SEARCHSET, results.getType());
 

@@ -43,7 +43,7 @@ public class ClaimEndpointTest {
     Map<String, Object> claimMap = new HashMap<String, Object>();
     claimMap.put("id", "minimal");
     claimMap.put("patient", "1");
-    claimMap.put("status", Database.getStatusFromResource(claim));
+    claimMap.put("status", FhirUtils.getStatusFromResource(claim));
     claimMap.put("resource", claim);
     App.DB.write(Database.CLAIM, claimMap);
   }
@@ -103,7 +103,7 @@ public class ClaimEndpointTest {
 
   @Test
   public void claimExists() {
-    Claim claim = (Claim) App.DB.read(Database.CLAIM, "minimal", "1");
+    Claim claim = (Claim) App.DB.read(Database.CLAIM, "minimal", "1", null);
     Assert.assertNotNull(claim);
   }
 
