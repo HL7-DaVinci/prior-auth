@@ -294,7 +294,6 @@ public class ClaimEndpoint {
   }
 
   /**
-<<<<<<< Updated upstream
    * Determine if a cancel can be performed and then update the DB to reflect the
    * cancel
    * 
