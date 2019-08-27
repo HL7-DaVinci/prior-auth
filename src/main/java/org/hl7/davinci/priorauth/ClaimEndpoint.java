@@ -440,8 +440,7 @@ public class ClaimEndpoint {
     // Get the claim from the database
     Claim claim = (Claim) App.DB.read(Database.CLAIM, claimId, patient, null);
     if (claim != null) {
-      ClaimResponseStatus responseStatus = ClaimResponseStatus.ACTIVE;
-      ClaimResponse response = generateAndStoreClaimResponse(claim, id, "Granted", responseStatus, patient);
+      generateAndStoreClaimResponse(claim, id, "Granted", ClaimResponseStatus.ACTIVE, patient);
     }
   }
 
