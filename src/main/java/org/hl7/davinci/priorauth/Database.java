@@ -248,36 +248,9 @@ public class Database {
           resource.setId(id);
           result = resource;
         } else {
-          return read(resourceType, id, patient, status, false);
-        }
-      } catch (SQLException e) {
-        e.printStackTrace();
-      }
-    }
-    return result;
-  }
-
-  public IBaseResource readNewestClaimResponse(String resourceType, String id, String patient, String status) {
-    logger.info("Database::read(" + resourceType + ", " + id + ", " + patient + ", " + status + ")");
-    IBaseResource result = null;
-    if (resourceType != null && id != null) {
-      try (Connection connection = getConnection()) {
-        String statusQuery = status == null ? "" : " AND status = ?";
-        PreparedStatement stmt = connection.prepareStatement(
-            "SELECT id, patient, resource FROM " + resourceType + " WHERE id = ? AND patient = ?" + statusQuery);
-        stmt.setString(1, id);
-        stmt.setString(2, patient);
-        if (status != null)
-          stmt.setString(3, status.toLowerCase());
-        logger.info("read query: " + stmt.toString());
-        ResultSet rs = stmt.executeQuery();
-        if (rs.next()) {
-          String json = rs.getString("resource");
-          String patientOut = rs.getString("patient");
-          logger.info("read: " + id + "/" + patientOut);
-          Resource resource = (Resource) App.FHIR_CTX.newJsonParser().parseResource(json);
-          resource.setId(id);
-          result = resource;
+          if (useClaimId) {
+            return read(resourceType, id, patient, status, false);
+          }
         }
       } catch (SQLException e) {
         e.printStackTrace();
