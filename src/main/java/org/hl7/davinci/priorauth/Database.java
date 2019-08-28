@@ -40,6 +40,12 @@ public class Database {
 
   private static final String createSqlFile = "src/main/java/org/hl7/davinci/priorauth/CreateDatabase.sql";
 
+  private static final String styleFile = "src/main/resources/style.html";
+  private static final String scriptFile = "src/main/resources/script.html";
+
+  private static String style = "";
+  private static String script = "";
+
   // DB_CLOSE_DELAY=-1 maintains the DB in memory after all connections closed
   // (so that we don't lose everything between a connection closing and the next
   // being opened)
@@ -67,6 +73,9 @@ public class Database {
       String sql = new String(Files.readAllBytes(Paths.get(createSqlFile).toAbsolutePath()));
       connection.prepareStatement(sql.replace("\"", "")).execute();
       logger.info(sql);
+
+      style = new String(Files.readAllBytes(Paths.get(styleFile).toAbsolutePath()));
+      script = new String(Files.readAllBytes(Paths.get(scriptFile).toAbsolutePath()));
     } catch (SQLException e) {
       e.printStackTrace();
     } catch (IOException e) {
@@ -114,7 +123,10 @@ public class Database {
           }
           Object object = rs.getObject(i);
           if (object instanceof org.h2.jdbc.JdbcClob && printClobs) {
+            ret += "<button class=\"collapsible\">+</button>\n" +
+                "<div class=\"content\"><xmp>";
             ret += object == null ? "NULL" : rs.getString(i);
+            ret += "</xmp>\n</div>\n";
           } else {
             ret += object == null ? "NULL" : object.toString();
           }
@@ -130,31 +142,7 @@ public class Database {
       e.printStackTrace();
     }
 
-    String style = "<style>\n" +
-        "#results {\n" +
-        "  font-family: \"Trebuchet MS\", Arial, Helvetica, sans-serif;\n" +
-        "  border-collapse: collapse;\n" +
-        "  width: 100%;\n" +
-        "}\n" +
-        "\n" +
-        "#results td, #results th {\n" +
-        "  border: 1px solid #ddd;\n" +
-        "  padding: 8px;\n" +
-        "}\n" +
-        "\n" +
-        "#results tr:nth-child(even){background-color: #f2f2f2;}\n" +
-        "\n" +
-        "#results tr:hover {background-color: #ddd;}\n" +
-        "\n" +
-        "#results th {\n" +
-        "  padding-top: 12px;\n" +
-        "  padding-bottom: 12px;\n" +
-        "  text-align: left;\n" +
-        "  background-color: #4CAF50;\n" +
-        "  color: white;\n" +
-        "}\n" +
-        "</style>";
-    if (outputHtml) { ret = "<html><head>" + style + "</head><body>" + ret + "</body></html>"; }
+    if (outputHtml) { ret = "<html><head>" + style + "</head><body>" + ret + script + "</body></html>"; }
     return ret;
   }
 
