@@ -131,7 +131,6 @@ public class ClaimEndpoint {
       IBaseResource resource = parser.parseResource(body);
       if (resource instanceof Bundle) {
         Bundle bundle = (Bundle) resource;
-        logger.info(bundle.getEntryFirstRep().getResource().getResourceType().name());
         if (bundle.hasEntry() && (bundle.getEntry().size() > 1) && bundle.getEntryFirstRep().hasResource()
             && bundle.getEntryFirstRep().getResource().getResourceType() == ResourceType.Claim) {
           ClaimResponse response = processBundle(bundle);
