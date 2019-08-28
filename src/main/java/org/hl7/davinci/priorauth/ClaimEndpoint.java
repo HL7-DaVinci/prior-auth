@@ -280,8 +280,8 @@ public class ClaimEndpoint {
   }
 
   /**
-   * <<<<<<< HEAD Process the claim items in the database. For a new claim add the
-   * items, for an updated claim update the items.
+   * Process the claim items in the database. For a new claim add the items, for
+   * an updated claim update the items.
    * 
    * @param claim   - the claim the items belong to.
    * @param related - the related claim (old claim this is replacing).
@@ -327,8 +327,8 @@ public class ClaimEndpoint {
   }
 
   /**
-   * ======= >>>>>>> pending-claims Determine if a cancel can be performed and
-   * then update the DB to reflect the cancel
+   * Determine if a cancel can be performed and then update the DB to reflect the
+   * cancel
    * 
    * @param claimId - the claim id to cancel.
    * @param patient - the patient for the claim to cancel.
