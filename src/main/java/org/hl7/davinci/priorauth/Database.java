@@ -224,7 +224,7 @@ public class Database {
    * @param useClaimId   - flag indicating if query should be based on claimId or id.
    * @return IBaseResource - if the resource exists, otherwise null.
    */
-  public IBaseResource read(String resourceType, String id, String patient, String status, boolean useClaimId) {
+  private IBaseResource read(String resourceType, String id, String patient, String status, boolean useClaimId) {
     logger.info("Database::read(" + resourceType + ", " + id + ", " + patient + ", " + status + ", " + String.valueOf(useClaimId) + ")");
     IBaseResource result = null;
     if (resourceType != null && id != null) {
@@ -245,12 +245,9 @@ public class Database {
           String patientOut = rs.getString("patient");
           logger.info("read: " + id + "/" + patientOut);
           Resource resource = (Resource) App.FHIR_CTX.newJsonParser().parseResource(json);
-          resource.setId(id);
           result = resource;
-        } else {
-          if (useClaimId) {
-            return read(resourceType, id, patient, status, false);
-          }
+        } else if (useClaimId) {
+          return read(resourceType, id, patient, status, false);
         }
       } catch (SQLException e) {
         e.printStackTrace();
