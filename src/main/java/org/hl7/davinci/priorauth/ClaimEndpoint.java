@@ -1,8 +1,10 @@
 package org.hl7.davinci.priorauth;
 
+import java.lang.invoke.MethodHandles;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TimerTask;
 import java.util.UUID;
 
 import javax.enterprise.context.RequestScoped;
@@ -51,10 +53,12 @@ import ca.uhn.fhir.parser.IParser;
 @Path("Claim")
 public class ClaimEndpoint {
 
-  static final Logger logger = LoggerFactory.getLogger(ClaimEndpoint.class);
+  static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
   String REQUIRES_BUNDLE = "Prior Authorization Claim/$submit Operation requires a Bundle with a single Claim as the first entry and supporting resources.";
   String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
+
+  public static String baseUri = null;
 
   @Context
   private UriInfo uri;
@@ -114,7 +118,12 @@ public class ClaimEndpoint {
    */
   private Response submitOperation(String body, RequestType requestType) {
     logger.info("POST /Claim/$submit fhir+" + requestType.name());
+    if (baseUri == null) {
+      baseUri = uri.getBaseUri().toString();
+    }
+
     String id = null;
+    String patient = null;
     Status status = Status.OK;
     String formattedData = null;
     try {
@@ -125,42 +134,46 @@ public class ClaimEndpoint {
         logger.info(bundle.getEntryFirstRep().getResource().getResourceType().name());
         if (bundle.hasEntry() && (bundle.getEntry().size() > 1) && bundle.getEntryFirstRep().hasResource()
             && bundle.getEntryFirstRep().getResource().getResourceType() == ResourceType.Claim) {
-          IBaseResource response = processBundle(bundle);
+          ClaimResponse response = processBundle(bundle);
           if (response == null) {
             // Failed processing bundle...
             status = Status.BAD_REQUEST;
-            OperationOutcome error = App.DB.outcome(IssueSeverity.ERROR, IssueType.INVALID, PROCESS_FAILED);
+            OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, PROCESS_FAILED);
             formattedData = requestType == RequestType.JSON ? App.DB.json(error) : App.DB.xml(error);
           } else {
             if (response.getIdElement().hasIdPart()) {
               id = response.getIdElement().getIdPart();
+            }
+            if (response.hasPatient()) {
+              patient = FhirUtils.getPatientIdFromResource(response);
             }
             formattedData = requestType == RequestType.JSON ? App.DB.json(response) : App.DB.xml(response);
           }
         } else {
           // Claim is required...
           status = Status.BAD_REQUEST;
-          OperationOutcome error = App.DB.outcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
+          OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
           formattedData = requestType == RequestType.JSON ? App.DB.json(error) : App.DB.xml(error);
         }
       } else {
         // Bundle is required...
         status = Status.BAD_REQUEST;
-        OperationOutcome error = App.DB.outcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
+        OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
         formattedData = requestType == RequestType.JSON ? App.DB.json(error) : App.DB.xml(error);
       }
     } catch (Exception e) {
       // The submission failed so spectacularly that we need
       // catch an exception and send back an error message...
       status = Status.BAD_REQUEST;
-      OperationOutcome error = App.DB.outcome(IssueSeverity.FATAL, IssueType.STRUCTURE, e.getMessage());
+      OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.FATAL, IssueType.STRUCTURE, e.getMessage());
       formattedData = requestType == RequestType.JSON ? App.DB.json(error) : App.DB.xml(error);
     }
     ResponseBuilder builder = requestType == RequestType.JSON
         ? Response.status(status).type("application/fhir+json").entity(formattedData)
         : Response.status(status).type("application/fhir+xml").entity(formattedData);
     if (id != null) {
-      builder = builder.header("Location", uri.getBaseUri() + "ClaimResponse/" + id);
+      builder = builder.header("Location",
+          uri.getBaseUri() + "ClaimResponse?identifier=" + id + "&patient.identifier=" + patient);
     }
     return builder.build();
   }
@@ -172,7 +185,7 @@ public class ClaimEndpoint {
    * @param bundle Bundle with a Claim followed by other required resources.
    * @return ClaimResponse with the result.
    */
-  private IBaseResource processBundle(Bundle bundle) {
+  private ClaimResponse processBundle(Bundle bundle) {
     logger.info("processBundle");
     // Store the submission...
     // Generate a shared id...
@@ -180,19 +193,15 @@ public class ClaimEndpoint {
 
     // get the patient
     Claim claim = (Claim) bundle.getEntryFirstRep().getResource();
-    String patient = "";
-    try {
-      String[] patientParts = claim.getPatient().getReference().split("/");
-      patient = patientParts[patientParts.length - 1];
-      logger.info("processBundle: patient: " + patientParts[patientParts.length - 1]);
-    } catch (Exception e) {
-      logger.error("processBundle: error procesing patient: " + e.toString());
-    }
+    String patient = FhirUtils.getPatientIdFromResource(claim);
 
     String claimId = id;
     String responseDisposition = "Unknown";
     ClaimResponseStatus responseStatus = ClaimResponseStatus.ACTIVE;
     ClaimStatus status = claim.getStatus();
+    boolean delayedUpdate = false;
+    String delayedDisposition = "";
+
     if (status == Claim.ClaimStatus.CANCELLED) {
       // Cancel the claim...
       claimId = claim.getIdElement().getIdPart();
@@ -204,7 +213,7 @@ public class ClaimEndpoint {
     } else {
       // Store the claim...
       claim.setId(id);
-      String claimStatusStr = Database.getStatusFromResource(claim);
+      String claimStatusStr = FhirUtils.getStatusFromResource(claim);
       Map<String, Object> claimMap = new HashMap<String, Object>();
       claimMap.put("id", id);
       claimMap.put("patient", patient);
@@ -221,7 +230,7 @@ public class ClaimEndpoint {
       Map<String, Object> bundleMap = new HashMap<String, Object>();
       bundleMap.put("id", id);
       bundleMap.put("patient", patient);
-      bundleMap.put("status", Database.getStatusFromResource(bundle));
+      bundleMap.put("status", FhirUtils.getStatusFromResource(bundle));
       bundleMap.put("resource", bundle);
       App.DB.write(Database.BUNDLE, bundleMap);
 
@@ -230,23 +239,41 @@ public class ClaimEndpoint {
         processClaimItems(claim, related, id);
       }
 
-      // Make up a disposition
-      responseDisposition = "Granted";
+      // generate random responses since not cancelling
+      switch (getRand(3)) {
+      case 1:
+        responseDisposition = "Granted";
+        break;
+      case 2:
+        responseDisposition = "Pending";
+
+        switch (getRand(2)) {
+        case 1:
+          delayedDisposition = "Granted";
+          break;
+        case 2:
+          delayedDisposition = "Denied";
+          break;
+        }
+
+        delayedUpdate = true;
+        break;
+      case 3:
+      default:
+        responseDisposition = "Denied";
+        break;
+      }
     }
     // Process the claim...
     // TODO
 
     // Generate the claim response...
-    ClaimResponse response = generateClaimResponse(id, responseDisposition, responseStatus, claim);
+    ClaimResponse response = generateAndStoreClaimResponse(claim, id, responseDisposition, responseStatus, patient);
 
-    // Store the claim respnose...
-    Map<String, Object> responseMap = new HashMap<String, Object>();
-    responseMap.put("id", id);
-    responseMap.put("claimId", claimId);
-    responseMap.put("patient", patient);
-    responseMap.put("status", Database.getStatusFromResource(response));
-    responseMap.put("resource", response);
-    App.DB.write(Database.CLAIM_RESPONSE, responseMap);
+    if (delayedUpdate) {
+      // schedule the update
+      scheduleClaimUpdate(id, patient, delayedDisposition);
+    }
 
     // Respond...
     return response;
@@ -263,7 +290,7 @@ public class ClaimEndpoint {
    */
   private boolean processClaimItems(Claim claim, RelatedClaimComponent related, String id) {
     boolean ret = true;
-    String claimStatusStr = Database.getStatusFromResource(claim);
+    String claimStatusStr = FhirUtils.getStatusFromResource(claim);
     if (related != null) {
       // Update the items...
       for (ItemComponent item : claim.getItem()) {
@@ -309,7 +336,7 @@ public class ClaimEndpoint {
    */
   private boolean cancelClaim(String claimId, String patient) {
     boolean result;
-    Claim initialClaim = (Claim) App.DB.read(Database.CLAIM, claimId, patient);
+    Claim initialClaim = (Claim) App.DB.read(Database.CLAIM, claimId, patient, null);
     if (initialClaim != null) {
       if (initialClaim.getStatus() != Claim.ClaimStatus.CANCELLED) {
         // Cancel the claim...
@@ -365,16 +392,25 @@ public class ClaimEndpoint {
   }
 
   /**
-   * Internal function to create the ClaimResponse to be sent back
-   * 
-   * @param id                  - the id for this response.
-   * @param responseDisposition - the disposition.
-   * @param responseStatus      - the status.
-   * @param claim               - the Claim resource this is a response to.
-   * @return the ClaimResponse with properties set correctly.
+   * Generate a new ClaimResponse and store it in the database.
+   *
+   * @param claim               The claim which this ClaimResponse is in reference
+   *                            to.
+   * @param id                  The new identifier for this ClaimResponse.
+   * @param responseDisposition The new disposition for this ClaimResponse
+   *                            (Granted, Pending, Cancelled, Declined ...).
+   * @param responseStatus      The new status for this ClaimResponse (Active,
+   *                            Cancelled, ...).
+   * @param patient             The identifier for the patient this ClaimResponse
+   *                            is referring to.
+   * @return ClaimResponse that has been generated and stored in the Database.
    */
-  private ClaimResponse generateClaimResponse(String id, String responseDisposition, ClaimResponseStatus responseStatus,
-      Claim claim) {
+  private ClaimResponse generateAndStoreClaimResponse(Claim claim, String id, String responseDisposition,
+      ClaimResponseStatus responseStatus, String patient) {
+    logger.info("generateAndStoreClaimResponse: " + id + "/" + patient + ", disposition: " + responseDisposition
+        + ", status: " + responseStatus);
+
+    // Generate the claim response...
     ClaimResponse response = new ClaimResponse();
     response.setStatus(responseStatus);
     response.setType(claim.getType());
@@ -386,12 +422,92 @@ public class ClaimEndpoint {
     } else {
       response.setInsurer(new Reference().setDisplay("Unknown"));
     }
-    response.setRequest(new Reference(uri.getBaseUri() + "Claim/" + id));
-    response.setOutcome(RemittanceOutcome.COMPLETE);
+    response.setRequest(new Reference(
+        baseUri + "Claim?identifier=" + claim.getIdElement().getIdPart() + "&patient.identifier=" + patient));
+    if (responseDisposition == "Pending") {
+      response.setOutcome(RemittanceOutcome.QUEUED);
+    } else {
+      response.setOutcome(RemittanceOutcome.COMPLETE);
+    }
     response.setDisposition(responseDisposition);
     response.setPreAuthRef(id);
     // TODO response.setPreAuthPeriod(period)?
     response.setId(id);
+
+    // Store the claim respnose...
+    Map<String, Object> responseMap = new HashMap<String, Object>();
+    responseMap.put("id", id);
+    responseMap.put("claimId", claim.getIdElement().getIdPart());
+    responseMap.put("patient", patient);
+    responseMap.put("status", FhirUtils.getStatusFromResource(response));
+    responseMap.put("resource", response);
+    App.DB.write(Database.CLAIM_RESPONSE, responseMap);
+
     return response;
   }
+
+  /**
+   * A TimerTask for updating claims.
+   */
+  class UpdateClaimTask extends TimerTask {
+    public String claimId;
+    public String patient;
+    public String disposition;
+
+    UpdateClaimTask(String claimId, String patient, String disposition) {
+      this.claimId = claimId;
+      this.patient = patient;
+      this.disposition = disposition;
+    }
+
+    @Override
+    public void run() {
+      updateClaim(claimId, patient, disposition);
+    }
+  }
+
+  /**
+   * Schedule an update to the Claim to support pending actions.
+   *
+   * @param id          - the Claim ID.
+   * @param patient     - the Patient ID.
+   * @param disposition - the new disposition of the updated Claim.
+   */
+  private void scheduleClaimUpdate(String id, String patient, String disposition) {
+    App.timer.schedule(new UpdateClaimTask(id, patient, disposition), 5000); // 5s
+  }
+
+  /**
+   * Update the claim and generate a new ClaimResponse.
+   * 
+   * @param claimId     - the Claim ID.
+   * @param patient     - the Patient ID.
+   * @param disposition - the new disposition of the updated Claim.
+   */
+  private void updateClaim(String claimId, String patient, String disposition) {
+    logger.info("updateClaim: " + claimId + "/" + patient + ", disposition: " + disposition);
+
+    // Generate a new id...
+    String id = UUID.randomUUID().toString();
+
+    // Get the claim from the database
+    Claim claim = (Claim) App.DB.read(Database.CLAIM, claimId, patient, null);
+    if (claim != null) {
+      ClaimResponseStatus responseStatus = ClaimResponseStatus.ACTIVE;
+      generateAndStoreClaimResponse(claim, id, "Granted", responseStatus, patient);
+    }
+  }
+
+  /**
+   * Get a random number between 1 and max.
+   *
+   * @param max The largest the random number could be.
+   * @return int representing the random number.
+   */
+  private int getRand(int max) {
+    Date date = new Date();
+    // System.out.printf(String.valueOf(date.getTime()) + ": ");
+    return (int) ((date.getTime() % max) + 1);
+  }
+
 }

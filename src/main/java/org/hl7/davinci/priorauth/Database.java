@@ -1,5 +1,6 @@
 package org.hl7.davinci.priorauth;
 
+import java.lang.invoke.MethodHandles;
 import java.util.*;
 import java.io.IOException;
 import java.net.URI;
@@ -10,20 +11,14 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.ResultSetMetaData;
 import java.util.Date;
 
 import org.h2.jdbc.JdbcSQLIntegrityConstraintViolationException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
-import org.hl7.fhir.r4.model.Bundle;
-import org.hl7.fhir.r4.model.Claim;
-import org.hl7.fhir.r4.model.ClaimResponse;
-import org.hl7.fhir.r4.model.OperationOutcome;
+import org.hl7.fhir.r4.model.*;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Bundle.BundleType;
-import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
-import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
-import org.hl7.fhir.r4.model.OperationOutcome.OperationOutcomeIssueComponent;
-import org.hl7.fhir.r4.model.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +27,7 @@ import org.slf4j.LoggerFactory;
  */
 public class Database {
 
-  static final Logger logger = LoggerFactory.getLogger(Database.class);
+  static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
   /** Bundle Resource */
   public static final String BUNDLE = "Bundle";
@@ -80,14 +75,87 @@ public class Database {
     }
   }
 
-  /**
-   * Search the database for the given resourceType.
-   * 
-   * @param resourceType - the FHIR resourceType to search.
-   * @return Bundle - the search result Bundle.
-   */
-  public Bundle search(String resourceType, String patient) {
-    return search(resourceType, patient, null);
+  public String runQuery(String sqlQuery, boolean printClobs, boolean outputHtml) {
+    String ret = "";
+    try (Connection connection = getConnection()) {
+      // build and execute the query
+      PreparedStatement stmt = connection.prepareStatement(sqlQuery);
+      ResultSet rs = stmt.executeQuery();
+
+      // get the number of columns
+      ResultSetMetaData metaData = rs.getMetaData();
+      int columnCount = metaData.getColumnCount();
+
+      if (outputHtml) { ret += "<table id='results'>\n<tr>"; }
+      // print the column names
+      for (int i = 1; i <= columnCount; i++) {
+        if (i != 1 && !outputHtml) {
+          ret += " / ";
+        }
+        if (outputHtml) {
+          if (metaData.getColumnName(i).contains("ID")) {
+            ret += "<th><div style='width: 300px;'>" + metaData.getColumnName(i) + "</div></th>";
+          } else {
+            ret += "<th>" + metaData.getColumnName(i) + "</th>";
+          }
+        }
+        else { ret += metaData.getColumnName(i); }
+      }
+      if (outputHtml) { ret += "</tr>"; }
+      ret += "\n";
+
+      // print all of the data
+      while(rs.next()) {
+        if (outputHtml) { ret += "<tr>"; }
+        for(int i = 1; i <= columnCount; i++) {
+          if (outputHtml) { ret += "<td>"; }
+          if (i != 1 && !outputHtml) {
+            ret += " / ";
+          }
+          Object object = rs.getObject(i);
+          if (object instanceof org.h2.jdbc.JdbcClob && printClobs) {
+            ret += object == null ? "NULL" : rs.getString(i);
+          } else {
+            ret += object == null ? "NULL" : object.toString();
+          }
+          if (outputHtml) { ret += "</td>\n"; }
+        }
+        if (outputHtml) { ret += "</tr>"; }
+        ret += "\n";
+      }
+
+      if (outputHtml) { ret += "</table>\n"; }
+
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+
+    String style = "<style>\n" +
+        "#results {\n" +
+        "  font-family: \"Trebuchet MS\", Arial, Helvetica, sans-serif;\n" +
+        "  border-collapse: collapse;\n" +
+        "  width: 100%;\n" +
+        "}\n" +
+        "\n" +
+        "#results td, #results th {\n" +
+        "  border: 1px solid #ddd;\n" +
+        "  padding: 8px;\n" +
+        "}\n" +
+        "\n" +
+        "#results tr:nth-child(even){background-color: #f2f2f2;}\n" +
+        "\n" +
+        "#results tr:hover {background-color: #ddd;}\n" +
+        "\n" +
+        "#results th {\n" +
+        "  padding-top: 12px;\n" +
+        "  padding-bottom: 12px;\n" +
+        "  text-align: left;\n" +
+        "  background-color: #4CAF50;\n" +
+        "  color: white;\n" +
+        "}\n" +
+        "</style>";
+    if (outputHtml) { ret = "<html><head>" + style + "</head><body>" + ret + "</body></html>"; }
+    return ret;
   }
 
   /**
@@ -120,7 +188,7 @@ public class Database {
         Resource resource = (Resource) App.FHIR_CTX.newJsonParser().parseResource(json);
         resource.setId(id);
         BundleEntryComponent entry = new BundleEntryComponent();
-        entry.setFullUrl(baseUrl + resourceType + "/" + id);
+        entry.setFullUrl(baseUrl + resourceType + "?identifier=" + id + "&patient.identifier=" + patientOut);
         entry.setResource(resource);
         results.addEntry(entry);
         total += 1;
@@ -134,24 +202,62 @@ public class Database {
 
   /**
    * Read a specific resource from the database.
-   * 
-   * @param resourceType - the FHIR resourceType to read.
-   * @param id           - the ID of the resource.
-   * @return IBaseResource - if the resource exists, otherwise null.
-   */
-  public IBaseResource read(String resourceType, String id, String patient) {
-    return read(resourceType, id, patient, null);
-  }
-
-  /**
-   * Read a specific resource from the database.
-   * 
+   *
    * @param resourceType - the FHIR resourceType to read.
    * @param id           - the ID of the resource.
    * @param status       - the status of the resource.
    * @return IBaseResource - if the resource exists, otherwise null.
    */
   public IBaseResource read(String resourceType, String id, String patient, String status) {
+    if (resourceType == CLAIM_RESPONSE) {
+      return read(resourceType, id, patient, status, true);
+    } else {
+      return read(resourceType, id, patient, status, false);
+    }
+  }
+  /**
+   * Read a specific resource from the database.
+   * 
+   * @param resourceType - the FHIR resourceType to read.
+   * @param id           - the ID of the resource.
+   * @param status       - the status of the resource.
+   * @param useClaimId   - flag indicating if query should be based on claimId or id.
+   * @return IBaseResource - if the resource exists, otherwise null.
+   */
+  public IBaseResource read(String resourceType, String id, String patient, String status, boolean useClaimId) {
+    logger.info("Database::read(" + resourceType + ", " + id + ", " + patient + ", " + status + ", " + String.valueOf(useClaimId) + ")");
+    IBaseResource result = null;
+    if (resourceType != null && id != null) {
+      try (Connection connection = getConnection()) {
+        String statusQuery = status == null ? "" : " AND status = ?";
+        String idString = useClaimId ? "claimId" : "id";
+        String sqlQuery = "SELECT TOP 1 id, patient, resource FROM " + resourceType + " WHERE " + idString + " = ? AND patient = ?" + statusQuery + " ORDER BY timestamp DESC";
+        PreparedStatement stmt = connection.prepareStatement(sqlQuery);
+        stmt.setString(1, id);
+        stmt.setString(2, patient);
+        if (status != null)
+          stmt.setString(3, status.toLowerCase());
+        logger.info("read query: " + stmt.toString());
+        ResultSet rs = stmt.executeQuery();
+
+        if (rs.next()) {
+          String json = rs.getString("resource");
+          String patientOut = rs.getString("patient");
+          logger.info("read: " + id + "/" + patientOut);
+          Resource resource = (Resource) App.FHIR_CTX.newJsonParser().parseResource(json);
+          resource.setId(id);
+          result = resource;
+        } else {
+          return read(resourceType, id, patient, status, false);
+        }
+      } catch (SQLException e) {
+        e.printStackTrace();
+      }
+    }
+    return result;
+  }
+
+  public IBaseResource readNewestClaimResponse(String resourceType, String id, String patient, String status) {
     logger.info("Database::read(" + resourceType + ", " + id + ", " + patient + ", " + status + ")");
     IBaseResource result = null;
     if (resourceType != null && id != null) {
@@ -277,30 +383,6 @@ public class Database {
   }
 
   /**
-   * Internal function to get the correct status from a resource depending on the
-   * type
-   * 
-   * @param resource - the resource.
-   * @return - the status of the resource.
-   */
-  public static String getStatusFromResource(IBaseResource resource) {
-    String status;
-    if (resource instanceof Claim) {
-      Claim claim = (Claim) resource;
-      status = claim.getStatus().getDisplay();
-    } else if (resource instanceof ClaimResponse) {
-      ClaimResponse claimResponse = (ClaimResponse) resource;
-      status = claimResponse.getStatus().getDisplay();
-    } else if (resource instanceof Bundle) {
-      status = "valid";
-    } else {
-      status = "unkown";
-    }
-    status = status.toLowerCase();
-    return status;
-  }
-
-  /**
    * Set the base URI for the microservice. This is necessary so
    * Bundle.entry.fullUrl data is accurately populated.
    * 
@@ -330,23 +412,6 @@ public class Database {
   public String xml(IBaseResource resource) {
     String xml = App.FHIR_CTX.newXmlParser().setPrettyPrint(true).encodeResourceToString(resource);
     return xml;
-  }
-
-  /**
-   * Create a FHIR OperationOutcome.
-   * 
-   * @param severity The severity of the result.
-   * @param type     The issue type.
-   * @param message  The message to return.
-   * @return OperationOutcome - the FHIR resource.
-   */
-  public OperationOutcome outcome(IssueSeverity severity, IssueType type, String message) {
-    OperationOutcome error = new OperationOutcome();
-    OperationOutcomeIssueComponent issue = error.addIssue();
-    issue.setSeverity(severity);
-    issue.setCode(type);
-    issue.setDiagnostics(message);
-    return error;
   }
 
   /**

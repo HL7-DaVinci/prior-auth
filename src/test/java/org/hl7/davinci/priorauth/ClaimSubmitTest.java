@@ -121,9 +121,9 @@ public class ClaimSubmitTest {
     resourceIds.add(id);
 
     // Test that the database contains the proper entries
-    Assert.assertNotNull(App.DB.read(Database.BUNDLE, id, "pat013"));
-    Assert.assertNotNull(App.DB.read(Database.CLAIM, id, "pat013"));
-    Assert.assertNotNull(App.DB.read(Database.CLAIM_RESPONSE, id, "pat013"));
+    Assert.assertNotNull(App.DB.read(Database.BUNDLE, id, "pat013", null));
+    Assert.assertNotNull(App.DB.read(Database.CLAIM, id, "pat013", null));
+    Assert.assertNotNull(App.DB.read(Database.CLAIM_RESPONSE, id, "pat013", null));
 
     // Validate the response.
     ValidationResult result = ValidationHelper.validate(claimResponse);
