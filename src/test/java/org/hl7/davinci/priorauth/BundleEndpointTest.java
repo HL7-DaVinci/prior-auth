@@ -42,7 +42,7 @@ public class BundleEndpointTest {
     Map<String, Object> bundleMap = new HashMap<String, Object>();
     bundleMap.put("id", "minimal");
     bundleMap.put("patient", "1");
-    bundleMap.put("status", Database.getStatusFromResource(bundle));
+    bundleMap.put("status", FhirUtils.getStatusFromResource(bundle));
     bundleMap.put("resource", bundle);
     App.DB.write(Database.BUNDLE, bundleMap);
   }
@@ -102,7 +102,7 @@ public class BundleEndpointTest {
 
   @Test
   public void bundleExists() {
-    Bundle bundle = (Bundle) App.DB.read(Database.BUNDLE, "minimal", "1");
+    Bundle bundle = (Bundle) App.DB.read(Database.BUNDLE, "minimal", "1", null);
     Assert.assertNotNull(bundle);
   }
 

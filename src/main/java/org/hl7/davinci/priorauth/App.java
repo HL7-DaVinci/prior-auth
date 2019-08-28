@@ -4,6 +4,8 @@ import org.apache.meecrowave.Meecrowave;
 
 import ca.uhn.fhir.context.FhirContext;
 
+import java.util.Timer;
+
 /**
  * The Da Vinci Prior Authorization Reference Implementation
  * microservice is launched with this App.
@@ -22,11 +24,24 @@ public class App {
    */
   public static final Database DB = new Database();
 
+
+  /**
+   * Timer for scheduling tasks to be completed at a later time.
+   */
+  public static final Timer timer = new Timer();
+
+  public static boolean debugMode = false;
+
   /**
    * Launch the Prior Authorization microservice.
    * @param args - ignored.
    */
   public static void main(String[] args) {
+    if (args.length > 0) {
+      if (args[0].equalsIgnoreCase("debug")) {
+        debugMode = true;
+      }
+    }
     // Assemble the microservice
     Meecrowave.Builder builder = new Meecrowave.Builder();
     builder.setHttpPort(9000);
