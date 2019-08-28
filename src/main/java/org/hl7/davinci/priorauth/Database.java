@@ -249,12 +249,9 @@ public class Database {
           String patientOut = rs.getString("patient");
           logger.info("read: " + id + "/" + patientOut);
           Resource resource = (Resource) App.FHIR_CTX.newJsonParser().parseResource(json);
-          resource.setId(id);
           result = resource;
-        } else {
-          if (useClaimId) {
-            return read(resourceType, id, patient, status, false);
-          }
+        } else if (useClaimId) {
+          return read(resourceType, id, patient, status, false);
         }
       } catch (SQLException e) {
         e.printStackTrace();
