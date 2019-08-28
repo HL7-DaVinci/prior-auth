@@ -280,8 +280,8 @@ public class ClaimEndpoint {
   }
 
   /**
-   * Process the claim items in the database. For a new claim add the items, for
-   * an updated claim update the items.
+   * <<<<<<< HEAD Process the claim items in the database. For a new claim add the
+   * items, for an updated claim update the items.
    * 
    * @param claim   - the claim the items belong to.
    * @param related - the related claim (old claim this is replacing).
@@ -327,8 +327,8 @@ public class ClaimEndpoint {
   }
 
   /**
-   * Determine if a cancel can be performed and then update the DB to reflect the
-   * cancel
+   * ======= >>>>>>> pending-claims Determine if a cancel can be performed and
+   * then update the DB to reflect the cancel
    * 
    * @param claimId - the claim id to cancel.
    * @param patient - the patient for the claim to cancel.
@@ -493,8 +493,7 @@ public class ClaimEndpoint {
     // Get the claim from the database
     Claim claim = (Claim) App.DB.read(Database.CLAIM, claimId, patient, null);
     if (claim != null) {
-      ClaimResponseStatus responseStatus = ClaimResponseStatus.ACTIVE;
-      generateAndStoreClaimResponse(claim, id, "Granted", responseStatus, patient);
+      generateAndStoreClaimResponse(claim, id, "Granted", ClaimResponseStatus.ACTIVE, patient);
     }
   }
 
