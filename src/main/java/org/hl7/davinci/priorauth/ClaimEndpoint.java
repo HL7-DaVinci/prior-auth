@@ -372,34 +372,34 @@ public class ClaimEndpoint {
         dataMap.put("resource", initialClaim);
         App.DB.update(Database.CLAIM, constraintMap, dataMap);
 
-        // Cascade delete shared vars
-        dataMap = new HashMap<String, Object>();
-        dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
-
         // Cascade up to all the Claims submitted after this which reference this Claim
+        dataMap = new HashMap<String, Object>();
+        Map<String, Object> readConstraintMap = new HashMap<String, Object>();
         constraintMap = new HashMap<String, Object>();
-        constraintMap.put("related", claimId);
-        App.DB.update(Database.CLAIM, constraintMap, dataMap);
-        Claim referencingClaim = (Claim) App.DB.read(Database.CLAIM, constraintMap);
+        constraintMap.put("id", null);
+        dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
+        dataMap.put("resource", null);
+        readConstraintMap.put("related", claimId);
+        Claim referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
         String referecingId;
 
         while (referencingClaim != null) {
           // Update referincing claim to cancelled
+          referencingClaim.setStatus(ClaimStatus.CANCELLED);
           referecingId = referencingClaim.getIdElement().getIdPart();
-          constraintMap.replace("related", referecingId);
+          constraintMap.replace("id", referecingId);
+          dataMap.replace("resource", referencingClaim);
           App.DB.update(Database.CLAIM, constraintMap, dataMap);
 
           // Get the new referencing claim
-          referencingClaim = (Claim) App.DB.read(Database.CLAIM, constraintMap);
+          readConstraintMap.replace("related", referecingId);
+          referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
         }
-
-        // Search by related = claimId to get the id
-        // Set that id to be cancelled
-        // Search by related = that id
-        // Repeat until there is no entry with related = that id
 
         // Cascade the cancel to all related Claims...
         // Follow each related until it is NULL
+        dataMap = new HashMap<String, Object>();
+        dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
         Map<String, Object> relatedConstraintMap = new HashMap<String, Object>();
         constraintMap = new HashMap<String, Object>();
         constraintMap.put("id", null);
