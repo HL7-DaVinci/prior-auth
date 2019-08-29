@@ -371,60 +371,9 @@ public class ClaimEndpoint {
         dataMap.put("resource", initialClaim);
         App.DB.update(Database.CLAIM, constraintMap, dataMap);
 
-        // Cascade delete shared maps
-        dataMap = new HashMap<String, Object>();
-        dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
-        dataMap.put("resource", null);
-        constraintMap = new HashMap<String, Object>();
-        constraintMap.put("id", null);
+        cascadeCancel(claimId);
+        cancelItems(initialClaim);
 
-        // Cascade up to all the Claims submitted after this which reference this Claim
-        Map<String, Object> readConstraintMap = new HashMap<String, Object>();
-        readConstraintMap.put("related", claimId);
-        Claim referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
-        String referecingId;
-
-        while (referencingClaim != null) {
-          // Update referincing claim to cancelled
-          referencingClaim.setStatus(ClaimStatus.CANCELLED);
-          referecingId = referencingClaim.getIdElement().getIdPart();
-          constraintMap.replace("id", referecingId);
-          dataMap.replace("resource", referencingClaim);
-          App.DB.update(Database.CLAIM, constraintMap, dataMap);
-
-          // Get the new referencing claim
-          readConstraintMap.replace("related", referecingId);
-          referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
-        }
-
-        // Cascade the cancel to all related Claims...
-        // Follow each related until it is NULL
-        constraintMap.replace("id", claimId);
-        String relatedId = App.DB.readRelated(Database.CLAIM, constraintMap);
-        Claim relatedClaim;
-
-        while (relatedId != null) {
-          // Update related claim to cancelled
-          constraintMap.replace("id", relatedId);
-          relatedClaim = (Claim) App.DB.read(Database.CLAIM, constraintMap);
-          relatedClaim.setStatus(ClaimStatus.CANCELLED);
-          dataMap.replace("resource", relatedClaim);
-          App.DB.update(Database.CLAIM, constraintMap, dataMap);
-
-          // Get the new related id from the db
-          relatedId = App.DB.readRelated(Database.CLAIM, constraintMap);
-        }
-
-        // Cancel the claim items
-        for (ItemComponent item : initialClaim.getItem()) {
-          dataMap = new HashMap<String, Object>();
-          constraintMap = new HashMap<String, Object>();
-          constraintMap.put("id", claimId);
-          constraintMap.put("sequence", item.getSequence());
-          dataMap.put("id", claimId);
-          dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
-          App.DB.update(Database.CLAIM_ITEM, constraintMap, dataMap);
-        }
         result = true;
       } else {
         logger.info("Claim " + claimId + " is already cancelled");
@@ -435,6 +384,103 @@ public class ClaimEndpoint {
       result = false;
     }
     return result;
+  }
+
+  /**
+   * Helper function to complete the cascade aspect of a Claim cancel. When a
+   * Claim is cancelled this will cascade the cancel to all related Claims (both
+   * up and downstream). A cancel updates the database status as well as update
+   * the resource status
+   * 
+   * @param claimId - the id of the original Claim to be cancelled
+   */
+  private void cascadeCancel(String claimId) {
+    // Cascade delete shared maps
+    Map<String, Object> dataMap = new HashMap<String, Object>();
+    dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
+    dataMap.put("resource", null);
+    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    constraintMap.put("id", null);
+
+    // Cascade up to all the Claims submitted after this which reference this Claim
+    Map<String, Object> readConstraintMap = new HashMap<String, Object>();
+    readConstraintMap.put("related", claimId);
+    Claim referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
+    String referecingId;
+
+    while (referencingClaim != null) {
+      // Update referincing claim to cancelled
+      referencingClaim.setStatus(ClaimStatus.CANCELLED);
+      referecingId = referencingClaim.getIdElement().getIdPart();
+      constraintMap.replace("id", referecingId);
+      dataMap.replace("resource", referencingClaim);
+      App.DB.update(Database.CLAIM, constraintMap, dataMap);
+
+      cancelItems(referencingClaim);
+
+      // Get the new referencing claim
+      readConstraintMap.replace("related", referecingId);
+      referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
+    }
+
+    // Cascade the cancel to all related Claims...
+    // Follow each related until it is NULL
+    constraintMap.replace("id", claimId);
+    String relatedId = App.DB.readRelated(Database.CLAIM, constraintMap);
+    Claim relatedClaim;
+
+    while (relatedId != null) {
+      // Update related claim to cancelled
+      constraintMap.replace("id", relatedId);
+      relatedClaim = (Claim) App.DB.read(Database.CLAIM, constraintMap);
+      relatedClaim.setStatus(ClaimStatus.CANCELLED);
+      dataMap.replace("resource", relatedClaim);
+      App.DB.update(Database.CLAIM, constraintMap, dataMap);
+
+      cancelItems(relatedClaim);
+
+      // Get the new related id from the db
+      relatedId = App.DB.readRelated(Database.CLAIM, constraintMap);
+    }
+  }
+
+  private void cancelItems(Claim claim) {
+    Map<String, Object> dataMap = new HashMap<String, Object>();
+    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    constraintMap.put("id", null);
+    constraintMap.put("sequence", null);
+    dataMap.put("id", null);
+    dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
+    String claimId = claim.getIdElement().getIdPart();
+    for (ItemComponent item : claim.getItem()) {
+      constraintMap.replace("id", claimId);
+      constraintMap.replace("sequence", item.getSequence());
+      dataMap.replace("id", claimId);
+      App.DB.update(Database.CLAIM_ITEM, constraintMap, dataMap);
+    }
+  }
+
+  /**
+   * Update the claim and generate a new ClaimResponse.
+   * 
+   * @param claimId     - the Claim ID.
+   * @param patient     - the Patient ID.
+   * @param disposition - the new disposition of the updated Claim.
+   */
+  private void updateClaim(String claimId, String patient, String disposition) {
+    logger.info("updateClaim: " + claimId + "/" + patient + ", disposition: " + disposition);
+
+    // Generate a new id...
+    String id = UUID.randomUUID().toString();
+
+    // Get the claim from the database
+    Map<String, Object> claimConstraintMap = new HashMap<String, Object>();
+    claimConstraintMap.put("id", claimId);
+    claimConstraintMap.put("patient", patient);
+    Claim claim = (Claim) App.DB.read(Database.CLAIM, claimConstraintMap);
+    if (claim != null) {
+      generateAndStoreClaimResponse(claim, id, "Granted", ClaimResponseStatus.ACTIVE, patient);
+    }
   }
 
   /**
@@ -544,29 +590,6 @@ public class ClaimEndpoint {
    */
   private void scheduleClaimUpdate(String id, String patient, String disposition) {
     App.timer.schedule(new UpdateClaimTask(id, patient, disposition), 5000); // 5s
-  }
-
-  /**
-   * Update the claim and generate a new ClaimResponse.
-   * 
-   * @param claimId     - the Claim ID.
-   * @param patient     - the Patient ID.
-   * @param disposition - the new disposition of the updated Claim.
-   */
-  private void updateClaim(String claimId, String patient, String disposition) {
-    logger.info("updateClaim: " + claimId + "/" + patient + ", disposition: " + disposition);
-
-    // Generate a new id...
-    String id = UUID.randomUUID().toString();
-
-    // Get the claim from the database
-    Map<String, Object> claimConstraintMap = new HashMap<String, Object>();
-    claimConstraintMap.put("id", claimId);
-    claimConstraintMap.put("patient", patient);
-    Claim claim = (Claim) App.DB.read(Database.CLAIM, claimConstraintMap);
-    if (claim != null) {
-      generateAndStoreClaimResponse(claim, id, "Granted", ClaimResponseStatus.ACTIVE, patient);
-    }
   }
 
   /**
