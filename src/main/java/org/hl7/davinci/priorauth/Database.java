@@ -46,6 +46,9 @@ public class Database {
   private static String style = "";
   private static String script = "";
 
+  private static final String SET_CONCAT = ", ";
+  private static final String WHERE_CONCAT = " AND ";
+
   // DB_CLOSE_DELAY=-1 maintains the DB in memory after all connections closed
   // (so that we don't lose everything between a connection closing and the next
   // being opened)
@@ -132,8 +135,7 @@ public class Database {
           }
           Object object = rs.getObject(i);
           if (object instanceof org.h2.jdbc.JdbcClob && printClobs) {
-            ret += "<button class=\"collapsible\">+</button>\n" +
-                "<div class=\"content\"><xmp>";
+            ret += "<button class=\"collapsible\">+</button>\n" + "<div class=\"content\"><xmp>";
             ret += object == null ? "NULL" : rs.getString(i);
             ret += "</xmp>\n</div>\n";
           } else {
@@ -177,8 +179,11 @@ public class Database {
     results.setType(BundleType.SEARCHSET);
     results.setTimestamp(new Date());
     try (Connection connection = getConnection()) {
-      PreparedStatement stmt = connection.prepareStatement(
-          "SELECT id, patient, resource FROM " + resourceType + " WHERE " + generateWhereClause(constraintMap) + ";");
+      String sql = "SELECT id, patient, resource FROM " + resourceType + " WHERE "
+          + generateClause(constraintMap, WHERE_CONCAT) + ";";
+      Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
+      maps.add(constraintMap);
+      PreparedStatement stmt = generateStatement(sql, maps, connection);
       logger.info("search query: " + stmt.toString());
       ResultSet rs = stmt.executeQuery();
       int total = 0;
@@ -214,9 +219,11 @@ public class Database {
     IBaseResource result = null;
     if (resourceType != null && constraintParams != null) {
       try (Connection connection = getConnection()) {
-        String sqlQuery = "SELECT TOP 1 id, patient, resource FROM " + resourceType + " WHERE "
-            + generateWhereClause(constraintParams) + " ORDER BY timestamp DESC;";
-        PreparedStatement stmt = connection.prepareStatement(sqlQuery);
+        String sql = "SELECT TOP 1 id, patient, resource FROM " + resourceType + " WHERE "
+            + generateClause(constraintParams, WHERE_CONCAT) + " ORDER BY timestamp DESC;";
+        Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
+        maps.add(constraintParams);
+        PreparedStatement stmt = generateStatement(sql, maps, connection);
         logger.info("read query: " + stmt.toString());
         ResultSet rs = stmt.executeQuery();
 
@@ -246,11 +253,18 @@ public class Database {
     boolean result = false;
     if (data != null) {
       try (Connection connection = getConnection()) {
-        String sql = "INSERT INTO " + resourceType + " (" + setColumns(data.keySet()) + ") VALUES "
-            + setValues(data.values()) + ";";
-        PreparedStatement stmt = connection.prepareStatement(sql);
+        String valueClause = "";
+        for (int i = 0; i < data.values().size() - 1; i++)
+          valueClause += "?,";
+        valueClause += "?";
+
+        String sql = "INSERT INTO " + resourceType + " (" + setColumns(data.keySet()) + ") VALUES (" + valueClause
+            + ");";
+        Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
+        maps.add(data);
+        PreparedStatement stmt = generateStatement(sql, maps, connection);
         result = stmt.execute();
-        logger.info(sql);
+        logger.info(stmt.toString());
         result = true;
       } catch (JdbcSQLIntegrityConstraintViolationException e) {
         logger.info("ERROR: Attempting to insert foreign key which does not exist");
@@ -276,16 +290,61 @@ public class Database {
     boolean result = false;
     if (resourceType != null && constraintParams != null && data != null) {
       try (Connection connection = getConnection()) {
-        String sql = "UPDATE " + resourceType + " SET " + reduceMap(data, ", ")
-            + ", timestamp = CURRENT_TIMESTAMP WHERE " + generateWhereClause(constraintParams) + ";";
-        PreparedStatement stmt = connection.prepareStatement(sql);
+        String sql = "UPDATE " + resourceType + " SET " + generateClause(data, SET_CONCAT)
+            + ", timestamp = CURRENT_TIMESTAMP WHERE " + generateClause(constraintParams, WHERE_CONCAT) + ";";
+        Collection<Map<String, Object>> maps = new ArrayList<Map<String, Object>>();
+        maps.add(data);
+        maps.add(constraintParams);
+        PreparedStatement stmt = generateStatement(sql, maps, connection);
         result = stmt.execute();
-        logger.info(sql);
+        logger.info(stmt.toString());
       } catch (SQLException e) {
         e.printStackTrace();
       }
     }
     return result;
+  }
+
+  /**
+   * Create a SQL PreparedStatement from an SQL string and setting the strings
+   * based on the maps provided.
+   * 
+   * @param sql        - query string with '?' denoting values to be set by the
+   *                   maps.
+   * @param maps       - Collection of Maps used to set the values.
+   * @param connection - the connection to the database.
+   * @return PreparedStatement with all values set or null if the number of values
+   *         provided is incorrect.
+   * @throws SQLException
+   */
+  private PreparedStatement generateStatement(String sql, Collection<Map<String, Object>> maps, Connection connection)
+      throws SQLException {
+    int numValuesNeeded = (int) sql.chars().filter(ch -> ch == '?').count();
+    int numValues = maps.stream().reduce(0, (subtotal, element) -> subtotal + element.size(), Integer::sum);
+    if (numValues != numValuesNeeded) {
+      logger.info("Value mismatch. Need " + numValuesNeeded + " values but received " + numValues);
+      return null;
+    }
+
+    PreparedStatement stmt = connection.prepareStatement(sql);
+    int valueIndex = 1;
+    for (Map<String, Object> map : maps) {
+      for (Object value : map.values()) {
+        String valueStr;
+        if (value instanceof String)
+          valueStr = (String) value;
+        else if (value instanceof IBaseResource)
+          valueStr = json((IBaseResource) value);
+        else if (value == null)
+          valueStr = "null";
+        else
+          valueStr = value.toString();
+        stmt.setString(valueIndex, valueStr);
+        valueIndex++;
+      }
+    }
+
+    return stmt;
   }
 
   /**
@@ -371,57 +430,13 @@ public class Database {
    *                     set.
    * @return string in the form "{key} = '{value}'" + concatonator...
    */
-  private String reduceMap(Map<String, Object> map, String concatonator) {
-    String sqlStr = "";
-    String column;
-    Object value;
-    for (Iterator<String> iterator = map.keySet().iterator(); iterator.hasNext();) {
-      column = iterator.next();
-      sqlStr += column + " = '";
-      value = map.get(column);
-      if (value instanceof String)
-        sqlStr += (String) value;
-      else if (value instanceof IBaseResource)
-        sqlStr += json((IBaseResource) value);
-      else
-        sqlStr += value.toString();
-
-      sqlStr += "'";
-      if (iterator.hasNext())
-        sqlStr += concatonator;
-    }
-
-    return sqlStr;
-  }
-
-  /**
-   * Reduce a Map to a single string in the form "{key} = '{value}'" +
-   * concatonator
-   * 
-   * @param map          - key value pair of columns and values.
-   * @param concatonator - the string to connect a set of key value with another
-   *                     set.
-   * @return string in the form "{key} = '{value}'" + concatonator...
-   */
-  private String generateWhereClause(Map<String, Object> map) {
-    Object value;
+  private String generateClause(Map<String, Object> map, String concatonator) {
     String column;
     String sqlStr = "";
-    String concatonator = " AND ";
     for (Iterator<String> iterator = map.keySet().iterator(); iterator.hasNext();) {
       column = iterator.next();
-      value = map.get(column);
-      sqlStr += column + " = '";
-      if (value instanceof String)
-        sqlStr += (String) value;
-      else if (value instanceof IBaseResource)
-        sqlStr += json((IBaseResource) value);
-      else if (value == null)
-        sqlStr += "null";
-      else
-        sqlStr += value.toString();
+      sqlStr += column + " = ?";
 
-      sqlStr += "'";
       if (iterator.hasNext())
         sqlStr += concatonator;
     }
@@ -440,30 +455,4 @@ public class Database {
     return reducedArr.get();
   }
 
-  /**
-   * Internal function to map the values to a string
-   * 
-   * @param values - the collection of values to be reduced.
-   * @return a single string of each value represented as a string concatenated by
-   *         ", " and wrapped in ' '
-   */
-  private String setValues(Collection<Object> values) {
-    String sqlStr = "(";
-    for (Iterator<Object> iterator = values.iterator(); iterator.hasNext();) {
-      Object value = iterator.next();
-      sqlStr += "'";
-      if (value instanceof String)
-        sqlStr += (String) value;
-      else if (value instanceof IBaseResource)
-        sqlStr += json((IBaseResource) value);
-      else
-        sqlStr += value.toString();
-
-      if (iterator.hasNext())
-        sqlStr += "', ";
-      else
-        sqlStr += "')";
-    }
-    return sqlStr;
-  }
 }
