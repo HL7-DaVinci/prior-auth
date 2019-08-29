@@ -29,6 +29,7 @@ import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.Claim.RelatedClaimComponent;
 import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.Coding;
+import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.ClaimResponse.ClaimResponseStatus;
 import org.hl7.fhir.r4.model.ClaimResponse.RemittanceOutcome;
 import org.hl7.fhir.r4.model.ClaimResponse.Use;
@@ -37,6 +38,7 @@ import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ResourceType;
+import org.hl7.fhir.r4.model.Type;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
 import org.slf4j.Logger;
@@ -116,7 +118,9 @@ public class ClaimEndpoint {
    */
   private Response submitOperation(String body, RequestType requestType) {
     logger.info("POST /Claim/$submit fhir+" + requestType.name());
-    if (baseUri == null) { baseUri = uri.getBaseUri().toString(); }
+    if (baseUri == null) {
+      baseUri = uri.getBaseUri().toString();
+    }
 
     String id = null;
     String patient = null;
@@ -167,7 +171,8 @@ public class ClaimEndpoint {
         ? Response.status(status).type("application/fhir+json").entity(formattedData)
         : Response.status(status).type("application/fhir+xml").entity(formattedData);
     if (id != null) {
-      builder = builder.header("Location", uri.getBaseUri() + "ClaimResponse?identifier=" + id + "&patient.identifier=" + patient);
+      builder = builder.header("Location",
+          uri.getBaseUri() + "ClaimResponse?identifier=" + id + "&patient.identifier=" + patient);
     }
     return builder.build();
   }
@@ -230,52 +235,32 @@ public class ClaimEndpoint {
 
       // Store the claim items...
       if (claim.hasItem()) {
-        if (related != null) {
-          // Update the items...
-          for (ItemComponent item : claim.getItem()) {
-            Map<String, Object> dataMap = new HashMap<String, Object>();
-            Map<String, Object> constraintMap = new HashMap<String, Object>();
-            constraintMap.put("id", related.getIdElement().asStringValue());
-            constraintMap.put("sequence", item.getSequence());
-            dataMap.put("id", id);
-            dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
-            App.DB.update(Database.CLAIM_ITEM, constraintMap, dataMap);
-          }
-        } else {
-          // Add the claim items...
-          for (ItemComponent item : claim.getItem()) {
-            Map<String, Object> itemMap = new HashMap<String, Object>();
-            itemMap.put("id", id);
-            itemMap.put("sequence", item.getSequence());
-            itemMap.put("status", claimStatusStr);
-            App.DB.write(Database.CLAIM_ITEM, itemMap);
-          }
-        }
+        processClaimItems(claim, related, id);
       }
 
       // generate random responses since not cancelling
       switch (getRand(3)) {
+      case 1:
+        responseDisposition = "Granted";
+        break;
+      case 2:
+        responseDisposition = "Pending";
+
+        switch (getRand(2)) {
         case 1:
-          responseDisposition = "Granted";
+          delayedDisposition = "Granted";
           break;
         case 2:
-          responseDisposition = "Pending";
-
-          switch (getRand(2)) {
-            case 1:
-              delayedDisposition = "Granted";
-              break;
-            case 2:
-              delayedDisposition = "Denied";
-              break;
-          }
-
-          delayedUpdate = true;
+          delayedDisposition = "Denied";
           break;
-        case 3:
-        default:
-          responseDisposition = "Denied";
-          break;
+        }
+
+        delayedUpdate = true;
+        break;
+      case 3:
+      default:
+        responseDisposition = "Denied";
+        break;
       }
     }
     // Process the claim...
@@ -294,6 +279,53 @@ public class ClaimEndpoint {
   }
 
   /**
+   * Process the claim items in the database. For a new claim add the items, for
+   * an updated claim update the items.
+   * 
+   * @param claim   - the claim the items belong to.
+   * @param related - the related claim (old claim this is replacing).
+   * @param id      - the id of the claim.
+   * @return true if all updates successful, false otherwise.
+   */
+  private boolean processClaimItems(Claim claim, RelatedClaimComponent related, String id) {
+    boolean ret = true;
+    String claimStatusStr = FhirUtils.getStatusFromResource(claim);
+    if (related != null) {
+      // Update the items...
+      for (ItemComponent item : claim.getItem()) {
+        boolean itemIsCancelled = false;
+        String extUrl = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemCancelled";
+        if (item.hasExtension(extUrl)) {
+          Extension ext = item.getExtensionsByUrl(extUrl).get(0);
+          if (ext.hasValue()) {
+            Type type = ext.getValue();
+            itemIsCancelled = type.castToBoolean(type).booleanValue();
+          }
+        }
+        Map<String, Object> dataMap = new HashMap<String, Object>();
+        Map<String, Object> constraintMap = new HashMap<String, Object>();
+        constraintMap.put("id", related.getIdElement().asStringValue());
+        constraintMap.put("sequence", item.getSequence());
+        dataMap.put("id", id);
+        dataMap.put("status", itemIsCancelled ? ClaimStatus.CANCELLED.getDisplay().toLowerCase() : claimStatusStr);
+        if (!App.DB.update(Database.CLAIM_ITEM, constraintMap, dataMap))
+          ret = false;
+      }
+    } else {
+      // Add the claim items...
+      for (ItemComponent item : claim.getItem()) {
+        Map<String, Object> itemMap = new HashMap<String, Object>();
+        itemMap.put("id", id);
+        itemMap.put("sequence", item.getSequence());
+        itemMap.put("status", claimStatusStr);
+        if (!App.DB.write(Database.CLAIM_ITEM, itemMap))
+          ret = false;
+      }
+    }
+    return ret;
+  }
+
+  /**
    * Determine if a cancel can be performed and then update the DB to reflect the
    * cancel
    * 
@@ -306,11 +338,23 @@ public class ClaimEndpoint {
     Claim initialClaim = (Claim) App.DB.read(Database.CLAIM, claimId, patient, null);
     if (initialClaim != null) {
       if (initialClaim.getStatus() != Claim.ClaimStatus.CANCELLED) {
+        // Cancel the claim...
         Map<String, Object> dataMap = new HashMap<String, Object>();
         Map<String, Object> constraintMap = new HashMap<String, Object>();
         constraintMap.put("id", claimId);
         dataMap.put("status", Claim.ClaimStatus.CANCELLED.getDisplay().toLowerCase());
         App.DB.update(Database.CLAIM, constraintMap, dataMap);
+
+        // Cancel the claim items
+        for (ItemComponent item : initialClaim.getItem()) {
+          dataMap = new HashMap<String, Object>();
+          constraintMap = new HashMap<String, Object>();
+          constraintMap.put("id", claimId);
+          constraintMap.put("sequence", item.getSequence());
+          dataMap.put("id", claimId);
+          dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
+          App.DB.update(Database.CLAIM_ITEM, constraintMap, dataMap);
+        }
         result = true;
       } else {
         logger.info("Claim " + claimId + " is already cancelled");
@@ -349,15 +393,21 @@ public class ClaimEndpoint {
   /**
    * Generate a new ClaimResponse and store it in the database.
    *
-   * @param claim The claim which this ClaimResponse is in reference to.
-   * @param id The new identifier for this ClaimResponse.
-   * @param responseDisposition The new disposition for this ClaimResponse (Granted, Pending, Cancelled, Declined ...).
-   * @param responseStatus The new status for this ClaimResponse (Active, Cancelled, ...).
-   * @param patient The identifier for the patient this ClaimResponse is referring to.
+   * @param claim               The claim which this ClaimResponse is in reference
+   *                            to.
+   * @param id                  The new identifier for this ClaimResponse.
+   * @param responseDisposition The new disposition for this ClaimResponse
+   *                            (Granted, Pending, Cancelled, Declined ...).
+   * @param responseStatus      The new status for this ClaimResponse (Active,
+   *                            Cancelled, ...).
+   * @param patient             The identifier for the patient this ClaimResponse
+   *                            is referring to.
    * @return ClaimResponse that has been generated and stored in the Database.
    */
-  private ClaimResponse generateAndStoreClaimResponse(Claim claim, String id, String responseDisposition, ClaimResponseStatus responseStatus, String patient) {
-    logger.info("generateAndStoreClaimResponse: " + id + "/" + patient + ", disposition: " + responseDisposition + ", status: " + responseStatus);
+  private ClaimResponse generateAndStoreClaimResponse(Claim claim, String id, String responseDisposition,
+      ClaimResponseStatus responseStatus, String patient) {
+    logger.info("generateAndStoreClaimResponse: " + id + "/" + patient + ", disposition: " + responseDisposition
+        + ", status: " + responseStatus);
 
     // Generate the claim response...
     ClaimResponse response = new ClaimResponse();
@@ -371,7 +421,8 @@ public class ClaimEndpoint {
     } else {
       response.setInsurer(new Reference().setDisplay("Unknown"));
     }
-    response.setRequest(new Reference(baseUri + "Claim?identifier=" + claim.getIdElement().getIdPart() + "&patient.identifier=" + patient));
+    response.setRequest(new Reference(
+        baseUri + "Claim?identifier=" + claim.getIdElement().getIdPart() + "&patient.identifier=" + patient));
     if (responseDisposition == "Pending") {
       response.setOutcome(RemittanceOutcome.QUEUED);
     } else {
@@ -417,8 +468,8 @@ public class ClaimEndpoint {
   /**
    * Schedule an update to the Claim to support pending actions.
    *
-   * @param id - the Claim ID.
-   * @param patient - the Patient ID.
+   * @param id          - the Claim ID.
+   * @param patient     - the Patient ID.
    * @param disposition - the new disposition of the updated Claim.
    */
   private void scheduleClaimUpdate(String id, String patient, String disposition) {
@@ -427,8 +478,9 @@ public class ClaimEndpoint {
 
   /**
    * Update the claim and generate a new ClaimResponse.
-   * @param claimId - the Claim ID.
-   * @param patient - the Patient ID.
+   * 
+   * @param claimId     - the Claim ID.
+   * @param patient     - the Patient ID.
    * @param disposition - the new disposition of the updated Claim.
    */
   private void updateClaim(String claimId, String patient, String disposition) {
@@ -452,8 +504,8 @@ public class ClaimEndpoint {
    */
   private int getRand(int max) {
     Date date = new Date();
-    //System.out.printf(String.valueOf(date.getTime()) + ": ");
-    return (int)((date.getTime() % max)+1);
+    // System.out.printf(String.valueOf(date.getTime()) + ": ");
+    return (int) ((date.getTime() % max) + 1);
   }
 
 }

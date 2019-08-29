@@ -95,7 +95,9 @@ public class Database {
       ResultSetMetaData metaData = rs.getMetaData();
       int columnCount = metaData.getColumnCount();
 
-      if (outputHtml) { ret += "<table id='results'>\n<tr>"; }
+      if (outputHtml) {
+        ret += "<table id='results'>\n<tr>";
+      }
       // print the column names
       for (int i = 1; i <= columnCount; i++) {
         if (i != 1 && !outputHtml) {
@@ -107,17 +109,24 @@ public class Database {
           } else {
             ret += "<th>" + metaData.getColumnName(i) + "</th>";
           }
+        } else {
+          ret += metaData.getColumnName(i);
         }
-        else { ret += metaData.getColumnName(i); }
       }
-      if (outputHtml) { ret += "</tr>"; }
+      if (outputHtml) {
+        ret += "</tr>";
+      }
       ret += "\n";
 
       // print all of the data
-      while(rs.next()) {
-        if (outputHtml) { ret += "<tr>"; }
-        for(int i = 1; i <= columnCount; i++) {
-          if (outputHtml) { ret += "<td>"; }
+      while (rs.next()) {
+        if (outputHtml) {
+          ret += "<tr>";
+        }
+        for (int i = 1; i <= columnCount; i++) {
+          if (outputHtml) {
+            ret += "<td>";
+          }
           if (i != 1 && !outputHtml) {
             ret += " / ";
           }
@@ -130,19 +139,28 @@ public class Database {
           } else {
             ret += object == null ? "NULL" : object.toString();
           }
-          if (outputHtml) { ret += "</td>\n"; }
+          if (outputHtml) {
+            ret += "</td>\n";
+          }
         }
-        if (outputHtml) { ret += "</tr>"; }
+        if (outputHtml) {
+          ret += "</tr>";
+        }
         ret += "\n";
       }
 
-      if (outputHtml) { ret += "</table>\n"; }
+      if (outputHtml) {
+        ret += "</table>\n";
+      }
 
     } catch (SQLException e) {
       e.printStackTrace();
     }
 
-    if (outputHtml) { ret = "<html><head>" + style + "</head><body>" + ret + script + "</body></html>"; }
+    if (outputHtml) {
+      ret = "<html><head>" + style + "</head><body>" + ret + script + "</body></html>";
+    }
+
     return ret;
   }
 
@@ -203,23 +221,27 @@ public class Database {
       return read(resourceType, id, patient, status, false);
     }
   }
+
   /**
    * Read a specific resource from the database.
    * 
    * @param resourceType - the FHIR resourceType to read.
    * @param id           - the ID of the resource.
    * @param status       - the status of the resource.
-   * @param useClaimId   - flag indicating if query should be based on claimId or id.
+   * @param useClaimId   - flag indicating if query should be based on claimId or
+   *                     id.
    * @return IBaseResource - if the resource exists, otherwise null.
    */
-  private IBaseResource read(String resourceType, String id, String patient, String status, boolean useClaimId) {
-    logger.info("Database::read(" + resourceType + ", " + id + ", " + patient + ", " + status + ", " + String.valueOf(useClaimId) + ")");
+  public IBaseResource read(String resourceType, String id, String patient, String status, boolean useClaimId) {
+    logger.info("Database::read(" + resourceType + ", " + id + ", " + patient + ", " + status + ", "
+        + String.valueOf(useClaimId) + ")");
     IBaseResource result = null;
     if (resourceType != null && id != null) {
       try (Connection connection = getConnection()) {
         String statusQuery = status == null ? "" : " AND status = ?";
         String idString = useClaimId ? "claimId" : "id";
-        String sqlQuery = "SELECT TOP 1 id, patient, resource FROM " + resourceType + " WHERE " + idString + " = ? AND patient = ?" + statusQuery + " ORDER BY timestamp DESC";
+        String sqlQuery = "SELECT TOP 1 id, patient, resource FROM " + resourceType + " WHERE " + idString
+            + " = ? AND patient = ?" + statusQuery + " ORDER BY timestamp DESC";
         PreparedStatement stmt = connection.prepareStatement(sqlQuery);
         stmt.setString(1, id);
         stmt.setString(2, patient);
@@ -281,7 +303,8 @@ public class Database {
    * @return boolean - whether or not the update was successful
    */
   public boolean update(String resourceType, Map<String, Object> constraintParams, Map<String, Object> data) {
-    logger.info("Database::update(" + resourceType + ", " + constraintParams.toString() + ", " + data.toString() + ")");
+    logger.info("Database::update(" + resourceType + ", WHERE " + constraintParams.toString() + ", SET"
+        + data.toString() + ")");
     boolean result = false;
     if (resourceType != null && constraintParams != null && data != null) {
       try (Connection connection = getConnection()) {
