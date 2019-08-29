@@ -445,41 +445,6 @@ public class Database {
   }
 
   /**
-   * Reduce a Map to a single string in the form "{key} = '{value}'" +
-   * concatonator
-   * 
-   * @param map          - key value pair of columns and values.
-   * @param concatonator - the string to connect a set of key value with another
-   *                     set.
-   * @return string in the form "{key} = '{value}'" + concatonator...
-   */
-  private String generateWhereClause(Map<String, Object> map) {
-    Object value;
-    String column;
-    String sqlStr = "";
-    String concatonator = " AND ";
-    for (Iterator<String> iterator = map.keySet().iterator(); iterator.hasNext();) {
-      column = iterator.next();
-      value = map.get(column);
-      sqlStr += column + " = '";
-      if (value instanceof String)
-        sqlStr += (String) value;
-      else if (value instanceof IBaseResource)
-        sqlStr += json((IBaseResource) value);
-      else if (value == null)
-        sqlStr += "null";
-      else
-        sqlStr += value.toString();
-
-      sqlStr += "'";
-      if (iterator.hasNext())
-        sqlStr += concatonator;
-    }
-
-    return sqlStr;
-  }
-
-  /**
    * Internal function to map the keys to a string
    * 
    * @param keys - the set of keys to be reduced.
