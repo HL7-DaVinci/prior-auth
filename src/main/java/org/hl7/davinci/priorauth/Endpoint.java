@@ -1,5 +1,7 @@
 package org.hl7.davinci.priorauth;
 
+import java.util.Map;
+
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
@@ -29,32 +31,33 @@ public class Endpoint {
     /**
      * Read a resource from an endpoint in either JSON or XML
      * 
-     * @param id           - the ID of the resource.
-     * @param patient      - the patient ID.
-     * @param status       - the current status.
-     * @param resourceType - the FHIR resourceType to read.
-     * @param uri          - the base URI for the microservice.
-     * @param requestType  - the RequestType of the request.
+     * @param resourceType  - the FHIR resourceType to read.
+     * @param constraintMap - map of the column names and values for the SQL query.
+     * @param uri           - the base URI for the microservice.
+     * @param requestType   - the RequestType of the request.
      * @return the desired resource if successful and an error message otherwise
      */
-    public static Response read(String id, String patient, String status, String resourceType, UriInfo uri,
+    public static Response read(String resourceType, Map<String, Object> constraintMap, UriInfo uri,
             RequestType requestType) {
-        logger.info("GET /" + resourceType + ":" + id + "/" + patient + "/" + status + " fhir+" + requestType.name());
-        if (patient == null) {
+        if (constraintMap.containsKey("status") && constraintMap.get("status") == null)
+            constraintMap.remove("status");
+        logger.info("GET /" + resourceType + ":" + constraintMap.toString() + " fhir+" + requestType.name());
+        if (!constraintMap.containsKey("patient") || constraintMap.get("patient") == null) {
             logger.info("patient null");
             return Response.status(Status.UNAUTHORIZED).build();
         }
         String formattedData = null;
-        if (id == null) {
+        if (!constraintMap.containsKey("id") || constraintMap.get("id") == null) {
             // Search
             App.DB.setBaseUrl(uri.getBaseUri());
+            constraintMap.remove("id");
             Bundle searchBundle;
-            searchBundle = App.DB.search(resourceType, patient, status);
+            searchBundle = App.DB.search(resourceType, constraintMap);
             formattedData = requestType == RequestType.JSON ? App.DB.json(searchBundle) : App.DB.xml(searchBundle);
         } else {
             // Read
             IBaseResource baseResource;
-            baseResource = App.DB.read(resourceType, id, patient, status);
+            baseResource = App.DB.read(resourceType, constraintMap);
 
             if (baseResource == null)
                 return Response.status(Status.NOT_FOUND).build();

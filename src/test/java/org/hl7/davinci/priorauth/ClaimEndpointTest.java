@@ -103,7 +103,10 @@ public class ClaimEndpointTest {
 
   @Test
   public void claimExists() {
-    Claim claim = (Claim) App.DB.read(Database.CLAIM, "minimal", "1", null);
+    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    constraintMap.put("id", "minimal");
+    constraintMap.put("patient", "1");
+    Claim claim = (Claim) App.DB.read(Database.CLAIM, constraintMap);
     Assert.assertNotNull(claim);
   }
 

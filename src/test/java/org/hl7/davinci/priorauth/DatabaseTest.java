@@ -40,7 +40,9 @@ public class DatabaseTest {
 
   @Test
   public void testSearch() {
-    Bundle results = App.DB.search(Database.BUNDLE, "pat013", null);
+    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    constraintMap.put("patient", "pat013");
+    Bundle results = App.DB.search(Database.BUNDLE, constraintMap);
     Assert.assertNotNull(results);
     Assert.assertEquals(BundleType.SEARCHSET, results.getType());
 
