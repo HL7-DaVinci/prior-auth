@@ -372,14 +372,31 @@ public class ClaimEndpoint {
         dataMap.put("resource", initialClaim);
         App.DB.update(Database.CLAIM, constraintMap, dataMap);
 
-        // Cascade delete maps
+        // Cascade delete shared vars
         dataMap = new HashMap<String, Object>();
         dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
 
-        // Cascade up to all the Claims which reference this Claim has related...
+        // Cascade up to all the Claims submitted after this which reference this Claim
         constraintMap = new HashMap<String, Object>();
         constraintMap.put("related", claimId);
         App.DB.update(Database.CLAIM, constraintMap, dataMap);
+        Claim referencingClaim = (Claim) App.DB.read(Database.CLAIM, constraintMap);
+        String referecingId;
+
+        while (referencingClaim != null) {
+          // Update referincing claim to cancelled
+          referecingId = referencingClaim.getIdElement().getIdPart();
+          constraintMap.replace("related", referecingId);
+          App.DB.update(Database.CLAIM, constraintMap, dataMap);
+
+          // Get the new referencing claim
+          referencingClaim = (Claim) App.DB.read(Database.CLAIM, constraintMap);
+        }
+
+        // Search by related = claimId to get the id
+        // Set that id to be cancelled
+        // Search by related = that id
+        // Repeat until there is no entry with related = that id
 
         // Cascade the cancel to all related Claims...
         // Follow each related until it is NULL
