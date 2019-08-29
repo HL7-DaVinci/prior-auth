@@ -398,24 +398,27 @@ public class ClaimEndpoint {
 
         // Cascade the cancel to all related Claims...
         // Follow each related until it is NULL
+        RelatedClaimComponent related = getRelatedComponent(initialClaim);
+        StringType relatedId = (related == null) ? null : related.getIdElement();
         dataMap = new HashMap<String, Object>();
         dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
+        dataMap.put("resource", null);
         Map<String, Object> relatedConstraintMap = new HashMap<String, Object>();
         constraintMap = new HashMap<String, Object>();
         constraintMap.put("id", null);
-        relatedConstraintMap.put("id", null);
-        RelatedClaimComponent related = getRelatedComponent(initialClaim);
-        StringType relatedId = (related == null) ? null : related.getIdElement();
+        relatedConstraintMap.put("id", relatedId.asStringValue());
+        Claim relatedClaim = (Claim) App.DB.read(Database.CLAIM, relatedConstraintMap);
 
         while (relatedId != null) {
           logger.info("cancelling related claim: " + relatedId.asStringValue());
           // Update related claim to cancelled
-          // TODO SET RESOURCE TO CANCELLED TOO
           relatedConstraintMap.replace("id", relatedId.asStringValue());
+          relatedClaim.setStatus(ClaimStatus.CANCELLED);
+          dataMap.replace("resource", relatedClaim);
           App.DB.update(Database.CLAIM, relatedConstraintMap, dataMap);
 
           // Get the new related id from the db
-          Claim relatedClaim = (Claim) App.DB.read(Database.CLAIM, relatedConstraintMap);
+          relatedClaim = (Claim) App.DB.read(Database.CLAIM, relatedConstraintMap);
           related = getRelatedComponent(relatedClaim);
           relatedId = (related == null) ? null : related.getIdElement();
         }
