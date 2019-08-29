@@ -34,26 +34,20 @@ public class BundleEndpoint {
   @GET
   @Path("/")
   @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
-  public Response readBundle(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient,
-      @QueryParam("status") String status) {
+  public Response readBundle(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient) {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", id);
     constraintMap.put("patient", patient);
-    if (status != null)
-      constraintMap.put("status", status);
     return Endpoint.read(Database.BUNDLE, constraintMap, uri, RequestType.JSON);
   }
 
   @GET
   @Path("/")
   @Produces({ MediaType.APPLICATION_XML, "application/fhir+xml" })
-  public Response readBundleXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient,
-      @QueryParam("status") String status) {
+  public Response readBundleXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient) {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", id);
     constraintMap.put("patient", patient);
-    if (status != null)
-      constraintMap.put("status", status);
     return Endpoint.read(Database.BUNDLE, constraintMap, uri, RequestType.XML);
   }
 

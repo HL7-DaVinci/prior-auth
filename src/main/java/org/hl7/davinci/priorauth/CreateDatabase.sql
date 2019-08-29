@@ -3,7 +3,6 @@ BEGIN TRANSACTION;
     CREATE TABLE IF NOT EXISTS Bundle (
         "id" varchar PRIMARY KEY,
         "patient" varchar,
-        "status" varchar,
         "timestamp" datetime DEFAULT CURRENT_TIMESTAMP,
         "resource" clob
     );

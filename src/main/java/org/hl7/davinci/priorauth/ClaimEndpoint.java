@@ -239,7 +239,6 @@ public class ClaimEndpoint {
       Map<String, Object> bundleMap = new HashMap<String, Object>();
       bundleMap.put("id", id);
       bundleMap.put("patient", patient);
-      bundleMap.put("status", FhirUtils.getStatusFromResource(bundle));
       bundleMap.put("resource", bundle);
       App.DB.write(Database.BUNDLE, bundleMap);
 
