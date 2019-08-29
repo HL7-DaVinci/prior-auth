@@ -242,6 +242,35 @@ public class Database {
   }
 
   /**
+   * Read the related field from the database
+   * 
+   * @param resourceType     - the FHIR resourceType to read.
+   * @param constraintParams - the search constraints for the SQL query.
+   * @return the related field of the database
+   */
+  public String readRelated(String resourceType, Map<String, Object> constraintParams) {
+    logger.info("Database::read(" + resourceType + ", " + constraintParams.toString() + ")");
+    if (resourceType != null && constraintParams != null) {
+      try (Connection connection = getConnection()) {
+        String sql = "SELECT TOP 1 related FROM " + resourceType + " WHERE "
+            + generateClause(constraintParams, WHERE_CONCAT) + " ORDER BY timestamp DESC;";
+        Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
+        maps.add(constraintParams);
+        PreparedStatement stmt = generateStatement(sql, maps, connection);
+        logger.info("read query: " + stmt.toString());
+        ResultSet rs = stmt.executeQuery();
+
+        if (rs.next()) {
+          return rs.getString("related");
+        }
+      } catch (SQLException e) {
+        e.printStackTrace();
+      }
+    }
+    return null;
+  }
+
+  /**
    * Get the status of an item in the database
    * 
    * @param resourceType - the FHIR resource type to read.

@@ -38,7 +38,6 @@ import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ResourceType;
-import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Type;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
@@ -372,13 +371,15 @@ public class ClaimEndpoint {
         dataMap.put("resource", initialClaim);
         App.DB.update(Database.CLAIM, constraintMap, dataMap);
 
-        // Cascade up to all the Claims submitted after this which reference this Claim
+        // Cascade delete shared maps
         dataMap = new HashMap<String, Object>();
-        Map<String, Object> readConstraintMap = new HashMap<String, Object>();
-        constraintMap = new HashMap<String, Object>();
-        constraintMap.put("id", null);
         dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
         dataMap.put("resource", null);
+        constraintMap = new HashMap<String, Object>();
+        constraintMap.put("id", null);
+
+        // Cascade up to all the Claims submitted after this which reference this Claim
+        Map<String, Object> readConstraintMap = new HashMap<String, Object>();
         readConstraintMap.put("related", claimId);
         Claim referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
         String referecingId;
@@ -398,29 +399,20 @@ public class ClaimEndpoint {
 
         // Cascade the cancel to all related Claims...
         // Follow each related until it is NULL
-        RelatedClaimComponent related = getRelatedComponent(initialClaim);
-        StringType relatedId = (related == null) ? null : related.getIdElement();
-        dataMap = new HashMap<String, Object>();
-        dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
-        dataMap.put("resource", null);
-        Map<String, Object> relatedConstraintMap = new HashMap<String, Object>();
-        constraintMap = new HashMap<String, Object>();
-        constraintMap.put("id", null);
-        relatedConstraintMap.put("id", relatedId.asStringValue());
-        Claim relatedClaim = (Claim) App.DB.read(Database.CLAIM, relatedConstraintMap);
+        constraintMap.replace("id", claimId);
+        String relatedId = App.DB.readRelated(Database.CLAIM, constraintMap);
+        Claim relatedClaim;
 
         while (relatedId != null) {
-          logger.info("cancelling related claim: " + relatedId.asStringValue());
           // Update related claim to cancelled
-          relatedConstraintMap.replace("id", relatedId.asStringValue());
+          constraintMap.replace("id", relatedId);
+          relatedClaim = (Claim) App.DB.read(Database.CLAIM, constraintMap);
           relatedClaim.setStatus(ClaimStatus.CANCELLED);
           dataMap.replace("resource", relatedClaim);
-          App.DB.update(Database.CLAIM, relatedConstraintMap, dataMap);
+          App.DB.update(Database.CLAIM, constraintMap, dataMap);
 
           // Get the new related id from the db
-          relatedClaim = (Claim) App.DB.read(Database.CLAIM, relatedConstraintMap);
-          related = getRelatedComponent(relatedClaim);
-          relatedId = (related == null) ? null : related.getIdElement();
+          relatedId = App.DB.readRelated(Database.CLAIM, constraintMap);
         }
 
         // Cancel the claim items
