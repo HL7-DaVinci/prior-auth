@@ -1,5 +1,8 @@
 package org.hl7.davinci.priorauth;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.enterprise.context.RequestScoped;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -33,7 +36,12 @@ public class BundleEndpoint {
   @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
   public Response readBundle(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient,
       @QueryParam("status") String status) {
-    return Endpoint.read(id, patient, status, Database.BUNDLE, uri, RequestType.JSON);
+    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    constraintMap.put("id", id);
+    constraintMap.put("patient", patient);
+    if (status != null)
+      constraintMap.put("status", status);
+    return Endpoint.read(Database.BUNDLE, constraintMap, uri, RequestType.JSON);
   }
 
   @GET
@@ -41,7 +49,12 @@ public class BundleEndpoint {
   @Produces({ MediaType.APPLICATION_XML, "application/fhir+xml" })
   public Response readBundleXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient,
       @QueryParam("status") String status) {
-    return Endpoint.read(id, patient, status, Database.BUNDLE, uri, RequestType.XML);
+    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    constraintMap.put("id", id);
+    constraintMap.put("patient", patient);
+    if (status != null)
+      constraintMap.put("status", status);
+    return Endpoint.read(Database.BUNDLE, constraintMap, uri, RequestType.XML);
   }
 
   @DELETE

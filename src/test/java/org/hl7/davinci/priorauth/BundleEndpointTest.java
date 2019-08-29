@@ -102,7 +102,10 @@ public class BundleEndpointTest {
 
   @Test
   public void bundleExists() {
-    Bundle bundle = (Bundle) App.DB.read(Database.BUNDLE, "minimal", "1", null);
+    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    constraintMap.put("id", "minimal");
+    constraintMap.put("patient", "1");
+    Bundle bundle = (Bundle) App.DB.read(Database.BUNDLE, constraintMap);
     Assert.assertNotNull(bundle);
   }
 

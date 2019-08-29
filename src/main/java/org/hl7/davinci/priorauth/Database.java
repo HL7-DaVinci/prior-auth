@@ -171,18 +171,14 @@ public class Database {
    * @param status       - the status to search.
    * @return Bundle - the search result Bundle.
    */
-  public Bundle search(String resourceType, String patient, String status) {
-    logger.info("Database::search(" + resourceType + ", " + patient + "," + status + ")");
+  public Bundle search(String resourceType, Map<String, Object> constraintMap) {
+    logger.info("Database::search(" + resourceType + ", " + constraintMap.toString() + ")");
     Bundle results = new Bundle();
     results.setType(BundleType.SEARCHSET);
     results.setTimestamp(new Date());
     try (Connection connection = getConnection()) {
-      String statusQuery = status == null ? "" : " AND status = ?";
-      PreparedStatement stmt = connection
-          .prepareStatement("SELECT id, patient, resource FROM " + resourceType + " WHERE patient = ?" + statusQuery);
-      stmt.setString(1, patient);
-      if (status != null)
-        stmt.setString(2, status.toLowerCase());
+      PreparedStatement stmt = connection.prepareStatement(
+          "SELECT id, patient, resource FROM " + resourceType + " WHERE " + generateWhereClause(constraintMap) + ";");
       logger.info("search query: " + stmt.toString());
       ResultSet rs = stmt.executeQuery();
       int total = 0;
@@ -208,56 +204,28 @@ public class Database {
 
   /**
    * Read a specific resource from the database.
-   *
-   * @param resourceType - the FHIR resourceType to read.
-   * @param id           - the ID of the resource.
-   * @param status       - the status of the resource.
-   * @return IBaseResource - if the resource exists, otherwise null.
-   */
-  public IBaseResource read(String resourceType, String id, String patient, String status) {
-    if (resourceType == CLAIM_RESPONSE) {
-      return read(resourceType, id, patient, status, true);
-    } else {
-      return read(resourceType, id, patient, status, false);
-    }
-  }
-
-  /**
-   * Read a specific resource from the database.
    * 
-   * @param resourceType - the FHIR resourceType to read.
-   * @param id           - the ID of the resource.
-   * @param status       - the status of the resource.
-   * @param useClaimId   - flag indicating if query should be based on claimId or
-   *                     id.
+   * @param resourceType     - the FHIR resourceType to read.
+   * @param constraintParams - the search constraints for the SQL query.
    * @return IBaseResource - if the resource exists, otherwise null.
    */
-  public IBaseResource read(String resourceType, String id, String patient, String status, boolean useClaimId) {
-    logger.info("Database::read(" + resourceType + ", " + id + ", " + patient + ", " + status + ", "
-        + String.valueOf(useClaimId) + ")");
+  public IBaseResource read(String resourceType, Map<String, Object> constraintParams) {
+    logger.info("Database::read(" + resourceType + ", " + constraintParams.toString() + ")");
     IBaseResource result = null;
-    if (resourceType != null && id != null) {
+    if (resourceType != null && constraintParams != null) {
       try (Connection connection = getConnection()) {
-        String statusQuery = status == null ? "" : " AND status = ?";
-        String idString = useClaimId ? "claimId" : "id";
-        String sqlQuery = "SELECT TOP 1 id, patient, resource FROM " + resourceType + " WHERE " + idString
-            + " = ? AND patient = ?" + statusQuery + " ORDER BY timestamp DESC";
+        String sqlQuery = "SELECT TOP 1 id, patient, resource FROM " + resourceType + " WHERE "
+            + generateWhereClause(constraintParams) + " ORDER BY timestamp DESC;";
         PreparedStatement stmt = connection.prepareStatement(sqlQuery);
-        stmt.setString(1, id);
-        stmt.setString(2, patient);
-        if (status != null)
-          stmt.setString(3, status.toLowerCase());
         logger.info("read query: " + stmt.toString());
         ResultSet rs = stmt.executeQuery();
 
         if (rs.next()) {
+          String id = rs.getString("id");
           String json = rs.getString("resource");
           String patientOut = rs.getString("patient");
           logger.info("read: " + id + "/" + patientOut);
-          Resource resource = (Resource) App.FHIR_CTX.newJsonParser().parseResource(json);
-          result = resource;
-        } else if (useClaimId) {
-          return read(resourceType, id, patient, status, false);
+          result = (Resource) App.FHIR_CTX.newJsonParser().parseResource(json);
         }
       } catch (SQLException e) {
         e.printStackTrace();
@@ -309,7 +277,7 @@ public class Database {
     if (resourceType != null && constraintParams != null && data != null) {
       try (Connection connection = getConnection()) {
         String sql = "UPDATE " + resourceType + " SET " + reduceMap(data, ", ")
-            + ", timestamp = CURRENT_TIMESTAMP WHERE " + reduceMap(constraintParams, " AND ") + ";";
+            + ", timestamp = CURRENT_TIMESTAMP WHERE " + generateWhereClause(constraintParams) + ";";
         PreparedStatement stmt = connection.prepareStatement(sql);
         result = stmt.execute();
         logger.info(sql);
@@ -415,6 +383,41 @@ public class Database {
         sqlStr += (String) value;
       else if (value instanceof IBaseResource)
         sqlStr += json((IBaseResource) value);
+      else
+        sqlStr += value.toString();
+
+      sqlStr += "'";
+      if (iterator.hasNext())
+        sqlStr += concatonator;
+    }
+
+    return sqlStr;
+  }
+
+  /**
+   * Reduce a Map to a single string in the form "{key} = '{value}'" +
+   * concatonator
+   * 
+   * @param map          - key value pair of columns and values.
+   * @param concatonator - the string to connect a set of key value with another
+   *                     set.
+   * @return string in the form "{key} = '{value}'" + concatonator...
+   */
+  private String generateWhereClause(Map<String, Object> map) {
+    Object value;
+    String column;
+    String sqlStr = "";
+    String concatonator = " AND ";
+    for (Iterator<String> iterator = map.keySet().iterator(); iterator.hasNext();) {
+      column = iterator.next();
+      value = map.get(column);
+      sqlStr += column + " = '";
+      if (value instanceof String)
+        sqlStr += (String) value;
+      else if (value instanceof IBaseResource)
+        sqlStr += json((IBaseResource) value);
+      else if (value == null)
+        sqlStr += "null";
       else
         sqlStr += value.toString();
 

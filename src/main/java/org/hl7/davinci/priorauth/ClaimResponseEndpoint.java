@@ -1,5 +1,8 @@
 package org.hl7.davinci.priorauth;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.enterprise.context.RequestScoped;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -30,7 +33,12 @@ public class ClaimResponseEndpoint {
   @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
   public Response readClaimResponse(@QueryParam("identifier") String id,
       @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
-    return Endpoint.read(id, patient, status, Database.CLAIM_RESPONSE, uri, RequestType.JSON);
+    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    constraintMap.put("id", id);
+    constraintMap.put("patient", patient);
+    if (status != null)
+      constraintMap.put("status", status);
+    return Endpoint.read(Database.CLAIM_RESPONSE, constraintMap, uri, RequestType.JSON);
   }
 
   @GET
@@ -38,7 +46,12 @@ public class ClaimResponseEndpoint {
   @Produces({ MediaType.APPLICATION_XML, "application/fhir+xml" })
   public Response readClaimResponseXml(@QueryParam("identifier") String id,
       @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
-    return Endpoint.read(id, patient, status, Database.CLAIM_RESPONSE, uri, RequestType.XML);
+    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    constraintMap.put("id", id);
+    constraintMap.put("patient", patient);
+    if (status != null)
+      constraintMap.put("status", status);
+    return Endpoint.read(Database.CLAIM_RESPONSE, constraintMap, uri, RequestType.XML);
   }
 
   @DELETE

@@ -117,7 +117,10 @@ public class ClaimResponseEndpointTest {
 
   @Test
   public void claimResponseExists() {
-    ClaimResponse claimResponse = (ClaimResponse) App.DB.read(Database.CLAIM_RESPONSE, "minimal", "1", null);
+    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    constraintMap.put("id", "minimal");
+    constraintMap.put("patient", "1");
+    ClaimResponse claimResponse = (ClaimResponse) App.DB.read(Database.CLAIM_RESPONSE, constraintMap);
     Assert.assertNotNull(claimResponse);
   }
 

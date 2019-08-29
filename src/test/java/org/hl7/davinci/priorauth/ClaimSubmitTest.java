@@ -5,7 +5,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.meecrowave.Meecrowave;
 import org.apache.meecrowave.junit.MonoMeecrowave;
@@ -75,8 +77,7 @@ public class ClaimSubmitTest {
 
   @Test
   public void completeClaimValidation() {
-    Bundle bundle =
-        (Bundle) App.FHIR_CTX.newJsonParser().parseResource(completeClaim);
+    Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(completeClaim);
     Assert.assertNotNull(bundle);
     ValidationResult result = ValidationHelper.validate(bundle);
     Assert.assertTrue(result.isSuccessful());
@@ -88,10 +89,7 @@ public class ClaimSubmitTest {
 
     // Test that we can POST /fhir/Claim/$submit
     RequestBody requestBody = RequestBody.create(JSON, completeClaim);
-    Request request = new Request.Builder()
-        .url(base + "/Claim/$submit")
-        .post(requestBody)
-        .build();
+    Request request = new Request.Builder().url(base + "/Claim/$submit").post(requestBody).build();
     Response response = client.newCall(request).execute();
 
     // Check Location header if it exists...
@@ -112,8 +110,7 @@ public class ClaimSubmitTest {
 
     // Test the response is a JSON ClaimResponse
     String responseBody = response.body().string();
-    ClaimResponse claimResponse =
-        (ClaimResponse) App.FHIR_CTX.newJsonParser().parseResource(responseBody);
+    ClaimResponse claimResponse = (ClaimResponse) App.FHIR_CTX.newJsonParser().parseResource(responseBody);
     Assert.assertNotNull(claimResponse);
 
     // Make sure we clean up afterwards...
@@ -121,9 +118,12 @@ public class ClaimSubmitTest {
     resourceIds.add(id);
 
     // Test that the database contains the proper entries
-    Assert.assertNotNull(App.DB.read(Database.BUNDLE, id, "pat013", null));
-    Assert.assertNotNull(App.DB.read(Database.CLAIM, id, "pat013", null));
-    Assert.assertNotNull(App.DB.read(Database.CLAIM_RESPONSE, id, "pat013", null));
+    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    constraintMap.put("id", id);
+    constraintMap.put("patient", "pat013");
+    Assert.assertNotNull(App.DB.read(Database.BUNDLE, constraintMap));
+    Assert.assertNotNull(App.DB.read(Database.CLAIM, constraintMap));
+    Assert.assertNotNull(App.DB.read(Database.CLAIM_RESPONSE, constraintMap));
 
     // Validate the response.
     ValidationResult result = ValidationHelper.validate(claimResponse);
@@ -150,10 +150,7 @@ public class ClaimSubmitTest {
 
     // Test that we can POST /fhir/Claim/$submit
     RequestBody requestBody = RequestBody.create(JSON, body);
-    Request request = new Request.Builder()
-        .url(base + "/Claim/$submit")
-        .post(requestBody)
-        .build();
+    Request request = new Request.Builder().url(base + "/Claim/$submit").post(requestBody).build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(400, response.code());
 
@@ -163,8 +160,7 @@ public class ClaimSubmitTest {
 
     // Test the response is a JSON OperationOutcome
     String responseBody = response.body().string();
-    OperationOutcome error =
-        (OperationOutcome) App.FHIR_CTX.newJsonParser().parseResource(responseBody);
+    OperationOutcome error = (OperationOutcome) App.FHIR_CTX.newJsonParser().parseResource(responseBody);
     Assert.assertNotNull(error);
 
     // Validate the response.

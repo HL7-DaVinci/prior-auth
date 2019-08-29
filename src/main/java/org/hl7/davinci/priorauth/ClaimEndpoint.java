@@ -68,7 +68,12 @@ public class ClaimEndpoint {
   @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
   public Response readClaimJson(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient,
       @QueryParam("status") String status) {
-    return Endpoint.read(id, patient, status, Database.CLAIM, uri, RequestType.JSON);
+    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    constraintMap.put("id", id);
+    constraintMap.put("patient", patient);
+    if (status != null)
+      constraintMap.put("status", status);
+    return Endpoint.read(Database.CLAIM, constraintMap, uri, RequestType.JSON);
   }
 
   @GET
@@ -76,7 +81,12 @@ public class ClaimEndpoint {
   @Produces({ MediaType.APPLICATION_XML, "application/fhir+xml" })
   public Response readClaimXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient,
       @QueryParam("status") String status) {
-    return Endpoint.read(id, patient, status, Database.CLAIM, uri, RequestType.XML);
+    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    constraintMap.put("id", id);
+    constraintMap.put("patient", patient);
+    if (status != null)
+      constraintMap.put("status", status);
+    return Endpoint.read(Database.CLAIM, constraintMap, uri, RequestType.XML);
   }
 
   @DELETE
@@ -335,7 +345,10 @@ public class ClaimEndpoint {
    */
   private boolean cancelClaim(String claimId, String patient) {
     boolean result;
-    Claim initialClaim = (Claim) App.DB.read(Database.CLAIM, claimId, patient, null);
+    Map<String, Object> claimConstraintMap = new HashMap<String, Object>();
+    claimConstraintMap.put("id", claimId);
+    claimConstraintMap.put("patient", patient);
+    Claim initialClaim = (Claim) App.DB.read(Database.CLAIM, claimConstraintMap);
     if (initialClaim != null) {
       if (initialClaim.getStatus() != Claim.ClaimStatus.CANCELLED) {
         // Cancel the claim...
@@ -490,7 +503,10 @@ public class ClaimEndpoint {
     String id = UUID.randomUUID().toString();
 
     // Get the claim from the database
-    Claim claim = (Claim) App.DB.read(Database.CLAIM, claimId, patient, null);
+    Map<String, Object> claimConstraintMap = new HashMap<String, Object>();
+    claimConstraintMap.put("id", claimId);
+    claimConstraintMap.put("patient", patient);
+    Claim claim = (Claim) App.DB.read(Database.CLAIM, claimConstraintMap);
     if (claim != null) {
       generateAndStoreClaimResponse(claim, id, "Granted", ClaimResponseStatus.ACTIVE, patient);
     }
