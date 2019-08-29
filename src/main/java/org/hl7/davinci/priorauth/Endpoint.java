@@ -39,8 +39,6 @@ public class Endpoint {
      */
     public static Response read(String resourceType, Map<String, Object> constraintMap, UriInfo uri,
             RequestType requestType) {
-        if (constraintMap.containsKey("status") && constraintMap.get("status") == null)
-            constraintMap.remove("status");
         logger.info("GET /" + resourceType + ":" + constraintMap.toString() + " fhir+" + requestType.name());
         if (!constraintMap.containsKey("patient") || constraintMap.get("patient") == null) {
             logger.info("patient null");

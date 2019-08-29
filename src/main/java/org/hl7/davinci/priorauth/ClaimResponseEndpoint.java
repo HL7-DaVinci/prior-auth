@@ -36,7 +36,8 @@ public class ClaimResponseEndpoint {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", id);
     constraintMap.put("patient", patient);
-    constraintMap.put("status", status);
+    if (status != null)
+      constraintMap.put("status", status);
     return Endpoint.read(Database.CLAIM_RESPONSE, constraintMap, uri, RequestType.JSON);
   }
 
@@ -48,7 +49,8 @@ public class ClaimResponseEndpoint {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", id);
     constraintMap.put("patient", patient);
-    constraintMap.put("status", status);
+    if (status != null)
+      constraintMap.put("status", status);
     return Endpoint.read(Database.CLAIM_RESPONSE, constraintMap, uri, RequestType.XML);
   }
 
