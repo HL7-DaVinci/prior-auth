@@ -38,6 +38,7 @@ import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ResourceType;
+import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Type;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
@@ -370,6 +371,37 @@ public class ClaimEndpoint {
         dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
         dataMap.put("resource", initialClaim);
         App.DB.update(Database.CLAIM, constraintMap, dataMap);
+
+        // Cascade delete maps
+        dataMap = new HashMap<String, Object>();
+        dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
+
+        // Cascade up to all the Claims which reference this Claim has related...
+        constraintMap = new HashMap<String, Object>();
+        constraintMap.put("related", claimId);
+        App.DB.update(Database.CLAIM, constraintMap, dataMap);
+
+        // Cascade the cancel to all related Claims...
+        // Follow each related until it is NULL
+        Map<String, Object> relatedConstraintMap = new HashMap<String, Object>();
+        constraintMap = new HashMap<String, Object>();
+        constraintMap.put("id", null);
+        relatedConstraintMap.put("id", null);
+        RelatedClaimComponent related = getRelatedComponent(initialClaim);
+        StringType relatedId = (related == null) ? null : related.getIdElement();
+
+        while (relatedId != null) {
+          logger.info("cancelling related claim: " + relatedId.asStringValue());
+          // Update related claim to cancelled
+          // TODO SET RESOURCE TO CANCELLED TOO
+          relatedConstraintMap.replace("id", relatedId.asStringValue());
+          App.DB.update(Database.CLAIM, relatedConstraintMap, dataMap);
+
+          // Get the new related id from the db
+          Claim relatedClaim = (Claim) App.DB.read(Database.CLAIM, relatedConstraintMap);
+          related = getRelatedComponent(relatedClaim);
+          relatedId = (related == null) ? null : related.getIdElement();
+        }
 
         // Cancel the claim items
         for (ItemComponent item : initialClaim.getItem()) {
