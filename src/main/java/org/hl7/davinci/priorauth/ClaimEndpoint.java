@@ -211,7 +211,7 @@ public class ClaimEndpoint {
     boolean delayedUpdate = false;
     String delayedDisposition = "";
 
-    if (status == Claim.ClaimStatus.CANCELLED) {
+    if (status == ClaimStatus.CANCELLED) {
       // Cancel the claim...
       claimId = claim.getIdElement().getIdPart();
       if (cancelClaim(claimId, patient)) {
@@ -349,12 +349,14 @@ public class ClaimEndpoint {
     claimConstraintMap.put("patient", patient);
     Claim initialClaim = (Claim) App.DB.read(Database.CLAIM, claimConstraintMap);
     if (initialClaim != null) {
-      if (initialClaim.getStatus() != Claim.ClaimStatus.CANCELLED) {
+      if (initialClaim.getStatus() != ClaimStatus.CANCELLED) {
         // Cancel the claim...
+        initialClaim.setStatus(ClaimStatus.CANCELLED);
         Map<String, Object> dataMap = new HashMap<String, Object>();
         Map<String, Object> constraintMap = new HashMap<String, Object>();
         constraintMap.put("id", claimId);
-        dataMap.put("status", Claim.ClaimStatus.CANCELLED.getDisplay().toLowerCase());
+        dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
+        dataMap.put("resource", initialClaim);
         App.DB.update(Database.CLAIM, constraintMap, dataMap);
 
         // Cancel the claim items
