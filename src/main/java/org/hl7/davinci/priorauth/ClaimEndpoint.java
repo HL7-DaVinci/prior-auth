@@ -229,8 +229,20 @@ public class ClaimEndpoint {
       claimMap.put("status", claimStatusStr);
       claimMap.put("resource", claim);
       RelatedClaimComponent related = getRelatedComponent(claim);
-      if (related != null)
+      if (related != null) {
+        // This is an update...
         claimMap.put("related", related.getIdElement().asStringValue());
+
+        // Check if related is cancelled in the DB
+        String relatedId = related.getId();
+        String relatedStatusStr = App.DB.readStatus(Database.CLAIM, relatedId);
+        ClaimStatus relatedStatus = ClaimStatus.fromCode(relatedStatusStr);
+        if (relatedStatus == Claim.ClaimStatus.CANCELLED) {
+          logger.info("Unable to submit update to claim " + relatedId + " because it has been cancelled");
+          return null;
+        }
+      }
+
       if (!App.DB.write(Database.CLAIM, claimMap))
         return null;
 

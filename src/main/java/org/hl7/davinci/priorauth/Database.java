@@ -242,6 +242,32 @@ public class Database {
   }
 
   /**
+   * Get the status of an item in the database
+   * 
+   * @param resourceType - the FHIR resource type to read.
+   * @param id           - the id of the resource.
+   * @return - the string value of the status in the database of the first
+   *         matching entry with the provided id.
+   */
+  public String readStatus(String resourceType, String id) {
+    logger.info("Database::readStatus(" + resourceType + ", " + id);
+    if (resourceType != null && id != null) {
+      try (Connection connection = getConnection()) {
+        PreparedStatement stmt = connection.prepareStatement("SELECT status FROM " + resourceType + " WHERE id = ?");
+        stmt.setString(1, id);
+        logger.info("read status query: " + stmt.toString());
+        ResultSet rs = stmt.executeQuery();
+        if (rs.next()) {
+          return rs.getString("status");
+        }
+      } catch (SQLException e) {
+        e.printStackTrace();
+      }
+    }
+    return null;
+  }
+
+  /**
    * Insert a resource into database.
    * 
    * @param resourceType - the tpye of the resource.
