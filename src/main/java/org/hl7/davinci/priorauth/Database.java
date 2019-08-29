@@ -278,6 +278,53 @@ public class Database {
    * @return - the string value of the status in the database of the first
    *         matching entry with the provided id.
    */
+  public String readStatus(String resourceType, Map<String, Object> constraintParams) {
+    logger.info("Database::readStatus(" + resourceType + ", " + constraintParams.toString() + ")");
+    if (resourceType != null && constraintParams != null) {
+      try (Connection connection = getConnection()) {
+        String sql = "SELECT status FROM " + resourceType + " WHERE " + generateClause(constraintParams, WHERE_CONCAT)
+            + ";";
+        Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
+        maps.add(constraintParams);
+        PreparedStatement stmt = generateStatement(sql, maps, connection);
+        ResultSet rs = stmt.executeQuery();
+        logger.info("read status query: " + stmt.toString());
+        if (rs.next()) {
+          return rs.getString("status");
+        }
+      } catch (SQLException e) {
+        e.printStackTrace();
+      }
+    }
+    return null;
+  }
+
+  public String getMostRecentId(String id) {
+    Map<String, Object> readConstraintMap = new HashMap<String, Object>();
+    readConstraintMap.put("related", id);
+    Claim referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
+    String referecingId = id;
+
+    while (referencingClaim != null) {
+      // Update referincing claim to cancelled
+      referecingId = referencingClaim.getIdElement().getIdPart();
+
+      // Get the new referencing claim
+      readConstraintMap.replace("related", referecingId);
+      referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
+    }
+
+    return referecingId;
+  }
+
+  /**
+   * Get the status of an item in the database
+   * 
+   * @param resourceType - the FHIR resource type to read.
+   * @param id           - the id of the resource.
+   * @return - the string value of the status in the database of the first
+   *         matching entry with the provided id.
+   */
   public String readStatus(String resourceType, String id) {
     logger.info("Database::readStatus(" + resourceType + ", " + id);
     if (resourceType != null && id != null) {

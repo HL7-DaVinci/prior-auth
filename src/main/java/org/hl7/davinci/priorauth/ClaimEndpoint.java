@@ -231,10 +231,14 @@ public class ClaimEndpoint {
       RelatedClaimComponent related = getRelatedComponent(claim);
       if (related != null) {
         // This is an update...
-        claimMap.put("related", related.getIdElement().asStringValue());
+        String relatedId = related.getIdElement().asStringValue();
+        id = App.DB.getMostRecentId(relatedId);
+        // claimMap.replace("related", id);
+        logger.info("Udpated id to most recent: " + id);
+        claimMap.put("related", id);
 
         // Check if related is cancelled in the DB
-        String relatedId = related.getId();
+        // String relatedId = related.getId();
         String relatedStatusStr = App.DB.readStatus(Database.CLAIM, relatedId);
         ClaimStatus relatedStatus = ClaimStatus.fromCode(relatedStatusStr);
         if (relatedStatus == Claim.ClaimStatus.CANCELLED) {
@@ -323,14 +327,22 @@ public class ClaimEndpoint {
             itemIsCancelled = type.castToBoolean(type).booleanValue();
           }
         }
+
         Map<String, Object> dataMap = new HashMap<String, Object>();
         Map<String, Object> constraintMap = new HashMap<String, Object>();
         constraintMap.put("id", related.getIdElement().asStringValue());
         constraintMap.put("sequence", item.getSequence());
         dataMap.put("id", id);
+        dataMap.put("sequence", item.getSequence());
         dataMap.put("status", itemIsCancelled ? ClaimStatus.CANCELLED.getDisplay().toLowerCase() : claimStatusStr);
-        if (!App.DB.update(Database.CLAIM_ITEM, constraintMap, dataMap))
-          ret = false;
+
+        // Update if item exists otherwise add to database
+        if (App.DB.readStatus(Database.CLAIM_ITEM, constraintMap) == null) {
+          App.DB.write(Database.CLAIM_ITEM, dataMap);
+        } else {
+          if (!App.DB.update(Database.CLAIM_ITEM, constraintMap, dataMap))
+            ret = false;
+        }
       }
     } else {
       // Add the claim items...
