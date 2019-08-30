@@ -184,7 +184,7 @@ public class Database {
       Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
       maps.add(constraintMap);
       PreparedStatement stmt = generateStatement(sql, maps, connection);
-      logger.info("search query: " + stmt.toString());
+      // logger.info("search query: " + stmt.toString()); // FOR DEBUG
       ResultSet rs = stmt.executeQuery();
       int total = 0;
       while (rs.next()) {
@@ -224,7 +224,7 @@ public class Database {
         Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
         maps.add(constraintParams);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
-        logger.info("read query: " + stmt.toString());
+        // logger.info("read query: " + stmt.toString()); // FOR DEBUG
         ResultSet rs = stmt.executeQuery();
 
         if (rs.next()) {
@@ -257,7 +257,7 @@ public class Database {
         Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
         maps.add(constraintParams);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
-        logger.info("read query: " + stmt.toString());
+        // logger.info("read query: " + stmt.toString()); // FOR DEBUG
         ResultSet rs = stmt.executeQuery();
 
         if (rs.next()) {
@@ -288,7 +288,7 @@ public class Database {
         maps.add(constraintParams);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
         ResultSet rs = stmt.executeQuery();
-        logger.info("read status query: " + stmt.toString());
+        // logger.info("read status query: " + stmt.toString()); // FOR DEBUG
         if (rs.next()) {
           return rs.getString("status");
         }
@@ -338,7 +338,7 @@ public class Database {
       try (Connection connection = getConnection()) {
         PreparedStatement stmt = connection.prepareStatement("SELECT status FROM " + resourceType + " WHERE id = ?");
         stmt.setString(1, id);
-        logger.info("read status query: " + stmt.toString());
+        // logger.info("read status query: " + stmt.toString()); // FOR DEBUG
         ResultSet rs = stmt.executeQuery();
         if (rs.next()) {
           return rs.getString("status");
@@ -373,7 +373,7 @@ public class Database {
         maps.add(data);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
         result = stmt.execute();
-        logger.info(stmt.toString());
+        // logger.info(stmt.toString()); // FOR DEBUG
         result = true;
       } catch (JdbcSQLIntegrityConstraintViolationException e) {
         logger.info("ERROR: Attempting to insert foreign key which does not exist");
@@ -406,7 +406,7 @@ public class Database {
         maps.add(constraintParams);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
         result = stmt.execute();
-        logger.info(stmt.toString());
+        // logger.info(stmt.toString()); // FOR DEBUG
       } catch (SQLException e) {
         e.printStackTrace();
       }
@@ -464,6 +464,7 @@ public class Database {
    * @return boolean - whether or not the resource was deleted.
    */
   public boolean delete(String resourceType, String id, String patient) {
+    logger.info("Database::delete(" + resourceType + ", " + id + ", " + patient + ")");
     boolean result = false;
     if (resourceType != null && id != null) {
       try (Connection connection = getConnection()) {
@@ -486,6 +487,7 @@ public class Database {
    * @return boolean - whether or not the resources were deleted.
    */
   public boolean delete(String resourceType) {
+    logger.info("Database::delete(" + resourceType + ")");
     boolean result = false;
     if (resourceType != null) {
       try (Connection connection = getConnection()) {
