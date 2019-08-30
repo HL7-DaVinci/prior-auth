@@ -5,6 +5,8 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.OperationOutcome;
+import org.hl7.fhir.r4.model.ResourceType;
+import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,6 +73,22 @@ public class FhirUtils {
   }
 
   /**
+   * Find the first instance of a ClaimResponse in a bundle
+   * 
+   * @param bundle - the bundle search through for the ClaimResponse
+   * @return ClaimResponse in the bundle or null if not found
+   */
+  public static ClaimResponse getClaimResponseFromBundle(Bundle bundle) {
+    ClaimResponse claimResponse = null;
+    for (BundleEntryComponent bec : bundle.getEntry()) {
+      if (bec.getResource().getResourceType() == ResourceType.ClaimResponse)
+        return (ClaimResponse) bec.getResource();
+    }
+
+    return claimResponse;
+  }
+
+  /**
    * Create a FHIR OperationOutcome.
    *
    * @param severity The severity of the result.
@@ -78,7 +96,8 @@ public class FhirUtils {
    * @param message  The message to return.
    * @return OperationOutcome - the FHIR resource.
    */
-  public static OperationOutcome buildOutcome(OperationOutcome.IssueSeverity severity, OperationOutcome.IssueType type, String message) {
+  public static OperationOutcome buildOutcome(OperationOutcome.IssueSeverity severity, OperationOutcome.IssueType type,
+      String message) {
     OperationOutcome error = new OperationOutcome();
     OperationOutcome.OperationOutcomeIssueComponent issue = error.addIssue();
     issue.setSeverity(severity);

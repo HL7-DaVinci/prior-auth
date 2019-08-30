@@ -143,20 +143,21 @@ public class ClaimEndpoint {
         Bundle bundle = (Bundle) resource;
         if (bundle.hasEntry() && (bundle.getEntry().size() > 1) && bundle.getEntryFirstRep().hasResource()
             && bundle.getEntryFirstRep().getResource().getResourceType() == ResourceType.Claim) {
-          ClaimResponse response = processBundle(bundle);
-          if (response == null) {
+          Bundle responseBundle = processBundle(bundle);
+          if (responseBundle == null) {
             // Failed processing bundle...
             status = Status.BAD_REQUEST;
             OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, PROCESS_FAILED);
             formattedData = requestType == RequestType.JSON ? App.DB.json(error) : App.DB.xml(error);
           } else {
+            ClaimResponse response = FhirUtils.getClaimResponseFromBundle(responseBundle);
             if (response.getIdElement().hasIdPart()) {
               id = response.getIdElement().getIdPart();
             }
             if (response.hasPatient()) {
               patient = FhirUtils.getPatientIdFromResource(response);
             }
-            formattedData = requestType == RequestType.JSON ? App.DB.json(response) : App.DB.xml(response);
+            formattedData = requestType == RequestType.JSON ? App.DB.json(responseBundle) : App.DB.xml(responseBundle);
           }
         } else {
           // Claim is required...
@@ -194,7 +195,7 @@ public class ClaimEndpoint {
    * @param bundle Bundle with a Claim followed by other required resources.
    * @return ClaimResponse with the result.
    */
-  private ClaimResponse processBundle(Bundle bundle) {
+  private Bundle processBundle(Bundle bundle) {
     logger.info("processBundle");
     // Store the submission...
     // Generate a shared id...
@@ -293,15 +294,16 @@ public class ClaimEndpoint {
     // TODO
 
     // Generate the claim response...
-    ClaimResponse response = generateAndStoreClaimResponse(claim, id, responseDisposition, responseStatus, patient);
+    Bundle responseBundle = generateAndStoreClaimResponse(bundle, claim, id, responseDisposition, responseStatus,
+        patient);
 
     if (delayedUpdate) {
       // schedule the update
-      scheduleClaimUpdate(id, patient, delayedDisposition);
+      scheduleClaimUpdate(bundle, id, patient, delayedDisposition);
     }
 
     // Respond...
-    return response;
+    return responseBundle;
   }
 
   /**
@@ -462,11 +464,12 @@ public class ClaimEndpoint {
   /**
    * Update the claim and generate a new ClaimResponse.
    * 
+   * @param bundle      - the Bundle the Claim is a part of.
    * @param claimId     - the Claim ID.
    * @param patient     - the Patient ID.
    * @param disposition - the new disposition of the updated Claim.
    */
-  private void updateClaim(String claimId, String patient, String disposition) {
+  private void updateClaim(Bundle bundle, String claimId, String patient, String disposition) {
     logger.info("updateClaim: " + claimId + "/" + patient + ", disposition: " + disposition);
 
     // Generate a new id...
@@ -478,7 +481,7 @@ public class ClaimEndpoint {
     claimConstraintMap.put("patient", patient);
     Claim claim = (Claim) App.DB.read(Database.CLAIM, claimConstraintMap);
     if (claim != null) {
-      generateAndStoreClaimResponse(claim, id, "Granted", ClaimResponseStatus.ACTIVE, patient);
+      generateAndStoreClaimResponse(bundle, claim, id, "Granted", ClaimResponseStatus.ACTIVE, patient);
     }
   }
 
@@ -508,6 +511,8 @@ public class ClaimEndpoint {
   /**
    * Generate a new ClaimResponse and store it in the database.
    *
+   * @param bundle              The original bundle submitted to the server
+   *                            requesting priorauthorization.
    * @param claim               The claim which this ClaimResponse is in reference
    *                            to.
    * @param id                  The new identifier for this ClaimResponse.
@@ -519,7 +524,7 @@ public class ClaimEndpoint {
    *                            is referring to.
    * @return ClaimResponse that has been generated and stored in the Database.
    */
-  private ClaimResponse generateAndStoreClaimResponse(Claim claim, String id, String responseDisposition,
+  private Bundle generateAndStoreClaimResponse(Bundle bundle, Claim claim, String id, String responseDisposition,
       ClaimResponseStatus responseStatus, String patient) {
     logger.info("generateAndStoreClaimResponse: " + id + "/" + patient + ", disposition: " + responseDisposition
         + ", status: " + responseStatus);
@@ -549,27 +554,32 @@ public class ClaimEndpoint {
     // TODO response.setPreAuthPeriod(period)?
     response.setId(id);
 
+    bundle.addEntry().setResource(response);
+    bundle.setId(id);
+
     // Store the claim respnose...
     Map<String, Object> responseMap = new HashMap<String, Object>();
     responseMap.put("id", id);
     responseMap.put("claimId", claimId);
     responseMap.put("patient", patient);
     responseMap.put("status", FhirUtils.getStatusFromResource(response));
-    responseMap.put("resource", response);
+    responseMap.put("resource", bundle);
     App.DB.write(Database.CLAIM_RESPONSE, responseMap);
 
-    return response;
+    return bundle;
   }
 
   /**
    * A TimerTask for updating claims.
    */
   class UpdateClaimTask extends TimerTask {
+    public Bundle bundle;
     public String claimId;
     public String patient;
     public String disposition;
 
-    UpdateClaimTask(String claimId, String patient, String disposition) {
+    UpdateClaimTask(Bundle bundle, String claimId, String patient, String disposition) {
+      this.bundle = bundle;
       this.claimId = claimId;
       this.patient = patient;
       this.disposition = disposition;
@@ -577,19 +587,20 @@ public class ClaimEndpoint {
 
     @Override
     public void run() {
-      updateClaim(claimId, patient, disposition);
+      updateClaim(bundle, claimId, patient, disposition);
     }
   }
 
   /**
    * Schedule an update to the Claim to support pending actions.
    *
+   * @param bundle      - the bundle containing the claim.
    * @param id          - the Claim ID.
    * @param patient     - the Patient ID.
    * @param disposition - the new disposition of the updated Claim.
    */
-  private void scheduleClaimUpdate(String id, String patient, String disposition) {
-    App.timer.schedule(new UpdateClaimTask(id, patient, disposition), 5000); // 5s
+  private void scheduleClaimUpdate(Bundle bundle, String id, String patient, String disposition) {
+    App.timer.schedule(new UpdateClaimTask(bundle, id, patient, disposition), 5000); // 5s
   }
 
   /**

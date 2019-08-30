@@ -299,6 +299,13 @@ public class Database {
     return null;
   }
 
+  /**
+   * Take in a Claim id and get the most recent id if it has been replaced by a
+   * more updated request.
+   * 
+   * @param id - Claim id
+   * @return the most recent Claim id for the Claim by following all updates
+   */
   public String getMostRecentId(String id) {
     Map<String, Object> readConstraintMap = new HashMap<String, Object>();
     readConstraintMap.put("related", id);
