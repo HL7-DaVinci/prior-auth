@@ -34,7 +34,7 @@ public class ClaimResponseEndpoint {
   public Response readClaimResponse(@QueryParam("identifier") String id,
       @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
-    constraintMap.put("id", id);
+    constraintMap.put("id", App.DB.getMostRecentId(id));
     constraintMap.put("patient", patient);
     if (status != null)
       constraintMap.put("status", status);
@@ -47,7 +47,7 @@ public class ClaimResponseEndpoint {
   public Response readClaimResponseXml(@QueryParam("identifier") String id,
       @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
-    constraintMap.put("id", id);
+    constraintMap.put("id", App.DB.getMostRecentId(id));
     constraintMap.put("patient", patient);
     if (status != null)
       constraintMap.put("status", status);

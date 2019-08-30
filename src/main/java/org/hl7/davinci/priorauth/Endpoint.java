@@ -9,7 +9,6 @@ import javax.ws.rs.core.UriInfo;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
-import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
@@ -68,9 +67,9 @@ public class Endpoint {
                 Claim claim = (Claim) baseResource;
                 formattedData = requestType == RequestType.JSON ? App.DB.json(claim) : App.DB.xml(claim);
             } else if (resourceType == Database.CLAIM_RESPONSE) {
-                ClaimResponse claimResponse = (ClaimResponse) baseResource;
-                formattedData = requestType == RequestType.JSON ? App.DB.json(claimResponse)
-                        : App.DB.xml(claimResponse);
+                Bundle bundleResponse = (Bundle) baseResource;
+                formattedData = requestType == RequestType.JSON ? App.DB.json(bundleResponse)
+                        : App.DB.xml(bundleResponse);
             } else {
                 logger.info("invalid resourceType: " + resourceType);
                 return Response.status(Status.BAD_REQUEST).build();
