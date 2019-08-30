@@ -222,6 +222,7 @@ public class ClaimEndpoint {
     } else {
       // Store the claim...
       claim.setId(id);
+      String relatedId = null;
       String claimStatusStr = FhirUtils.getStatusFromResource(claim);
       Map<String, Object> claimMap = new HashMap<String, Object>();
       claimMap.put("id", id);
@@ -231,11 +232,11 @@ public class ClaimEndpoint {
       RelatedClaimComponent related = getRelatedComponent(claim);
       if (related != null) {
         // This is an update...
-        String relatedId = related.getIdElement().asStringValue();
-        id = App.DB.getMostRecentId(relatedId);
+        relatedId = related.getIdElement().asStringValue();
+        relatedId = App.DB.getMostRecentId(relatedId);
         // claimMap.replace("related", id);
-        logger.info("Udpated id to most recent: " + id);
-        claimMap.put("related", id);
+        logger.info("Udpated id to most recent: " + relatedId);
+        claimMap.put("related", relatedId);
 
         // Check if related is cancelled in the DB
         // String relatedId = related.getId();
@@ -260,7 +261,7 @@ public class ClaimEndpoint {
 
       // Store the claim items...
       if (claim.hasItem()) {
-        processClaimItems(claim, related, id);
+        processClaimItems(claim, id, relatedId);
       }
 
       // generate random responses since not cancelling
@@ -307,15 +308,15 @@ public class ClaimEndpoint {
    * Process the claim items in the database. For a new claim add the items, for
    * an updated claim update the items.
    * 
-   * @param claim   - the claim the items belong to.
-   * @param related - the related claim (old claim this is replacing).
-   * @param id      - the id of the claim.
+   * @param claim     - the claim the items belong to.
+   * @param id        - the id of the claim.
+   * @param relatedId - the related id to this claim.
    * @return true if all updates successful, false otherwise.
    */
-  private boolean processClaimItems(Claim claim, RelatedClaimComponent related, String id) {
+  private boolean processClaimItems(Claim claim, String id, String relatedId) {
     boolean ret = true;
     String claimStatusStr = FhirUtils.getStatusFromResource(claim);
-    if (related != null) {
+    if (relatedId != null) {
       // Update the items...
       for (ItemComponent item : claim.getItem()) {
         boolean itemIsCancelled = false;
@@ -330,7 +331,7 @@ public class ClaimEndpoint {
 
         Map<String, Object> dataMap = new HashMap<String, Object>();
         Map<String, Object> constraintMap = new HashMap<String, Object>();
-        constraintMap.put("id", related.getIdElement().asStringValue());
+        constraintMap.put("id", relatedId);
         constraintMap.put("sequence", item.getSequence());
         dataMap.put("id", id);
         dataMap.put("sequence", item.getSequence());
@@ -384,7 +385,13 @@ public class ClaimEndpoint {
         App.DB.update(Database.CLAIM, constraintMap, dataMap);
 
         cascadeCancel(claimId);
-        cancelItems(initialClaim);
+
+        // Cancel items...
+        dataMap = new HashMap<String, Object>();
+        constraintMap = new HashMap<String, Object>();
+        constraintMap.put("id", App.DB.getMostRecentId(claimId));
+        dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
+        App.DB.update(Database.CLAIM_ITEM, constraintMap, dataMap);
 
         result = true;
       } else {
@@ -428,8 +435,6 @@ public class ClaimEndpoint {
       dataMap.replace("resource", referencingClaim);
       App.DB.update(Database.CLAIM, constraintMap, dataMap);
 
-      cancelItems(referencingClaim);
-
       // Get the new referencing claim
       readConstraintMap.replace("related", referecingId);
       referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
@@ -449,26 +454,8 @@ public class ClaimEndpoint {
       dataMap.replace("resource", relatedClaim);
       App.DB.update(Database.CLAIM, constraintMap, dataMap);
 
-      cancelItems(relatedClaim);
-
       // Get the new related id from the db
       relatedId = App.DB.readRelated(Database.CLAIM, constraintMap);
-    }
-  }
-
-  private void cancelItems(Claim claim) {
-    Map<String, Object> dataMap = new HashMap<String, Object>();
-    Map<String, Object> constraintMap = new HashMap<String, Object>();
-    constraintMap.put("id", null);
-    constraintMap.put("sequence", null);
-    dataMap.put("id", null);
-    dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
-    String claimId = claim.getIdElement().getIdPart();
-    for (ItemComponent item : claim.getItem()) {
-      constraintMap.replace("id", claimId);
-      constraintMap.replace("sequence", item.getSequence());
-      dataMap.replace("id", claimId);
-      App.DB.update(Database.CLAIM_ITEM, constraintMap, dataMap);
     }
   }
 
@@ -539,6 +526,7 @@ public class ClaimEndpoint {
 
     // Generate the claim response...
     ClaimResponse response = new ClaimResponse();
+    String claimId = App.DB.getMostRecentId(claim.getIdElement().getIdPart());
     response.setStatus(responseStatus);
     response.setType(claim.getType());
     response.setUse(Use.PREAUTHORIZATION);
@@ -564,7 +552,7 @@ public class ClaimEndpoint {
     // Store the claim respnose...
     Map<String, Object> responseMap = new HashMap<String, Object>();
     responseMap.put("id", id);
-    responseMap.put("claimId", claim.getIdElement().getIdPart());
+    responseMap.put("claimId", claimId);
     responseMap.put("patient", patient);
     responseMap.put("status", FhirUtils.getStatusFromResource(response));
     responseMap.put("resource", response);
