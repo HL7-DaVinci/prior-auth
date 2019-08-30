@@ -120,7 +120,7 @@ public class ClaimResponseEndpointTest {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", "minimal");
     constraintMap.put("patient", "1");
-    ClaimResponse claimResponse = (ClaimResponse) App.DB.read(Database.CLAIM_RESPONSE, constraintMap);
+    Bundle claimResponse = (Bundle) App.DB.read(Database.CLAIM_RESPONSE, constraintMap);
     Assert.assertNotNull(claimResponse);
   }
 
@@ -140,11 +140,11 @@ public class ClaimResponseEndpointTest {
 
     // Test the response is a JSON Bundle
     String body = response.body().string();
-    ClaimResponse claimResponse = (ClaimResponse) App.FHIR_CTX.newJsonParser().parseResource(body);
-    Assert.assertNotNull(claimResponse);
+    Bundle responseBundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
+    Assert.assertNotNull(responseBundle);
 
     // Validate the response.
-    ValidationResult result = ValidationHelper.validate(claimResponse);
+    ValidationResult result = ValidationHelper.validate(responseBundle);
     Assert.assertTrue(result.isSuccessful());
   }
 
@@ -164,11 +164,11 @@ public class ClaimResponseEndpointTest {
 
     // Test the response is an XML Bundle
     String body = response.body().string();
-    ClaimResponse claimResponse = (ClaimResponse) App.FHIR_CTX.newXmlParser().parseResource(body);
-    Assert.assertNotNull(claimResponse);
+    Bundle responseBundle = (Bundle) App.FHIR_CTX.newXmlParser().parseResource(body);
+    Assert.assertNotNull(responseBundle);
 
     // Validate the response.
-    ValidationResult result = ValidationHelper.validate(claimResponse);
+    ValidationResult result = ValidationHelper.validate(responseBundle);
     Assert.assertTrue(result.isSuccessful());
   }
 
