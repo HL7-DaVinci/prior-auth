@@ -13,7 +13,6 @@ import org.apache.meecrowave.Meecrowave;
 import org.apache.meecrowave.junit.MonoMeecrowave;
 import org.apache.meecrowave.testing.ConfigurationInject;
 import org.hl7.fhir.r4.model.Bundle;
-import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -108,13 +107,13 @@ public class ClaimSubmitTest {
     String cors = response.header("Access-Control-Allow-Origin");
     Assert.assertEquals("*", cors);
 
-    // Test the response is a JSON ClaimResponse
+    // Test the response is a JSON Bundle
     String responseBody = response.body().string();
-    ClaimResponse claimResponse = (ClaimResponse) App.FHIR_CTX.newJsonParser().parseResource(responseBody);
-    Assert.assertNotNull(claimResponse);
+    Bundle bundleResponse = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(responseBody);
+    Assert.assertNotNull(bundleResponse);
 
     // Make sure we clean up afterwards...
-    String id = claimResponse.getId().substring(14);
+    String id = bundleResponse.getId().substring(14);
     resourceIds.add(id);
 
     // Test that the database contains the proper entries
@@ -126,7 +125,7 @@ public class ClaimSubmitTest {
     Assert.assertNotNull(App.DB.read(Database.CLAIM_RESPONSE, constraintMap));
 
     // Validate the response.
-    ValidationResult result = ValidationHelper.validate(claimResponse);
+    ValidationResult result = ValidationHelper.validate(bundleResponse);
     Assert.assertTrue(result.isSuccessful());
   }
 

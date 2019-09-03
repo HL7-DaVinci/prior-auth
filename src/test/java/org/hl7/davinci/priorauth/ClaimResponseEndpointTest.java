@@ -13,7 +13,6 @@ import org.apache.meecrowave.junit.MonoMeecrowave;
 import org.apache.meecrowave.testing.ConfigurationInject;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
-import org.hl7.fhir.r4.model.ClaimResponse;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -51,7 +50,7 @@ public class ClaimResponseEndpointTest {
     claimMap.put("resource", claim);
     App.DB.write(Database.CLAIM, claimMap);
 
-    ClaimResponse claimResponse = (ClaimResponse) App.FHIR_CTX.newJsonParser().parseResource(inputStream);
+    Bundle claimResponse = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(inputStream);
     Map<String, Object> claimResponseMap = new HashMap<String, Object>();
     claimResponseMap.put("id", "minimal");
     claimResponseMap.put("claimId", "minimal");
@@ -120,8 +119,8 @@ public class ClaimResponseEndpointTest {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", "minimal");
     constraintMap.put("patient", "1");
-    Bundle claimResponse = (Bundle) App.DB.read(Database.CLAIM_RESPONSE, constraintMap);
-    Assert.assertNotNull(claimResponse);
+    Bundle bundleResponse = (Bundle) App.DB.read(Database.CLAIM_RESPONSE, constraintMap);
+    Assert.assertNotNull(bundleResponse);
   }
 
   @Test
@@ -140,11 +139,11 @@ public class ClaimResponseEndpointTest {
 
     // Test the response is a JSON Bundle
     String body = response.body().string();
-    Bundle responseBundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
-    Assert.assertNotNull(responseBundle);
+    Bundle bundleResponse = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
+    Assert.assertNotNull(bundleResponse);
 
     // Validate the response.
-    ValidationResult result = ValidationHelper.validate(responseBundle);
+    ValidationResult result = ValidationHelper.validate(bundleResponse);
     Assert.assertTrue(result.isSuccessful());
   }
 
