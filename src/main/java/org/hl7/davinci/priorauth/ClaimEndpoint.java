@@ -3,6 +3,7 @@ package org.hl7.davinci.priorauth;
 import java.lang.invoke.MethodHandles;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TimerTask;
 import java.util.UUID;
@@ -325,11 +326,13 @@ public class ClaimEndpoint {
       for (ItemComponent item : claim.getItem()) {
         boolean itemIsCancelled = false;
         String extUrl = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemCancelled";
-        if (item.hasExtension(extUrl)) {
-          Extension ext = item.getExtensionsByUrl(extUrl).get(0);
-          if (ext.hasValue()) {
-            Type type = ext.getValue();
-            itemIsCancelled = type.castToBoolean(type).booleanValue();
+        if (item.hasModifierExtension()) {
+          List<Extension> exts = item.getModifierExtension();
+          for (Extension ext : exts) {
+            if (ext.getUrl().equals(extUrl) && ext.hasValue()) {
+              Type type = ext.getValue();
+              itemIsCancelled = type.castToBoolean(type).booleanValue();
+            }
           }
         }
 
