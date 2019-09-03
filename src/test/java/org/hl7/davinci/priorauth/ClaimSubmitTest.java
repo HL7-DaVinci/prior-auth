@@ -113,7 +113,7 @@ public class ClaimSubmitTest {
     Assert.assertNotNull(bundleResponse);
 
     // Make sure we clean up afterwards...
-    String id = bundleResponse.getId().substring(14);
+    String id = bundleResponse.getId();
     resourceIds.add(id);
 
     // Test that the database contains the proper entries

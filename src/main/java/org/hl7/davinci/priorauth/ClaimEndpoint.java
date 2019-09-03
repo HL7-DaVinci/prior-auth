@@ -39,6 +39,7 @@ import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.Type;
+import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
 import org.slf4j.Logger;
@@ -554,7 +555,9 @@ public class ClaimEndpoint {
     // TODO response.setPreAuthPeriod(period)?
     response.setId(id);
 
-    bundle.addEntry().setResource(response);
+    BundleEntryComponent responseEntry = bundle.addEntry();
+    responseEntry.setResource(response);
+    responseEntry.setFullUrl(id);
     bundle.setId(id);
 
     // Store the claim respnose...
