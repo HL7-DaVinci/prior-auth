@@ -556,10 +556,16 @@ public class ClaimEndpoint {
     // TODO response.setPreAuthPeriod(period)?
     response.setId(id);
 
-    BundleEntryComponent responseEntry = bundle.addEntry();
+    // Create the responseBundle
+    Bundle responseBundle = new Bundle();
+    responseBundle.setId(id);
+    responseBundle.setType(Bundle.BundleType.COLLECTION);
+    BundleEntryComponent responseEntry = responseBundle.addEntry();
     responseEntry.setResource(response);
     responseEntry.setFullUrl(id);
-    bundle.setId(id);
+    for (BundleEntryComponent entry : bundle.getEntry()) {
+      responseBundle.addEntry(entry);
+    }
 
     // Store the claim respnose...
     Map<String, Object> responseMap = new HashMap<String, Object>();
@@ -567,10 +573,10 @@ public class ClaimEndpoint {
     responseMap.put("claimId", claimId);
     responseMap.put("patient", patient);
     responseMap.put("status", FhirUtils.getStatusFromResource(response));
-    responseMap.put("resource", bundle);
+    responseMap.put("resource", responseBundle);
     App.DB.write(Database.CLAIM_RESPONSE, responseMap);
 
-    return bundle;
+    return responseBundle;
   }
 
   /**
