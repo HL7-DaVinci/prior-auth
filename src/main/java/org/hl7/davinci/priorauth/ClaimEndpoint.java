@@ -241,8 +241,9 @@ public class ClaimEndpoint {
         claimMap.put("related", relatedId);
 
         // Check if related is cancelled in the DB
-        // String relatedId = related.getId();
-        String relatedStatusStr = App.DB.readStatus(Database.CLAIM, relatedId);
+        Map<String, Object> constraintMap = new HashMap<String, Object>();
+        constraintMap.put("id", relatedId);
+        String relatedStatusStr = App.DB.readStatus(Database.CLAIM, constraintMap);
         ClaimStatus relatedStatus = ClaimStatus.fromCode(relatedStatusStr);
         if (relatedStatus == Claim.ClaimStatus.CANCELLED) {
           logger.info("Unable to submit update to claim " + relatedId + " because it has been cancelled");

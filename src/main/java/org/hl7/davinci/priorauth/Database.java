@@ -300,57 +300,6 @@ public class Database {
   }
 
   /**
-   * Take in a Claim id and get the most recent id if it has been replaced by a
-   * more updated request.
-   * 
-   * @param id - Claim id
-   * @return the most recent Claim id for the Claim by following all updates
-   */
-  public String getMostRecentId(String id) {
-    Map<String, Object> readConstraintMap = new HashMap<String, Object>();
-    readConstraintMap.put("related", id);
-    Claim referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
-    String referecingId = id;
-
-    while (referencingClaim != null) {
-      // Update referincing claim to cancelled
-      referecingId = referencingClaim.getIdElement().getIdPart();
-
-      // Get the new referencing claim
-      readConstraintMap.replace("related", referecingId);
-      referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
-    }
-
-    return referecingId;
-  }
-
-  /**
-   * Get the status of an item in the database
-   * 
-   * @param resourceType - the FHIR resource type to read.
-   * @param id           - the id of the resource.
-   * @return - the string value of the status in the database of the first
-   *         matching entry with the provided id.
-   */
-  public String readStatus(String resourceType, String id) {
-    logger.info("Database::readStatus(" + resourceType + ", " + id);
-    if (resourceType != null && id != null) {
-      try (Connection connection = getConnection()) {
-        PreparedStatement stmt = connection.prepareStatement("SELECT status FROM " + resourceType + " WHERE id = ?");
-        stmt.setString(1, id);
-        // logger.info("read status query: " + stmt.toString()); // FOR DEBUG
-        ResultSet rs = stmt.executeQuery();
-        if (rs.next()) {
-          return rs.getString("status");
-        }
-      } catch (SQLException e) {
-        e.printStackTrace();
-      }
-    }
-    return null;
-  }
-
-  /**
    * Insert a resource into database.
    * 
    * @param resourceType - the tpye of the resource.
@@ -412,6 +361,31 @@ public class Database {
       }
     }
     return result;
+  }
+
+  /**
+   * Take in a Claim id and get the most recent id if it has been replaced by a
+   * more updated request.
+   * 
+   * @param id - Claim id
+   * @return the most recent Claim id for the Claim by following all updates
+   */
+  public String getMostRecentId(String id) {
+    Map<String, Object> readConstraintMap = new HashMap<String, Object>();
+    readConstraintMap.put("related", id);
+    Claim referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
+    String referecingId = id;
+
+    while (referencingClaim != null) {
+      // Update referincing claim to cancelled
+      referecingId = referencingClaim.getIdElement().getIdPart();
+
+      // Get the new referencing claim
+      readConstraintMap.replace("related", referecingId);
+      referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
+    }
+
+    return referecingId;
   }
 
   /**
