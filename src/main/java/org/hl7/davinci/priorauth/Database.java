@@ -13,21 +13,22 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.ResultSetMetaData;
 import java.util.Date;
+import java.util.logging.Logger;
 
 import org.h2.jdbc.JdbcSQLIntegrityConstraintViolationException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.*;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Bundle.BundleType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The Database is responsible for storing and retrieving FHIR resources.
  */
 public class Database {
 
-  static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  // static final Logger logger =
+  // Logger.getLogger(MethodHandles.lookup().lookupClass());
+  static final Logger logger = PALogger.getLogger(MethodHandles.lookup().lookupClass().getName());
 
   /** Bundle Resource */
   public static final String BUNDLE = "Bundle";
