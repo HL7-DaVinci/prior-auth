@@ -22,9 +22,32 @@ public class DebugEndpoint {
   private UriInfo uri;
 
   @GET
-  public Response runQuery(@QueryParam("resource") String resource) {
-    logger.info("GET /query?resource=" + resource);
-    if (App.debugMode && resource != null) {
+  @Path("/Bundle")
+  public Response getBundles() {
+    return query(Database.BUNDLE);
+  }
+
+  @GET
+  @Path("/Claim")
+  public Response getClaims() {
+    return query(Database.CLAIM);
+  }
+
+  @GET
+  @Path("/ClaimResponse")
+  public Response getClaimResponses() {
+    return query(Database.CLAIM_RESPONSE);
+  }
+
+  @GET
+  @Path("/ClaimItem")
+  public Response getClaimItems() {
+    return query(Database.CLAIM_ITEM);
+  }
+
+  private Response query(String resource) {
+    logger.info("GET /query/" + resource);
+    if (App.debugMode) {
       return Response.ok(App.DB.generateAndRunQuery(resource)).build();
     } else {
       logger.warn("query disabled");
