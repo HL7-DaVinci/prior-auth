@@ -184,7 +184,7 @@ public class Database {
       Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
       maps.add(constraintMap);
       PreparedStatement stmt = generateStatement(sql, maps, connection);
-      // logger.info("search query: " + stmt.toString()); // FOR DEBUG
+      logger.info("search query: " + stmt.toString());
       ResultSet rs = stmt.executeQuery();
       int total = 0;
       while (rs.next()) {
@@ -224,7 +224,7 @@ public class Database {
         Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
         maps.add(constraintParams);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
-        // logger.info("read query: " + stmt.toString()); // FOR DEBUG
+        logger.info("read query: " + stmt.toString());
         ResultSet rs = stmt.executeQuery();
 
         if (rs.next()) {
@@ -257,7 +257,7 @@ public class Database {
         Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
         maps.add(constraintParams);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
-        // logger.info("read query: " + stmt.toString()); // FOR DEBUG
+        logger.info("read query: " + stmt.toString());
         ResultSet rs = stmt.executeQuery();
 
         if (rs.next()) {
@@ -288,7 +288,7 @@ public class Database {
         maps.add(constraintParams);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
         ResultSet rs = stmt.executeQuery();
-        // logger.info("read status query: " + stmt.toString()); // FOR DEBUG
+        logger.info("read status query: " + stmt.toString());
         if (rs.next()) {
           return rs.getString("status");
         }
@@ -322,7 +322,7 @@ public class Database {
         maps.add(data);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
         result = stmt.execute();
-        // logger.info(stmt.toString()); // FOR DEBUG
+        logger.info(stmt.toString());
         result = true;
       } catch (JdbcSQLIntegrityConstraintViolationException e) {
         logger.info("ERROR: Attempting to insert foreign key which does not exist");
@@ -355,7 +355,7 @@ public class Database {
         maps.add(constraintParams);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
         result = stmt.execute();
-        // logger.info(stmt.toString()); // FOR DEBUG
+        logger.info(stmt.toString());
       } catch (SQLException e) {
         e.printStackTrace();
       }

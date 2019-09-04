@@ -435,7 +435,7 @@ public class ClaimEndpoint {
     String referecingId;
 
     while (referencingClaim != null) {
-      // Update referincing claim to cancelled
+      // Update referencing claim to cancelled
       referencingClaim.setStatus(ClaimStatus.CANCELLED);
       referecingId = referencingClaim.getIdElement().getIdPart();
       constraintMap.replace("id", referecingId);
