@@ -104,7 +104,8 @@ public class Database {
           ret += " / ";
         }
         if (outputHtml) {
-          if (metaData.getColumnName(i).contains("ID")) {
+          String columnName = metaData.getColumnName(i);
+          if (columnName.contains("ID") || columnName.contains("RELATED")) {
             ret += "<th><div style='width: 300px;'>" + metaData.getColumnName(i) + "</div></th>";
           } else {
             ret += "<th>" + metaData.getColumnName(i) + "</th>";

@@ -40,8 +40,16 @@ public class App {
     if (args.length > 0) {
       if (args[0].equalsIgnoreCase("debug")) {
         debugMode = true;
+        System.out.println("debug mode: arg");
       }
     }
+
+    if (System.getenv("debug").equalsIgnoreCase("true")) {
+      debugMode = true;
+      System.out.println("debug mode: env");
+    }
+
+
     // Assemble the microservice
     Meecrowave.Builder builder = new Meecrowave.Builder();
     builder.setHttpPort(9000);
