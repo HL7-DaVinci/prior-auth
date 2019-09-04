@@ -44,9 +44,11 @@ public class App {
       }
     }
 
-    if (System.getenv("debug").equalsIgnoreCase("true")) {
-      debugMode = true;
-      System.out.println("debug mode: env");
+    if (System.getenv("debug") != null) {
+      if (System.getenv("debug").equalsIgnoreCase("true")) {
+        debugMode = true;
+        System.out.println("debug mode: env");
+      }
     }
 
 
