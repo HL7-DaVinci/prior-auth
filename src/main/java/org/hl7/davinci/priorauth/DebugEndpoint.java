@@ -22,22 +22,10 @@ public class DebugEndpoint {
   private UriInfo uri;
 
   @GET
-  public Response runQuery(@QueryParam("query") String query, @QueryParam("all") String printAll) {
-    logger.info("GET /query?query=" + query);
-    if (App.debugMode && query != null) {
-      boolean printClobs = false;
-      if (printAll != null) {
-        if (printAll.equalsIgnoreCase("true")) {
-          printClobs = true;
-        }
-      }
-      String lcQuery = query.toLowerCase();
-      if (lcQuery.contains("delete") || lcQuery.contains("insert") || lcQuery.contains("update") || lcQuery.contains("create") || lcQuery.contains("drop") || lcQuery.contains("alter")) {
-        logger.warn("unable to perform potentially destructive operations");
-        return Response.status(Response.Status.FORBIDDEN).build();
-      } else {
-        return Response.ok(App.DB.runQuery(query, printClobs, true)).build();
-      }
+  public Response runQuery(@QueryParam("resource") String resource) {
+    logger.info("GET /query?resource=" + resource);
+    if (App.debugMode && resource != null) {
+      return Response.ok(App.DB.generateAndRunQuery(resource)).build();
     } else {
       logger.warn("query disabled");
       return Response.status(Response.Status.BAD_REQUEST).build();
