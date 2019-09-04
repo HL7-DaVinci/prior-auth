@@ -28,7 +28,6 @@ public class DatabaseTest {
     Map<String, Object> bundleMap = new HashMap<String, Object>();
     bundleMap.put("id", "minimal");
     bundleMap.put("patient", "1");
-    bundleMap.put("status", FhirUtils.getStatusFromResource(bundle));
     bundleMap.put("resource", bundle);
     App.DB.write(Database.BUNDLE, bundleMap);
   }

@@ -3,6 +3,7 @@ package org.hl7.davinci.priorauth;
 import java.lang.invoke.MethodHandles;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TimerTask;
 import java.util.UUID;
@@ -39,6 +40,7 @@ import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.Type;
+import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
 import org.slf4j.Logger;
@@ -143,20 +145,21 @@ public class ClaimEndpoint {
         Bundle bundle = (Bundle) resource;
         if (bundle.hasEntry() && (bundle.getEntry().size() > 1) && bundle.getEntryFirstRep().hasResource()
             && bundle.getEntryFirstRep().getResource().getResourceType() == ResourceType.Claim) {
-          ClaimResponse response = processBundle(bundle);
-          if (response == null) {
+          Bundle responseBundle = processBundle(bundle);
+          if (responseBundle == null) {
             // Failed processing bundle...
             status = Status.BAD_REQUEST;
             OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, PROCESS_FAILED);
             formattedData = requestType == RequestType.JSON ? App.DB.json(error) : App.DB.xml(error);
           } else {
+            ClaimResponse response = FhirUtils.getClaimResponseFromBundle(responseBundle);
             if (response.getIdElement().hasIdPart()) {
               id = response.getIdElement().getIdPart();
             }
             if (response.hasPatient()) {
               patient = FhirUtils.getPatientIdFromResource(response);
             }
-            formattedData = requestType == RequestType.JSON ? App.DB.json(response) : App.DB.xml(response);
+            formattedData = requestType == RequestType.JSON ? App.DB.json(responseBundle) : App.DB.xml(responseBundle);
           }
         } else {
           // Claim is required...
@@ -194,7 +197,7 @@ public class ClaimEndpoint {
    * @param bundle Bundle with a Claim followed by other required resources.
    * @return ClaimResponse with the result.
    */
-  private ClaimResponse processBundle(Bundle bundle) {
+  private Bundle processBundle(Bundle bundle) {
     logger.info("processBundle");
     // Store the submission...
     // Generate a shared id...
@@ -211,7 +214,7 @@ public class ClaimEndpoint {
     boolean delayedUpdate = false;
     String delayedDisposition = "";
 
-    if (status == Claim.ClaimStatus.CANCELLED) {
+    if (status == ClaimStatus.CANCELLED) {
       // Cancel the claim...
       claimId = claim.getIdElement().getIdPart();
       if (cancelClaim(claimId, patient)) {
@@ -222,6 +225,7 @@ public class ClaimEndpoint {
     } else {
       // Store the claim...
       claim.setId(id);
+      String relatedId = null;
       String claimStatusStr = FhirUtils.getStatusFromResource(claim);
       Map<String, Object> claimMap = new HashMap<String, Object>();
       claimMap.put("id", id);
@@ -229,8 +233,25 @@ public class ClaimEndpoint {
       claimMap.put("status", claimStatusStr);
       claimMap.put("resource", claim);
       RelatedClaimComponent related = getRelatedComponent(claim);
-      if (related != null)
-        claimMap.put("related", related.getIdElement().asStringValue());
+      if (related != null) {
+        // This is an update...
+        relatedId = related.getIdElement().asStringValue();
+        relatedId = App.DB.getMostRecentId(relatedId);
+        // claimMap.replace("related", id);
+        logger.info("Udpated id to most recent: " + relatedId);
+        claimMap.put("related", relatedId);
+
+        // Check if related is cancelled in the DB
+        Map<String, Object> constraintMap = new HashMap<String, Object>();
+        constraintMap.put("id", relatedId);
+        String relatedStatusStr = App.DB.readStatus(Database.CLAIM, constraintMap);
+        ClaimStatus relatedStatus = ClaimStatus.fromCode(relatedStatusStr);
+        if (relatedStatus == Claim.ClaimStatus.CANCELLED) {
+          logger.info("Unable to submit update to claim " + relatedId + " because it has been cancelled");
+          return null;
+        }
+      }
+
       if (!App.DB.write(Database.CLAIM, claimMap))
         return null;
 
@@ -239,13 +260,12 @@ public class ClaimEndpoint {
       Map<String, Object> bundleMap = new HashMap<String, Object>();
       bundleMap.put("id", id);
       bundleMap.put("patient", patient);
-      bundleMap.put("status", FhirUtils.getStatusFromResource(bundle));
       bundleMap.put("resource", bundle);
       App.DB.write(Database.BUNDLE, bundleMap);
 
       // Store the claim items...
       if (claim.hasItem()) {
-        processClaimItems(claim, related, id);
+        processClaimItems(claim, id, relatedId);
       }
 
       // generate random responses since not cancelling
@@ -277,49 +297,60 @@ public class ClaimEndpoint {
     // TODO
 
     // Generate the claim response...
-    ClaimResponse response = generateAndStoreClaimResponse(claim, id, responseDisposition, responseStatus, patient);
+    Bundle responseBundle = generateAndStoreClaimResponse(bundle, claim, id, responseDisposition, responseStatus,
+        patient);
 
     if (delayedUpdate) {
       // schedule the update
-      scheduleClaimUpdate(id, patient, delayedDisposition);
+      scheduleClaimUpdate(bundle, id, patient, delayedDisposition);
     }
 
     // Respond...
-    return response;
+    return responseBundle;
   }
 
   /**
    * Process the claim items in the database. For a new claim add the items, for
    * an updated claim update the items.
    * 
-   * @param claim   - the claim the items belong to.
-   * @param related - the related claim (old claim this is replacing).
-   * @param id      - the id of the claim.
+   * @param claim     - the claim the items belong to.
+   * @param id        - the id of the claim.
+   * @param relatedId - the related id to this claim.
    * @return true if all updates successful, false otherwise.
    */
-  private boolean processClaimItems(Claim claim, RelatedClaimComponent related, String id) {
+  private boolean processClaimItems(Claim claim, String id, String relatedId) {
     boolean ret = true;
     String claimStatusStr = FhirUtils.getStatusFromResource(claim);
-    if (related != null) {
+    if (relatedId != null) {
       // Update the items...
       for (ItemComponent item : claim.getItem()) {
         boolean itemIsCancelled = false;
         String extUrl = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemCancelled";
-        if (item.hasExtension(extUrl)) {
-          Extension ext = item.getExtensionsByUrl(extUrl).get(0);
-          if (ext.hasValue()) {
-            Type type = ext.getValue();
-            itemIsCancelled = type.castToBoolean(type).booleanValue();
+        if (item.hasModifierExtension()) {
+          List<Extension> exts = item.getModifierExtension();
+          for (Extension ext : exts) {
+            if (ext.getUrl().equals(extUrl) && ext.hasValue()) {
+              Type type = ext.getValue();
+              itemIsCancelled = type.castToBoolean(type).booleanValue();
+            }
           }
         }
+
         Map<String, Object> dataMap = new HashMap<String, Object>();
         Map<String, Object> constraintMap = new HashMap<String, Object>();
-        constraintMap.put("id", related.getIdElement().asStringValue());
+        constraintMap.put("id", relatedId);
         constraintMap.put("sequence", item.getSequence());
         dataMap.put("id", id);
+        dataMap.put("sequence", item.getSequence());
         dataMap.put("status", itemIsCancelled ? ClaimStatus.CANCELLED.getDisplay().toLowerCase() : claimStatusStr);
-        if (!App.DB.update(Database.CLAIM_ITEM, constraintMap, dataMap))
-          ret = false;
+
+        // Update if item exists otherwise add to database
+        if (App.DB.readStatus(Database.CLAIM_ITEM, constraintMap) == null) {
+          App.DB.write(Database.CLAIM_ITEM, dataMap);
+        } else {
+          if (!App.DB.update(Database.CLAIM_ITEM, constraintMap, dataMap))
+            ret = false;
+        }
       }
     } else {
       // Add the claim items...
@@ -350,24 +381,25 @@ public class ClaimEndpoint {
     claimConstraintMap.put("patient", patient);
     Claim initialClaim = (Claim) App.DB.read(Database.CLAIM, claimConstraintMap);
     if (initialClaim != null) {
-      if (initialClaim.getStatus() != Claim.ClaimStatus.CANCELLED) {
+      if (initialClaim.getStatus() != ClaimStatus.CANCELLED) {
         // Cancel the claim...
+        initialClaim.setStatus(ClaimStatus.CANCELLED);
         Map<String, Object> dataMap = new HashMap<String, Object>();
         Map<String, Object> constraintMap = new HashMap<String, Object>();
         constraintMap.put("id", claimId);
-        dataMap.put("status", Claim.ClaimStatus.CANCELLED.getDisplay().toLowerCase());
+        dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
+        dataMap.put("resource", initialClaim);
         App.DB.update(Database.CLAIM, constraintMap, dataMap);
 
-        // Cancel the claim items
-        for (ItemComponent item : initialClaim.getItem()) {
-          dataMap = new HashMap<String, Object>();
-          constraintMap = new HashMap<String, Object>();
-          constraintMap.put("id", claimId);
-          constraintMap.put("sequence", item.getSequence());
-          dataMap.put("id", claimId);
-          dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
-          App.DB.update(Database.CLAIM_ITEM, constraintMap, dataMap);
-        }
+        cascadeCancel(claimId);
+
+        // Cancel items...
+        dataMap = new HashMap<String, Object>();
+        constraintMap = new HashMap<String, Object>();
+        constraintMap.put("id", App.DB.getMostRecentId(claimId));
+        dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
+        App.DB.update(Database.CLAIM_ITEM, constraintMap, dataMap);
+
         result = true;
       } else {
         logger.info("Claim " + claimId + " is already cancelled");
@@ -378,6 +410,84 @@ public class ClaimEndpoint {
       result = false;
     }
     return result;
+  }
+
+  /**
+   * Helper function to complete the cascade aspect of a Claim cancel. When a
+   * Claim is cancelled this will cascade the cancel to all related Claims (both
+   * up and downstream). A cancel updates the database status as well as update
+   * the resource status
+   * 
+   * @param claimId - the id of the original Claim to be cancelled
+   */
+  private void cascadeCancel(String claimId) {
+    // Cascade delete shared maps
+    Map<String, Object> dataMap = new HashMap<String, Object>();
+    dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
+    dataMap.put("resource", null);
+    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    constraintMap.put("id", null);
+
+    // Cascade up to all the Claims submitted after this which reference this Claim
+    Map<String, Object> readConstraintMap = new HashMap<String, Object>();
+    readConstraintMap.put("related", claimId);
+    Claim referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
+    String referecingId;
+
+    while (referencingClaim != null) {
+      // Update referencing claim to cancelled
+      referencingClaim.setStatus(ClaimStatus.CANCELLED);
+      referecingId = referencingClaim.getIdElement().getIdPart();
+      constraintMap.replace("id", referecingId);
+      dataMap.replace("resource", referencingClaim);
+      App.DB.update(Database.CLAIM, constraintMap, dataMap);
+
+      // Get the new referencing claim
+      readConstraintMap.replace("related", referecingId);
+      referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
+    }
+
+    // Cascade the cancel to all related Claims...
+    // Follow each related until it is NULL
+    constraintMap.replace("id", claimId);
+    String relatedId = App.DB.readRelated(Database.CLAIM, constraintMap);
+    Claim relatedClaim;
+
+    while (relatedId != null) {
+      // Update related claim to cancelled
+      constraintMap.replace("id", relatedId);
+      relatedClaim = (Claim) App.DB.read(Database.CLAIM, constraintMap);
+      relatedClaim.setStatus(ClaimStatus.CANCELLED);
+      dataMap.replace("resource", relatedClaim);
+      App.DB.update(Database.CLAIM, constraintMap, dataMap);
+
+      // Get the new related id from the db
+      relatedId = App.DB.readRelated(Database.CLAIM, constraintMap);
+    }
+  }
+
+  /**
+   * Update the claim and generate a new ClaimResponse.
+   * 
+   * @param bundle      - the Bundle the Claim is a part of.
+   * @param claimId     - the Claim ID.
+   * @param patient     - the Patient ID.
+   * @param disposition - the new disposition of the updated Claim.
+   */
+  private void updateClaim(Bundle bundle, String claimId, String patient, String disposition) {
+    logger.info("updateClaim: " + claimId + "/" + patient + ", disposition: " + disposition);
+
+    // Generate a new id...
+    String id = UUID.randomUUID().toString();
+
+    // Get the claim from the database
+    Map<String, Object> claimConstraintMap = new HashMap<String, Object>();
+    claimConstraintMap.put("id", claimId);
+    claimConstraintMap.put("patient", patient);
+    Claim claim = (Claim) App.DB.read(Database.CLAIM, claimConstraintMap);
+    if (claim != null) {
+      generateAndStoreClaimResponse(bundle, claim, id, "Granted", ClaimResponseStatus.ACTIVE, patient);
+    }
   }
 
   /**
@@ -406,6 +516,8 @@ public class ClaimEndpoint {
   /**
    * Generate a new ClaimResponse and store it in the database.
    *
+   * @param bundle              The original bundle submitted to the server
+   *                            requesting priorauthorization.
    * @param claim               The claim which this ClaimResponse is in reference
    *                            to.
    * @param id                  The new identifier for this ClaimResponse.
@@ -417,13 +529,14 @@ public class ClaimEndpoint {
    *                            is referring to.
    * @return ClaimResponse that has been generated and stored in the Database.
    */
-  private ClaimResponse generateAndStoreClaimResponse(Claim claim, String id, String responseDisposition,
+  private Bundle generateAndStoreClaimResponse(Bundle bundle, Claim claim, String id, String responseDisposition,
       ClaimResponseStatus responseStatus, String patient) {
     logger.info("generateAndStoreClaimResponse: " + id + "/" + patient + ", disposition: " + responseDisposition
         + ", status: " + responseStatus);
 
     // Generate the claim response...
     ClaimResponse response = new ClaimResponse();
+    String claimId = App.DB.getMostRecentId(claim.getIdElement().getIdPart());
     response.setStatus(responseStatus);
     response.setType(claim.getType());
     response.setUse(Use.PREAUTHORIZATION);
@@ -446,27 +559,40 @@ public class ClaimEndpoint {
     // TODO response.setPreAuthPeriod(period)?
     response.setId(id);
 
+    // Create the responseBundle
+    Bundle responseBundle = new Bundle();
+    responseBundle.setId(id);
+    responseBundle.setType(Bundle.BundleType.COLLECTION);
+    BundleEntryComponent responseEntry = responseBundle.addEntry();
+    responseEntry.setResource(response);
+    responseEntry.setFullUrl(id);
+    for (BundleEntryComponent entry : bundle.getEntry()) {
+      responseBundle.addEntry(entry);
+    }
+
     // Store the claim respnose...
     Map<String, Object> responseMap = new HashMap<String, Object>();
     responseMap.put("id", id);
-    responseMap.put("claimId", claim.getIdElement().getIdPart());
+    responseMap.put("claimId", claimId);
     responseMap.put("patient", patient);
     responseMap.put("status", FhirUtils.getStatusFromResource(response));
-    responseMap.put("resource", response);
+    responseMap.put("resource", responseBundle);
     App.DB.write(Database.CLAIM_RESPONSE, responseMap);
 
-    return response;
+    return responseBundle;
   }
 
   /**
    * A TimerTask for updating claims.
    */
   class UpdateClaimTask extends TimerTask {
+    public Bundle bundle;
     public String claimId;
     public String patient;
     public String disposition;
 
-    UpdateClaimTask(String claimId, String patient, String disposition) {
+    UpdateClaimTask(Bundle bundle, String claimId, String patient, String disposition) {
+      this.bundle = bundle;
       this.claimId = claimId;
       this.patient = patient;
       this.disposition = disposition;
@@ -474,42 +600,20 @@ public class ClaimEndpoint {
 
     @Override
     public void run() {
-      updateClaim(claimId, patient, disposition);
+      updateClaim(bundle, claimId, patient, disposition);
     }
   }
 
   /**
    * Schedule an update to the Claim to support pending actions.
    *
+   * @param bundle      - the bundle containing the claim.
    * @param id          - the Claim ID.
    * @param patient     - the Patient ID.
    * @param disposition - the new disposition of the updated Claim.
    */
-  private void scheduleClaimUpdate(String id, String patient, String disposition) {
-    App.timer.schedule(new UpdateClaimTask(id, patient, disposition), 5000); // 5s
-  }
-
-  /**
-   * Update the claim and generate a new ClaimResponse.
-   * 
-   * @param claimId     - the Claim ID.
-   * @param patient     - the Patient ID.
-   * @param disposition - the new disposition of the updated Claim.
-   */
-  private void updateClaim(String claimId, String patient, String disposition) {
-    logger.info("updateClaim: " + claimId + "/" + patient + ", disposition: " + disposition);
-
-    // Generate a new id...
-    String id = UUID.randomUUID().toString();
-
-    // Get the claim from the database
-    Map<String, Object> claimConstraintMap = new HashMap<String, Object>();
-    claimConstraintMap.put("id", claimId);
-    claimConstraintMap.put("patient", patient);
-    Claim claim = (Claim) App.DB.read(Database.CLAIM, claimConstraintMap);
-    if (claim != null) {
-      generateAndStoreClaimResponse(claim, id, "Granted", ClaimResponseStatus.ACTIVE, patient);
-    }
+  private void scheduleClaimUpdate(Bundle bundle, String id, String patient, String disposition) {
+    App.timer.schedule(new UpdateClaimTask(bundle, id, patient, disposition), 5000); // 5s
   }
 
   /**
