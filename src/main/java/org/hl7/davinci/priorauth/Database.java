@@ -379,7 +379,7 @@ public class Database {
   public String getMostRecentId(String id) {
     Map<String, Object> readConstraintMap = new HashMap<String, Object>();
     readConstraintMap.put("related", id);
-    Claim referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
+    Claim referencingClaim = (Claim) App.getDB().read(Database.CLAIM, readConstraintMap);
     String referecingId = id;
 
     while (referencingClaim != null) {
@@ -388,7 +388,7 @@ public class Database {
 
       // Get the new referencing claim
       readConstraintMap.replace("related", referecingId);
-      referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
+      referencingClaim = (Claim) App.getDB().read(Database.CLAIM, readConstraintMap);
     }
 
     return referecingId;

@@ -20,6 +20,7 @@ public class DatabaseTest {
 
   @BeforeClass
   public static void setup() throws FileNotFoundException {
+    App.initializeAppDB();
     // Create a single test Claim
     Path modulesFolder = Paths.get("src/test/resources");
     Path fixture = modulesFolder.resolve("bundle-prior-auth.json");
@@ -29,19 +30,19 @@ public class DatabaseTest {
     bundleMap.put("id", "minimal");
     bundleMap.put("patient", "1");
     bundleMap.put("resource", bundle);
-    App.DB.write(Database.BUNDLE, bundleMap);
+    App.getDB().write(Database.BUNDLE, bundleMap);
   }
 
   @AfterClass
   public static void cleanup() {
-    App.DB.delete(Database.BUNDLE, "minimal", "1");
+    App.getDB().delete(Database.BUNDLE, "minimal", "1");
   }
 
   @Test
   public void testSearch() {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("patient", "pat013");
-    Bundle results = App.DB.search(Database.BUNDLE, constraintMap);
+    Bundle results = App.getDB().search(Database.BUNDLE, constraintMap);
     Assert.assertNotNull(results);
     Assert.assertEquals(BundleType.SEARCHSET, results.getType());
 
@@ -56,7 +57,7 @@ public class DatabaseTest {
     bundle.setType(BundleType.SEARCHSET);
     bundle.setTotal(0);
 
-    String json = App.DB.json(bundle);
+    String json = App.getDB().json(bundle);
     Assert.assertNotNull(json);
   }
 
@@ -66,7 +67,7 @@ public class DatabaseTest {
     bundle.setType(BundleType.SEARCHSET);
     bundle.setTotal(0);
 
-    String xml = App.DB.xml(bundle);
+    String xml = App.getDB().xml(bundle);
     Assert.assertNotNull(xml);
   }
 }

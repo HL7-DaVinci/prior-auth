@@ -34,6 +34,7 @@ public class ClaimEndpointTest {
   @BeforeClass
   public static void setup() throws FileNotFoundException {
     client = new OkHttpClient();
+    App.initializeAppDB();
 
     // Create a single test Claim
     Path modulesFolder = Paths.get("src/test/resources");
@@ -45,12 +46,12 @@ public class ClaimEndpointTest {
     claimMap.put("patient", "1");
     claimMap.put("status", FhirUtils.getStatusFromResource(claim));
     claimMap.put("resource", claim);
-    App.DB.write(Database.CLAIM, claimMap);
+    App.getDB().write(Database.CLAIM, claimMap);
   }
 
   @AfterClass
   public static void cleanup() {
-    App.DB.delete(Database.CLAIM, "minimal", "1");
+    App.getDB().delete(Database.CLAIM, "minimal", "1");
   }
 
   @Test
@@ -106,7 +107,7 @@ public class ClaimEndpointTest {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", "minimal");
     constraintMap.put("patient", "1");
-    Claim claim = (Claim) App.DB.read(Database.CLAIM, constraintMap);
+    Claim claim = (Claim) App.getDB().read(Database.CLAIM, constraintMap);
     Assert.assertNotNull(claim);
   }
 

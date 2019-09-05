@@ -34,9 +34,9 @@ public class ExpungeOperation {
     logger.info("GET/POST /$expunge");
     if (App.debugMode) {
       // Cascading delete of everything...
-      App.DB.delete(Database.BUNDLE);
-      App.DB.delete(Database.CLAIM);
-      App.DB.delete(Database.CLAIM_RESPONSE);
+      App.getDB().delete(Database.BUNDLE);
+      App.getDB().delete(Database.CLAIM);
+      App.getDB().delete(Database.CLAIM_RESPONSE);
       return Response.ok().build();
     } else {
       logger.warning("ExpungeOperation::expungeDatabase:query disabled");

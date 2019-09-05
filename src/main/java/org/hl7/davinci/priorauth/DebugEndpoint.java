@@ -45,7 +45,7 @@ public class DebugEndpoint {
   private Response query(String resource) {
     logger.info("GET /query/" + resource);
     if (App.debugMode) {
-      return Response.ok(App.DB.generateAndRunQuery(resource)).build();
+      return Response.ok(App.getDB().generateAndRunQuery(resource)).build();
     } else {
       logger.warning("DebugEndpoint::query disabled");
       return Response.status(Response.Status.BAD_REQUEST).build();

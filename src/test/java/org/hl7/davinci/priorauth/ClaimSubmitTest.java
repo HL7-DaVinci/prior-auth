@@ -47,6 +47,7 @@ public class ClaimSubmitTest {
   @BeforeClass
   public static void setup() throws IOException {
     client = new OkHttpClient();
+    App.initializeAppDB();
     resourceIds = new ArrayList<String>();
 
     // Read in the test fixtures...
@@ -68,9 +69,9 @@ public class ClaimSubmitTest {
   public static void cleanup() {
     for (String id : resourceIds) {
       System.out.println("Deleting Resources with ID = " + id);
-      App.DB.delete(Database.BUNDLE, id, "pat013");
-      App.DB.delete(Database.CLAIM, id, "pat013");
-      App.DB.delete(Database.CLAIM_RESPONSE, id, "pat013");
+      App.getDB().delete(Database.BUNDLE, id, "pat013");
+      App.getDB().delete(Database.CLAIM, id, "pat013");
+      App.getDB().delete(Database.CLAIM_RESPONSE, id, "pat013");
     }
   }
 
@@ -120,9 +121,9 @@ public class ClaimSubmitTest {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", id);
     constraintMap.put("patient", "pat013");
-    Assert.assertNotNull(App.DB.read(Database.BUNDLE, constraintMap));
-    Assert.assertNotNull(App.DB.read(Database.CLAIM, constraintMap));
-    Assert.assertNotNull(App.DB.read(Database.CLAIM_RESPONSE, constraintMap));
+    Assert.assertNotNull(App.getDB().read(Database.BUNDLE, constraintMap));
+    Assert.assertNotNull(App.getDB().read(Database.CLAIM, constraintMap));
+    Assert.assertNotNull(App.getDB().read(Database.CLAIM_RESPONSE, constraintMap));
 
     // Validate the response.
     ValidationResult result = ValidationHelper.validate(bundleResponse);

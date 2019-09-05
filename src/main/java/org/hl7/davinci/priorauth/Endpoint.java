@@ -45,15 +45,16 @@ public class Endpoint {
         String formattedData = null;
         if (!constraintMap.containsKey("id") || constraintMap.get("id") == null) {
             // Search
-            App.DB.setBaseUrl(uri.getBaseUri());
+            App.getDB().setBaseUrl(uri.getBaseUri());
             constraintMap.remove("id");
             Bundle searchBundle;
-            searchBundle = App.DB.search(resourceType, constraintMap);
-            formattedData = requestType == RequestType.JSON ? App.DB.json(searchBundle) : App.DB.xml(searchBundle);
+            searchBundle = App.getDB().search(resourceType, constraintMap);
+            formattedData = requestType == RequestType.JSON ? App.getDB().json(searchBundle)
+                    : App.getDB().xml(searchBundle);
         } else {
             // Read
             IBaseResource baseResource;
-            baseResource = App.DB.read(resourceType, constraintMap);
+            baseResource = App.getDB().read(resourceType, constraintMap);
 
             if (baseResource == null)
                 return Response.status(Status.NOT_FOUND).build();
@@ -61,14 +62,14 @@ public class Endpoint {
             // Convert to correct resourceType
             if (resourceType == Database.BUNDLE) {
                 Bundle bundle = (Bundle) baseResource;
-                formattedData = requestType == RequestType.JSON ? App.DB.json(bundle) : App.DB.xml(bundle);
+                formattedData = requestType == RequestType.JSON ? App.getDB().json(bundle) : App.getDB().xml(bundle);
             } else if (resourceType == Database.CLAIM) {
                 Claim claim = (Claim) baseResource;
-                formattedData = requestType == RequestType.JSON ? App.DB.json(claim) : App.DB.xml(claim);
+                formattedData = requestType == RequestType.JSON ? App.getDB().json(claim) : App.getDB().xml(claim);
             } else if (resourceType == Database.CLAIM_RESPONSE) {
                 Bundle bundleResponse = (Bundle) baseResource;
-                formattedData = requestType == RequestType.JSON ? App.DB.json(bundleResponse)
-                        : App.DB.xml(bundleResponse);
+                formattedData = requestType == RequestType.JSON ? App.getDB().json(bundleResponse)
+                        : App.getDB().xml(bundleResponse);
             } else {
                 logger.warning("Endpoint::read:invalid resourceType: " + resourceType);
                 return Response.status(Status.BAD_REQUEST).build();
@@ -102,12 +103,12 @@ public class Endpoint {
             outcome = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_PATIENT);
         } else {
             // Cascading delete
-            App.DB.delete(Database.BUNDLE, id, patient);
-            App.DB.delete(Database.CLAIM, id, patient);
-            App.DB.delete(Database.CLAIM_RESPONSE, id, patient);
+            App.getDB().delete(Database.BUNDLE, id, patient);
+            App.getDB().delete(Database.CLAIM, id, patient);
+            App.getDB().delete(Database.CLAIM_RESPONSE, id, patient);
             outcome = FhirUtils.buildOutcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
         }
-        String formattedData = requestType == RequestType.JSON ? App.DB.json(outcome) : App.DB.xml(outcome);
+        String formattedData = requestType == RequestType.JSON ? App.getDB().json(outcome) : App.getDB().xml(outcome);
         return Response.status(status).entity(formattedData).build();
     }
 }

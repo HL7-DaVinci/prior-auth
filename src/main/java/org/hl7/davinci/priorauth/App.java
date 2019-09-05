@@ -21,7 +21,7 @@ public class App {
   /**
    * Local database for FHIR resources.
    */
-  public static Database DB;
+  private static Database DB;
 
   /**
    * Timer for scheduling tasks to be completed at a later time.
@@ -49,7 +49,7 @@ public class App {
     }
 
     // Set the DB
-    DB = new Database();
+    initializeAppDB();
 
     // Assemble the microservice
     Meecrowave.Builder builder = new Meecrowave.Builder();
@@ -62,5 +62,14 @@ public class App {
     try (Meecrowave meecrowave = new Meecrowave(builder)) {
       meecrowave.bake().await();
     }
+  }
+
+  public static void initializeAppDB() {
+    if (DB == null)
+      DB = new Database();
+  }
+
+  public static Database getDB() {
+    return DB;
   }
 }
