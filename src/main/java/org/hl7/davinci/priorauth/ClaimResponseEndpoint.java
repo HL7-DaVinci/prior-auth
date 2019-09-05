@@ -12,9 +12,6 @@ import javax.ws.rs.core.UriInfo;
 
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * The ClaimResponse endpoint to READ, SEARCH for, and DELETE ClaimResponses to
  * submitted claims.
@@ -22,8 +19,6 @@ import org.slf4j.LoggerFactory;
 @RequestScoped
 @Path("ClaimResponse")
 public class ClaimResponseEndpoint {
-
-  static final Logger logger = LoggerFactory.getLogger(ClaimResponseEndpoint.class);
 
   @Context
   private UriInfo uri;

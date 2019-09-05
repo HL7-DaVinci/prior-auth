@@ -1,6 +1,5 @@
 package org.hl7.davinci.priorauth;
 
-import java.lang.invoke.MethodHandles;
 import java.util.*;
 import java.io.IOException;
 import java.net.URI;
@@ -26,9 +25,7 @@ import org.hl7.fhir.r4.model.Bundle.BundleType;
  */
 public class Database {
 
-  // static final Logger logger =
-  // Logger.getLogger(MethodHandles.lookup().lookupClass());
-  static final Logger logger = PALogger.getLogger(MethodHandles.lookup().lookupClass().getName());
+  static final Logger logger = PALogger.getLogger();
 
   /** Bundle Resource */
   public static final String BUNDLE = "Bundle";
@@ -83,7 +80,7 @@ public class Database {
     } catch (SQLException e) {
       e.printStackTrace();
     } catch (IOException e) {
-      logger.info("IOException");
+      logger.severe("Database::Database:IOException");
       e.printStackTrace();
     }
   }
@@ -186,7 +183,7 @@ public class Database {
       Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
       maps.add(constraintMap);
       PreparedStatement stmt = generateStatement(sql, maps, connection);
-      logger.info("search query: " + stmt.toString());
+      logger.fine("search query: " + stmt.toString());
       ResultSet rs = stmt.executeQuery();
       int total = 0;
       while (rs.next()) {
@@ -226,7 +223,7 @@ public class Database {
         Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
         maps.add(constraintParams);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
-        logger.info("read query: " + stmt.toString());
+        logger.fine("read query: " + stmt.toString());
         ResultSet rs = stmt.executeQuery();
 
         if (rs.next()) {
@@ -259,7 +256,7 @@ public class Database {
         Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
         maps.add(constraintParams);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
-        logger.info("read query: " + stmt.toString());
+        logger.fine("read query: " + stmt.toString());
         ResultSet rs = stmt.executeQuery();
 
         if (rs.next()) {
@@ -290,7 +287,7 @@ public class Database {
         maps.add(constraintParams);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
         ResultSet rs = stmt.executeQuery();
-        logger.info("read status query: " + stmt.toString());
+        logger.fine("read status query: " + stmt.toString());
         if (rs.next()) {
           return rs.getString("status");
         }
@@ -324,10 +321,10 @@ public class Database {
         maps.add(data);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
         result = stmt.execute();
-        logger.info(stmt.toString());
+        logger.fine(stmt.toString());
         result = true;
       } catch (JdbcSQLIntegrityConstraintViolationException e) {
-        logger.info("ERROR: Attempting to insert foreign key which does not exist");
+        logger.severe("Attempting to insert foreign key which does not exist");
       } catch (SQLException e) {
         e.printStackTrace();
       }
@@ -357,7 +354,7 @@ public class Database {
         maps.add(constraintParams);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
         result = stmt.execute();
-        logger.info(stmt.toString());
+        logger.fine(stmt.toString());
       } catch (SQLException e) {
         e.printStackTrace();
       }
@@ -407,7 +404,8 @@ public class Database {
     int numValuesNeeded = (int) sql.chars().filter(ch -> ch == '?').count();
     int numValues = maps.stream().reduce(0, (subtotal, element) -> subtotal + element.size(), Integer::sum);
     if (numValues != numValuesNeeded) {
-      logger.info("Value mismatch. Need " + numValuesNeeded + " values but received " + numValues);
+      logger.warning(
+          "Database::generateStatement:Value mismatch. Need " + numValuesNeeded + " values but received " + numValues);
       return null;
     }
 

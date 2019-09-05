@@ -1,6 +1,7 @@
 package org.hl7.davinci.priorauth;
 
 import java.util.Map;
+import java.util.logging.Logger;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
@@ -12,12 +13,10 @@ import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Endpoint {
 
-    static final Logger logger = LoggerFactory.getLogger(Endpoint.class);
+    static final Logger logger = PALogger.getLogger();
 
     public enum RequestType {
         XML, JSON
@@ -40,7 +39,7 @@ public class Endpoint {
             RequestType requestType) {
         logger.info("GET /" + resourceType + ":" + constraintMap.toString() + " fhir+" + requestType.name());
         if (!constraintMap.containsKey("patient") || constraintMap.get("patient") == null) {
-            logger.info("patient null");
+            logger.warning("Endpoint::read:patient null");
             return Response.status(Status.UNAUTHORIZED).build();
         }
         String formattedData = null;
@@ -71,7 +70,7 @@ public class Endpoint {
                 formattedData = requestType == RequestType.JSON ? App.DB.json(bundleResponse)
                         : App.DB.xml(bundleResponse);
             } else {
-                logger.info("invalid resourceType: " + resourceType);
+                logger.warning("Endpoint::read:invalid resourceType: " + resourceType);
                 return Response.status(Status.BAD_REQUEST).build();
             }
         }

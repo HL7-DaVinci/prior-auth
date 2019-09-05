@@ -1,12 +1,12 @@
 package org.hl7.davinci.priorauth;
 
-import java.lang.invoke.MethodHandles;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimerTask;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 import javax.enterprise.context.RequestScoped;
 import javax.ws.rs.Consumes;
@@ -43,8 +43,6 @@ import org.hl7.fhir.r4.model.Type;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import ca.uhn.fhir.parser.IParser;
 
@@ -55,7 +53,7 @@ import ca.uhn.fhir.parser.IParser;
 @Path("Claim")
 public class ClaimEndpoint {
 
-  static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  static final Logger logger = PALogger.getLogger();
 
   String REQUIRES_BUNDLE = "Prior Authorization Claim/$submit Operation requires a Bundle with a single Claim as the first entry and supporting resources.";
   String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
@@ -198,7 +196,7 @@ public class ClaimEndpoint {
    * @return ClaimResponse with the result.
    */
   private Bundle processBundle(Bundle bundle) {
-    logger.info("processBundle");
+    logger.fine("ClaimEndpoint::processBundle");
     // Store the submission...
     // Generate a shared id...
     String id = UUID.randomUUID().toString();
@@ -237,8 +235,7 @@ public class ClaimEndpoint {
         // This is an update...
         relatedId = related.getIdElement().asStringValue();
         relatedId = App.DB.getMostRecentId(relatedId);
-        // claimMap.replace("related", id);
-        logger.info("Udpated id to most recent: " + relatedId);
+        logger.info("ClaimEndpoint::Udpated id to most recent: " + relatedId);
         claimMap.put("related", relatedId);
 
         // Check if related is cancelled in the DB
@@ -247,7 +244,8 @@ public class ClaimEndpoint {
         String relatedStatusStr = App.DB.readStatus(Database.CLAIM, constraintMap);
         ClaimStatus relatedStatus = ClaimStatus.fromCode(relatedStatusStr);
         if (relatedStatus == Claim.ClaimStatus.CANCELLED) {
-          logger.info("Unable to submit update to claim " + relatedId + " because it has been cancelled");
+          logger.warning(
+              "ClaimEndpoint::Unable to submit update to claim " + relatedId + " because it has been cancelled");
           return null;
         }
       }
@@ -402,11 +400,11 @@ public class ClaimEndpoint {
 
         result = true;
       } else {
-        logger.info("Claim " + claimId + " is already cancelled");
+        logger.warning("ClaimEndpoint::Claim " + claimId + " is already cancelled");
         result = false;
       }
     } else {
-      logger.info("Claim " + claimId + " does not exist. Unable to cancel");
+      logger.warning("ClaimEndpoint::Claim " + claimId + " does not exist. Unable to cancel");
       result = false;
     }
     return result;
@@ -475,7 +473,7 @@ public class ClaimEndpoint {
    * @param disposition - the new disposition of the updated Claim.
    */
   private void updateClaim(Bundle bundle, String claimId, String patient, String disposition) {
-    logger.info("updateClaim: " + claimId + "/" + patient + ", disposition: " + disposition);
+    logger.info("ClaimEndpoint::updateClaim(" + claimId + "/" + patient + ", disposition: " + disposition + ")");
 
     // Generate a new id...
     String id = UUID.randomUUID().toString();
@@ -531,8 +529,8 @@ public class ClaimEndpoint {
    */
   private Bundle generateAndStoreClaimResponse(Bundle bundle, Claim claim, String id, String responseDisposition,
       ClaimResponseStatus responseStatus, String patient) {
-    logger.info("generateAndStoreClaimResponse: " + id + "/" + patient + ", disposition: " + responseDisposition
-        + ", status: " + responseStatus);
+    logger.info("ClaimEndpoint::generateAndStoreClaimResponse(" + id + "/" + patient + ", disposition: "
+        + responseDisposition + ", status: " + responseStatus + ")");
 
     // Generate the claim response...
     ClaimResponse response = new ClaimResponse();
@@ -624,7 +622,6 @@ public class ClaimEndpoint {
    */
   private int getRand(int max) {
     Date date = new Date();
-    // System.out.printf(String.valueOf(date.getTime()) + ": ");
     return (int) ((date.getTime() % max) + 1);
   }
 

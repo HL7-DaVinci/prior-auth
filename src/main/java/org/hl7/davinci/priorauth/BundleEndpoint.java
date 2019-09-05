@@ -16,17 +16,12 @@ import javax.ws.rs.core.UriInfo;
 
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * The Bundle endpoint to READ, SEARCH for, and DELETE submitted Bundles.
  */
 @RequestScoped
 @Path("Bundle")
 public class BundleEndpoint {
-
-  static final Logger logger = LoggerFactory.getLogger(BundleEndpoint.class);
 
   @Context
   private UriInfo uri;

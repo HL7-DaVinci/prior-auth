@@ -1,7 +1,6 @@
 package org.hl7.davinci.priorauth;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Logger;
 
 import javax.enterprise.context.RequestScoped;
 import javax.ws.rs.GET;
@@ -10,13 +9,12 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
-import java.lang.invoke.MethodHandles;
 
 @RequestScoped
 @Path("query")
 public class DebugEndpoint {
 
-  static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  static final Logger logger = PALogger.getLogger();
 
   @Context
   private UriInfo uri;
@@ -32,7 +30,8 @@ public class DebugEndpoint {
         }
       }
       String lcQuery = query.toLowerCase();
-      if (lcQuery.contains("delete") || lcQuery.contains("insert") || lcQuery.contains("update") || lcQuery.contains("create") || lcQuery.contains("drop") || lcQuery.contains("alter")) {
+      if (lcQuery.contains("delete") || lcQuery.contains("insert") || lcQuery.contains("update")
+          || lcQuery.contains("create") || lcQuery.contains("drop") || lcQuery.contains("alter")) {
         logger.warn("unable to perform potentially destructive operations");
         return Response.status(Response.Status.FORBIDDEN).build();
       } else {

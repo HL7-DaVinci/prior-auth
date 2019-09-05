@@ -1,5 +1,7 @@
 package org.hl7.davinci.priorauth;
 
+import java.util.logging.Logger;
+
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
@@ -7,14 +9,10 @@ import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.lang.invoke.MethodHandles;
 
 public class FhirUtils {
 
-  static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  static final Logger logger = PALogger.getLogger();
 
   /**
    * Internal function to get the correct status from a resource depending on the
@@ -65,9 +63,9 @@ public class FhirUtils {
       }
       String[] patientParts = patientReference.split("/");
       patient = patientParts[patientParts.length - 1];
-      logger.info("getPatientIdFromResource: patient: " + patientParts[patientParts.length - 1]);
+      logger.info("FhirUtils::getPatientIdFromResource(patient: " + patientParts[patientParts.length - 1] + ")");
     } catch (Exception e) {
-      logger.error("getPatientIdFromResource: error processing patient: " + e.toString());
+      logger.severe("FhirUtils::getPatientIdFromResource(error processing patient: " + e.toString() + ")");
     }
     return patient;
   }

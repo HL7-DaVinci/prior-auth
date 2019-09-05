@@ -27,8 +27,9 @@ public class ExpungeOperation {
   }
 
   /**
-   * Delete all the data in the database. Useful if the
-   * demonstration database becomes too large and unwieldy.
+   * Delete all the data in the database. Useful if the demonstration database
+   * becomes too large and unwieldy.
+   * 
    * @return - HTTP 200
    */
   private Response expungeDatabase() {
