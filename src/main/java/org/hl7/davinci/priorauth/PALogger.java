@@ -3,7 +3,8 @@ package org.hl7.davinci.priorauth;
 import java.io.File;
 import java.io.IOException;
 import java.util.logging.FileHandler;
-// import java.util.logging.Level;
+import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
@@ -18,16 +19,22 @@ public class PALogger {
         try {
             createLogFileIfNotExists();
             FileHandler fh = new FileHandler(LOG_FILE);
-            this.logger.addHandler(fh);
             SimpleFormatter formatter = new SimpleFormatter();
             fh.setFormatter(formatter);
-            // this.logger.setLevel(Level.FINEST);
-        } catch (SecurityException se) {
-            this.logger.info("ERROR: SecurityException creating file handler. Logging will not go to file");
-            this.logger.info(se.getMessage());
-        } catch (IOException ioe) {
-            this.logger.info("Log File IOException");
-            ioe.printStackTrace(); // Will this print to file as well or just console?
+
+            if (App.debugMode)
+                this.setLevel(Level.FINEST);
+            else
+                this.setLevel(Level.INFO);
+
+            this.logger.addHandler(fh);
+
+        } catch (SecurityException e) {
+            this.logger.log(Level.SEVERE,
+                    "PALogger::PALogger:SecurityException(SecurityException creating file handler. Logging will not go to file)",
+                    e);
+        } catch (IOException e) {
+            this.logger.log(Level.SEVERE, "PALogger::PALogger:IOException", e);
         }
     }
 
@@ -35,6 +42,14 @@ public class PALogger {
         if (singletonPALogger == null)
             singletonPALogger = new PALogger();
         return singletonPALogger.logger;
+    }
+
+    private void setLevel(Level level) {
+        this.logger.info("PALogger::Setting logger level to " + level.getName());
+        this.logger.setLevel(level);
+        for (Handler handler : this.logger.getHandlers()) {
+            handler.setLevel(level);
+        }
     }
 
     private static void createLogFileIfNotExists() throws IOException {

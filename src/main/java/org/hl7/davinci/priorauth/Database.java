@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.ResultSetMetaData;
 import java.util.Date;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.h2.jdbc.JdbcSQLIntegrityConstraintViolationException;
@@ -78,10 +79,9 @@ public class Database {
       style = new String(Files.readAllBytes(Paths.get(styleFile).toAbsolutePath()));
       script = new String(Files.readAllBytes(Paths.get(scriptFile).toAbsolutePath()));
     } catch (SQLException e) {
-      e.printStackTrace();
+      logger.log(Level.SEVERE, "Database::Database:SQLException", e);
     } catch (IOException e) {
-      logger.severe("Database::Database:IOException");
-      e.printStackTrace();
+      logger.log(Level.SEVERE, "Database::Database:IOException", e);
     }
   }
 
@@ -160,7 +160,7 @@ public class Database {
       }
 
     } catch (SQLException e) {
-      e.printStackTrace();
+      logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
     }
 
     if (outputHtml) {
@@ -206,7 +206,7 @@ public class Database {
       }
       results.setTotal(total);
     } catch (SQLException e) {
-      e.printStackTrace();
+      logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
     }
     return results;
   }
@@ -239,7 +239,7 @@ public class Database {
           result = (Resource) App.FHIR_CTX.newJsonParser().parseResource(json);
         }
       } catch (SQLException e) {
-        e.printStackTrace();
+        logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
     return result;
@@ -268,7 +268,7 @@ public class Database {
           return rs.getString("related");
         }
       } catch (SQLException e) {
-        e.printStackTrace();
+        logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
     return null;
@@ -297,7 +297,7 @@ public class Database {
           return rs.getString("status");
         }
       } catch (SQLException e) {
-        e.printStackTrace();
+        logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
     return null;
@@ -329,9 +329,11 @@ public class Database {
         logger.fine(stmt.toString());
         result = true;
       } catch (JdbcSQLIntegrityConstraintViolationException e) {
-        logger.severe("Attempting to insert foreign key which does not exist");
+        logger.log(Level.SEVERE,
+            "Database::runQuery:JdbcSQLIntegrityConstraintViolationException(attempting to insert foreign key which does not exist)",
+            e);
       } catch (SQLException e) {
-        e.printStackTrace();
+        logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
     return result;
@@ -361,7 +363,7 @@ public class Database {
         result = stmt.execute();
         logger.fine(stmt.toString());
       } catch (SQLException e) {
-        e.printStackTrace();
+        logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
     return result;
@@ -453,7 +455,7 @@ public class Database {
         stmt.setString(2, patient);
         result = stmt.execute();
       } catch (SQLException e) {
-        e.printStackTrace();
+        logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
     return result;
@@ -473,7 +475,7 @@ public class Database {
         PreparedStatement stmt = connection.prepareStatement("DELETE FROM " + resourceType + ";");
         result = stmt.execute();
       } catch (SQLException e) {
-        e.printStackTrace();
+        logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
     return result;

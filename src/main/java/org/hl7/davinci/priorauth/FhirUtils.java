@@ -1,5 +1,6 @@
 package org.hl7.davinci.priorauth;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hl7.fhir.instance.model.api.IBaseResource;
@@ -65,7 +66,7 @@ public class FhirUtils {
       patient = patientParts[patientParts.length - 1];
       logger.info("FhirUtils::getPatientIdFromResource(patient: " + patientParts[patientParts.length - 1] + ")");
     } catch (Exception e) {
-      logger.severe("FhirUtils::getPatientIdFromResource(error processing patient: " + e.toString() + ")");
+      logger.log(Level.SEVERE, "FhirUtils::getPatientIdFromResource(error processing patient)", e);
     }
     return patient;
   }
