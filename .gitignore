@@ -9,6 +9,7 @@ build
 
 # Ignore all log files
 *.log
+*.log.lck
 
 # Ignore Eclipse files
 .project

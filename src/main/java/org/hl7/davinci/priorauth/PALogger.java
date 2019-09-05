@@ -10,7 +10,11 @@ import java.util.logging.SimpleFormatter;
 
 public class PALogger {
 
+    /**
+     * Singelton instance of PALogger
+     */
     private static PALogger singletonPALogger;
+
     private Logger logger;
     private static String LOG_FILE = "priorauth.log";
 
@@ -38,12 +42,31 @@ public class PALogger {
         }
     }
 
+    /**
+     * Get the logger
+     * 
+     * @return the logger
+     */
     public static Logger getLogger() {
         if (singletonPALogger == null)
             singletonPALogger = new PALogger();
         return singletonPALogger.logger;
     }
 
+    /**
+     * Get the path of the log file
+     * 
+     * @return the path of the log file
+     */
+    public static String getLogPath() {
+        return LOG_FILE;
+    }
+
+    /**
+     * Sets the level of logging to the logger and all handlers
+     * 
+     * @param level the new level
+     */
     private void setLevel(Level level) {
         this.logger.info("PALogger::Setting logger level to " + level.getName());
         this.logger.setLevel(level);
