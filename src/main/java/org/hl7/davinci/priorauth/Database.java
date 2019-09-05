@@ -85,6 +85,11 @@ public class Database {
     }
   }
 
+  public String generateAndRunQuery(String table) {
+    String sql = "SELECT * FROM " + table + " ORDER BY TIMESTAMP DESC";
+    return runQuery(sql, true, true);
+  }
+
   public String runQuery(String sqlQuery, boolean printClobs, boolean outputHtml) {
     String ret = "";
     try (Connection connection = getConnection()) {

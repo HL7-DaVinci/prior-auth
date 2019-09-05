@@ -5,7 +5,6 @@ import java.util.logging.Logger;
 import javax.enterprise.context.RequestScoped;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
@@ -20,25 +19,35 @@ public class DebugEndpoint {
   private UriInfo uri;
 
   @GET
-  public Response runQuery(@QueryParam("query") String query, @QueryParam("all") String printAll) {
-    logger.info("GET /query?query=" + query);
-    if (App.debugMode && query != null) {
-      boolean printClobs = false;
-      if (printAll != null) {
-        if (printAll.equalsIgnoreCase("true")) {
-          printClobs = true;
-        }
-      }
-      String lcQuery = query.toLowerCase();
-      if (lcQuery.contains("delete") || lcQuery.contains("insert") || lcQuery.contains("update")
-          || lcQuery.contains("create") || lcQuery.contains("drop") || lcQuery.contains("alter")) {
-        logger.warn("unable to perform potentially destructive operations");
-        return Response.status(Response.Status.FORBIDDEN).build();
-      } else {
-        return Response.ok(App.DB.runQuery(query, printClobs, true)).build();
-      }
+  @Path("/Bundle")
+  public Response getBundles() {
+    return query(Database.BUNDLE);
+  }
+
+  @GET
+  @Path("/Claim")
+  public Response getClaims() {
+    return query(Database.CLAIM);
+  }
+
+  @GET
+  @Path("/ClaimResponse")
+  public Response getClaimResponses() {
+    return query(Database.CLAIM_RESPONSE);
+  }
+
+  @GET
+  @Path("/ClaimItem")
+  public Response getClaimItems() {
+    return query(Database.CLAIM_ITEM);
+  }
+
+  private Response query(String resource) {
+    logger.info("GET /query/" + resource);
+    if (App.debugMode) {
+      return Response.ok(App.DB.generateAndRunQuery(resource)).build();
     } else {
-      logger.warn("query disabled");
+      logger.warning("DebugEndpoint::query disabled");
       return Response.status(Response.Status.BAD_REQUEST).build();
     }
   }
