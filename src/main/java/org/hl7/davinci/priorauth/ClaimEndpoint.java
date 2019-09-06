@@ -1,12 +1,12 @@
 package org.hl7.davinci.priorauth;
 
-import java.lang.invoke.MethodHandles;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimerTask;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 import javax.enterprise.context.RequestScoped;
 import javax.ws.rs.Consumes;
@@ -43,8 +43,6 @@ import org.hl7.fhir.r4.model.Type;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import ca.uhn.fhir.parser.IParser;
 
@@ -55,7 +53,7 @@ import ca.uhn.fhir.parser.IParser;
 @Path("Claim")
 public class ClaimEndpoint {
 
-  static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  static final Logger logger = PALogger.getLogger();
 
   String REQUIRES_BUNDLE = "Prior Authorization Claim/$submit Operation requires a Bundle with a single Claim as the first entry and supporting resources.";
   String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
@@ -150,7 +148,7 @@ public class ClaimEndpoint {
             // Failed processing bundle...
             status = Status.BAD_REQUEST;
             OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, PROCESS_FAILED);
-            formattedData = requestType == RequestType.JSON ? App.DB.json(error) : App.DB.xml(error);
+            formattedData = requestType == RequestType.JSON ? App.getDB().json(error) : App.getDB().xml(error);
           } else {
             ClaimResponse response = FhirUtils.getClaimResponseFromBundle(responseBundle);
             if (response.getIdElement().hasIdPart()) {
@@ -159,26 +157,27 @@ public class ClaimEndpoint {
             if (response.hasPatient()) {
               patient = FhirUtils.getPatientIdFromResource(response);
             }
-            formattedData = requestType == RequestType.JSON ? App.DB.json(responseBundle) : App.DB.xml(responseBundle);
+            formattedData = requestType == RequestType.JSON ? App.getDB().json(responseBundle)
+                : App.getDB().xml(responseBundle);
           }
         } else {
           // Claim is required...
           status = Status.BAD_REQUEST;
           OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
-          formattedData = requestType == RequestType.JSON ? App.DB.json(error) : App.DB.xml(error);
+          formattedData = requestType == RequestType.JSON ? App.getDB().json(error) : App.getDB().xml(error);
         }
       } else {
         // Bundle is required...
         status = Status.BAD_REQUEST;
         OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
-        formattedData = requestType == RequestType.JSON ? App.DB.json(error) : App.DB.xml(error);
+        formattedData = requestType == RequestType.JSON ? App.getDB().json(error) : App.getDB().xml(error);
       }
     } catch (Exception e) {
       // The submission failed so spectacularly that we need
       // catch an exception and send back an error message...
       status = Status.BAD_REQUEST;
       OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.FATAL, IssueType.STRUCTURE, e.getMessage());
-      formattedData = requestType == RequestType.JSON ? App.DB.json(error) : App.DB.xml(error);
+      formattedData = requestType == RequestType.JSON ? App.getDB().json(error) : App.getDB().xml(error);
     }
     ResponseBuilder builder = requestType == RequestType.JSON
         ? Response.status(status).type("application/fhir+json").entity(formattedData)
@@ -198,7 +197,7 @@ public class ClaimEndpoint {
    * @return ClaimResponse with the result.
    */
   private Bundle processBundle(Bundle bundle) {
-    logger.info("processBundle");
+    logger.fine("ClaimEndpoint::processBundle");
     // Store the submission...
     // Generate a shared id...
     String id = UUID.randomUUID().toString();
@@ -236,23 +235,23 @@ public class ClaimEndpoint {
       if (related != null) {
         // This is an update...
         relatedId = related.getIdElement().asStringValue();
-        relatedId = App.DB.getMostRecentId(relatedId);
-        // claimMap.replace("related", id);
-        logger.info("Udpated id to most recent: " + relatedId);
+        relatedId = App.getDB().getMostRecentId(relatedId);
+        logger.info("ClaimEndpoint::Udpated id to most recent: " + relatedId);
         claimMap.put("related", relatedId);
 
         // Check if related is cancelled in the DB
         Map<String, Object> constraintMap = new HashMap<String, Object>();
         constraintMap.put("id", relatedId);
-        String relatedStatusStr = App.DB.readStatus(Database.CLAIM, constraintMap);
+        String relatedStatusStr = App.getDB().readStatus(Database.CLAIM, constraintMap);
         ClaimStatus relatedStatus = ClaimStatus.fromCode(relatedStatusStr);
         if (relatedStatus == Claim.ClaimStatus.CANCELLED) {
-          logger.info("Unable to submit update to claim " + relatedId + " because it has been cancelled");
+          logger.warning(
+              "ClaimEndpoint::Unable to submit update to claim " + relatedId + " because it has been cancelled");
           return null;
         }
       }
 
-      if (!App.DB.write(Database.CLAIM, claimMap))
+      if (!App.getDB().write(Database.CLAIM, claimMap))
         return null;
 
       // Store the bundle...
@@ -261,7 +260,7 @@ public class ClaimEndpoint {
       bundleMap.put("id", id);
       bundleMap.put("patient", patient);
       bundleMap.put("resource", bundle);
-      App.DB.write(Database.BUNDLE, bundleMap);
+      App.getDB().write(Database.BUNDLE, bundleMap);
 
       // Store the claim items...
       if (claim.hasItem()) {
@@ -345,10 +344,10 @@ public class ClaimEndpoint {
         dataMap.put("status", itemIsCancelled ? ClaimStatus.CANCELLED.getDisplay().toLowerCase() : claimStatusStr);
 
         // Update if item exists otherwise add to database
-        if (App.DB.readStatus(Database.CLAIM_ITEM, constraintMap) == null) {
-          App.DB.write(Database.CLAIM_ITEM, dataMap);
+        if (App.getDB().readStatus(Database.CLAIM_ITEM, constraintMap) == null) {
+          App.getDB().write(Database.CLAIM_ITEM, dataMap);
         } else {
-          if (!App.DB.update(Database.CLAIM_ITEM, constraintMap, dataMap))
+          if (!App.getDB().update(Database.CLAIM_ITEM, constraintMap, dataMap))
             ret = false;
         }
       }
@@ -359,7 +358,7 @@ public class ClaimEndpoint {
         itemMap.put("id", id);
         itemMap.put("sequence", item.getSequence());
         itemMap.put("status", claimStatusStr);
-        if (!App.DB.write(Database.CLAIM_ITEM, itemMap))
+        if (!App.getDB().write(Database.CLAIM_ITEM, itemMap))
           ret = false;
       }
     }
@@ -379,7 +378,7 @@ public class ClaimEndpoint {
     Map<String, Object> claimConstraintMap = new HashMap<String, Object>();
     claimConstraintMap.put("id", claimId);
     claimConstraintMap.put("patient", patient);
-    Claim initialClaim = (Claim) App.DB.read(Database.CLAIM, claimConstraintMap);
+    Claim initialClaim = (Claim) App.getDB().read(Database.CLAIM, claimConstraintMap);
     if (initialClaim != null) {
       if (initialClaim.getStatus() != ClaimStatus.CANCELLED) {
         // Cancel the claim...
@@ -389,24 +388,24 @@ public class ClaimEndpoint {
         constraintMap.put("id", claimId);
         dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
         dataMap.put("resource", initialClaim);
-        App.DB.update(Database.CLAIM, constraintMap, dataMap);
+        App.getDB().update(Database.CLAIM, constraintMap, dataMap);
 
         cascadeCancel(claimId);
 
         // Cancel items...
         dataMap = new HashMap<String, Object>();
         constraintMap = new HashMap<String, Object>();
-        constraintMap.put("id", App.DB.getMostRecentId(claimId));
+        constraintMap.put("id", App.getDB().getMostRecentId(claimId));
         dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
-        App.DB.update(Database.CLAIM_ITEM, constraintMap, dataMap);
+        App.getDB().update(Database.CLAIM_ITEM, constraintMap, dataMap);
 
         result = true;
       } else {
-        logger.info("Claim " + claimId + " is already cancelled");
+        logger.warning("ClaimEndpoint::Claim " + claimId + " is already cancelled");
         result = false;
       }
     } else {
-      logger.info("Claim " + claimId + " does not exist. Unable to cancel");
+      logger.warning("ClaimEndpoint::Claim " + claimId + " does not exist. Unable to cancel");
       result = false;
     }
     return result;
@@ -431,7 +430,7 @@ public class ClaimEndpoint {
     // Cascade up to all the Claims submitted after this which reference this Claim
     Map<String, Object> readConstraintMap = new HashMap<String, Object>();
     readConstraintMap.put("related", claimId);
-    Claim referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
+    Claim referencingClaim = (Claim) App.getDB().read(Database.CLAIM, readConstraintMap);
     String referecingId;
 
     while (referencingClaim != null) {
@@ -440,29 +439,29 @@ public class ClaimEndpoint {
       referecingId = referencingClaim.getIdElement().getIdPart();
       constraintMap.replace("id", referecingId);
       dataMap.replace("resource", referencingClaim);
-      App.DB.update(Database.CLAIM, constraintMap, dataMap);
+      App.getDB().update(Database.CLAIM, constraintMap, dataMap);
 
       // Get the new referencing claim
       readConstraintMap.replace("related", referecingId);
-      referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
+      referencingClaim = (Claim) App.getDB().read(Database.CLAIM, readConstraintMap);
     }
 
     // Cascade the cancel to all related Claims...
     // Follow each related until it is NULL
     constraintMap.replace("id", claimId);
-    String relatedId = App.DB.readRelated(Database.CLAIM, constraintMap);
+    String relatedId = App.getDB().readRelated(Database.CLAIM, constraintMap);
     Claim relatedClaim;
 
     while (relatedId != null) {
       // Update related claim to cancelled
       constraintMap.replace("id", relatedId);
-      relatedClaim = (Claim) App.DB.read(Database.CLAIM, constraintMap);
+      relatedClaim = (Claim) App.getDB().read(Database.CLAIM, constraintMap);
       relatedClaim.setStatus(ClaimStatus.CANCELLED);
       dataMap.replace("resource", relatedClaim);
-      App.DB.update(Database.CLAIM, constraintMap, dataMap);
+      App.getDB().update(Database.CLAIM, constraintMap, dataMap);
 
       // Get the new related id from the db
-      relatedId = App.DB.readRelated(Database.CLAIM, constraintMap);
+      relatedId = App.getDB().readRelated(Database.CLAIM, constraintMap);
     }
   }
 
@@ -475,7 +474,7 @@ public class ClaimEndpoint {
    * @param disposition - the new disposition of the updated Claim.
    */
   private void updateClaim(Bundle bundle, String claimId, String patient, String disposition) {
-    logger.info("updateClaim: " + claimId + "/" + patient + ", disposition: " + disposition);
+    logger.info("ClaimEndpoint::updateClaim(" + claimId + "/" + patient + ", disposition: " + disposition + ")");
 
     // Generate a new id...
     String id = UUID.randomUUID().toString();
@@ -484,7 +483,7 @@ public class ClaimEndpoint {
     Map<String, Object> claimConstraintMap = new HashMap<String, Object>();
     claimConstraintMap.put("id", claimId);
     claimConstraintMap.put("patient", patient);
-    Claim claim = (Claim) App.DB.read(Database.CLAIM, claimConstraintMap);
+    Claim claim = (Claim) App.getDB().read(Database.CLAIM, claimConstraintMap);
     if (claim != null) {
       generateAndStoreClaimResponse(bundle, claim, id, "Granted", ClaimResponseStatus.ACTIVE, patient);
     }
@@ -531,12 +530,12 @@ public class ClaimEndpoint {
    */
   private Bundle generateAndStoreClaimResponse(Bundle bundle, Claim claim, String id, String responseDisposition,
       ClaimResponseStatus responseStatus, String patient) {
-    logger.info("generateAndStoreClaimResponse: " + id + "/" + patient + ", disposition: " + responseDisposition
-        + ", status: " + responseStatus);
+    logger.info("ClaimEndpoint::generateAndStoreClaimResponse(" + id + "/" + patient + ", disposition: "
+        + responseDisposition + ", status: " + responseStatus + ")");
 
     // Generate the claim response...
     ClaimResponse response = new ClaimResponse();
-    String claimId = App.DB.getMostRecentId(claim.getIdElement().getIdPart());
+    String claimId = App.getDB().getMostRecentId(claim.getIdElement().getIdPart());
     response.setStatus(responseStatus);
     response.setType(claim.getType());
     response.setUse(Use.PREAUTHORIZATION);
@@ -577,7 +576,7 @@ public class ClaimEndpoint {
     responseMap.put("patient", patient);
     responseMap.put("status", FhirUtils.getStatusFromResource(response));
     responseMap.put("resource", responseBundle);
-    App.DB.write(Database.CLAIM_RESPONSE, responseMap);
+    App.getDB().write(Database.CLAIM_RESPONSE, responseMap);
 
     return responseBundle;
   }
@@ -624,7 +623,6 @@ public class ClaimEndpoint {
    */
   private int getRand(int max) {
     Date date = new Date();
-    // System.out.printf(String.valueOf(date.getTime()) + ": ");
     return (int) ((date.getTime() % max) + 1);
   }
 

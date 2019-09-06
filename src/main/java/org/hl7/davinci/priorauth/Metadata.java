@@ -39,28 +39,29 @@ public class Metadata {
   private CapabilityStatement capabilityStatement = null;
 
   @GET
-  @Produces({MediaType.APPLICATION_JSON, "application/fhir+json"})
+  @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
   public Response getMetadata() {
     if (capabilityStatement == null) {
       capabilityStatement = buildCapabilityStatement();
     }
-    String json = App.DB.json(capabilityStatement);
+    String json = App.getDB().json(capabilityStatement);
     return Response.ok(json).build();
   }
 
   @GET
-  @Produces({MediaType.APPLICATION_XML, "application/fhir+xml"})
+  @Produces({ MediaType.APPLICATION_XML, "application/fhir+xml" })
   public Response getMetadataXml() {
     if (capabilityStatement == null) {
       capabilityStatement = buildCapabilityStatement();
     }
-    String xml = App.DB.xml(capabilityStatement);
+    String xml = App.getDB().xml(capabilityStatement);
     return Response.ok(xml).build();
   }
 
   /**
-   * Builds the CapabilityStatement describing the Prior Authorization
-   * Reference Implementation.
+   * Builds the CapabilityStatement describing the Prior Authorization Reference
+   * Implementation.
+   * 
    * @return CapabilityStatement - the CapabilityStatement.
    */
   private CapabilityStatement buildCapabilityStatement() {
@@ -73,12 +74,10 @@ public class Metadata {
     metadata.setDate(calendar.getTime());
     metadata.setPublisher("Da Vinci");
     metadata.setKind(CapabilityStatementKind.INSTANCE);
-    CapabilityStatementSoftwareComponent software =
-        new CapabilityStatementSoftwareComponent();
+    CapabilityStatementSoftwareComponent software = new CapabilityStatementSoftwareComponent();
     software.setName("https://github.com/HL7-DaVinci/prior-auth");
     metadata.setSoftware(software);
-    CapabilityStatementImplementationComponent implementation = 
-        new CapabilityStatementImplementationComponent();
+    CapabilityStatementImplementationComponent implementation = new CapabilityStatementImplementationComponent();
     implementation.setDescription(metadata.getTitle());
     implementation.setUrl(uri.getBaseUri() + "metadata");
     metadata.setImplementation(implementation);
@@ -86,34 +85,28 @@ public class Metadata {
     metadata.addFormat("json");
     metadata.addFormat("xml");
     metadata.addImplementationGuide("https://build.fhir.org/ig/HL7/davinci-pas/index.html");
-    metadata.addImplementationGuide("http://wiki.hl7.org/index.php?title=Da_Vinci_Prior_Authorization_FHIR_IG_Proposal");
-    CapabilityStatementRestComponent rest =
-        new CapabilityStatementRestComponent();
+    metadata
+        .addImplementationGuide("http://wiki.hl7.org/index.php?title=Da_Vinci_Prior_Authorization_FHIR_IG_Proposal");
+    CapabilityStatementRestComponent rest = new CapabilityStatementRestComponent();
     rest.setMode(RestfulCapabilityMode.SERVER);
-    CapabilityStatementRestSecurityComponent security =
-        new CapabilityStatementRestSecurityComponent();
+    CapabilityStatementRestSecurityComponent security = new CapabilityStatementRestSecurityComponent();
     security.setCors(true);
     rest.setSecurity(security);
 
     // Claim Resource
-    CapabilityStatementRestResourceComponent claim =
-        new CapabilityStatementRestResourceComponent();
+    CapabilityStatementRestResourceComponent claim = new CapabilityStatementRestResourceComponent();
     claim.setType("Claim");
     // TODO claim.setSupportedProfile(theSupportedProfile);
     claim.addInteraction().setCode(TypeRestfulInteraction.READ);
     claim.addInteraction().setCode(TypeRestfulInteraction.SEARCHTYPE);
     claim.addInteraction().setCode(TypeRestfulInteraction.DELETE);
-    claim.addOperation()
-      .setName("$submit")
-      .setDefinition("http://hl7.org/fhir/OperationDefinition/Claim-submit");
-    claim.addOperation()
-      .setName("$submit")
-      .setDefinition("https://build.fhir.org/ig/HL7/davinci-pas/Claim-submit.html");
+    claim.addOperation().setName("$submit").setDefinition("http://hl7.org/fhir/OperationDefinition/Claim-submit");
+    claim.addOperation().setName("$submit")
+        .setDefinition("https://build.fhir.org/ig/HL7/davinci-pas/Claim-submit.html");
     rest.addResource(claim);
 
     // ClaimResponse Resource
-    CapabilityStatementRestResourceComponent claimResponse =
-        new CapabilityStatementRestResourceComponent();
+    CapabilityStatementRestResourceComponent claimResponse = new CapabilityStatementRestResourceComponent();
     claimResponse.setType("ClaimResponse");
     // TODO claimResponse.setSupportedProfile(theSupportedProfile);
     claimResponse.addInteraction().setCode(TypeRestfulInteraction.READ);
@@ -122,18 +115,17 @@ public class Metadata {
     rest.addResource(claimResponse);
 
     // Bundle Resource
-    CapabilityStatementRestResourceComponent bundle =
-        new CapabilityStatementRestResourceComponent();
+    CapabilityStatementRestResourceComponent bundle = new CapabilityStatementRestResourceComponent();
     bundle.setType("Bundle");
     bundle.addInteraction().setCode(TypeRestfulInteraction.READ);
     bundle.addInteraction().setCode(TypeRestfulInteraction.SEARCHTYPE);
     bundle.addInteraction().setCode(TypeRestfulInteraction.DELETE);
     rest.addResource(bundle);
 
-    rest.addOperation()
-      .setName("$expunge")
-      .setDefinition("https://smilecdr.com/docs/current/fhir_repository/deleting_data.html#drop-all-data")
-      .setDocumentation("For Demonstration Purposes Only. Deletes all data from the demonstration database. Not part of the Implementation Guide.");
+    rest.addOperation().setName("$expunge")
+        .setDefinition("https://smilecdr.com/docs/current/fhir_repository/deleting_data.html#drop-all-data")
+        .setDocumentation(
+            "For Demonstration Purposes Only. Deletes all data from the demonstration database. Not part of the Implementation Guide.");
 
     metadata.addRest(rest);
 

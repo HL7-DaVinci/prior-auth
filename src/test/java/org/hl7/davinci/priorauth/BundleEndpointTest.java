@@ -33,6 +33,7 @@ public class BundleEndpointTest {
   @BeforeClass
   public static void setup() throws FileNotFoundException {
     client = new OkHttpClient();
+    App.initializeAppDB();
 
     // Create a single test Bundle
     Path modulesFolder = Paths.get("src/test/resources");
@@ -43,12 +44,12 @@ public class BundleEndpointTest {
     bundleMap.put("id", "minimal");
     bundleMap.put("patient", "1");
     bundleMap.put("resource", bundle);
-    App.DB.write(Database.BUNDLE, bundleMap);
+    App.getDB().write(Database.BUNDLE, bundleMap);
   }
 
   @AfterClass
   public static void cleanup() {
-    App.DB.delete(Database.BUNDLE, "minimal", "1");
+    App.getDB().delete(Database.BUNDLE, "minimal", "1");
   }
 
   @Test
@@ -104,7 +105,7 @@ public class BundleEndpointTest {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", "minimal");
     constraintMap.put("patient", "1");
-    Bundle bundle = (Bundle) App.DB.read(Database.BUNDLE, constraintMap);
+    Bundle bundle = (Bundle) App.getDB().read(Database.BUNDLE, constraintMap);
     Assert.assertNotNull(bundle);
   }
 

@@ -1,6 +1,5 @@
 package org.hl7.davinci.priorauth;
 
-import java.lang.invoke.MethodHandles;
 import java.util.*;
 import java.io.IOException;
 import java.net.URI;
@@ -13,21 +12,21 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.ResultSetMetaData;
 import java.util.Date;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.h2.jdbc.JdbcSQLIntegrityConstraintViolationException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.*;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Bundle.BundleType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The Database is responsible for storing and retrieving FHIR resources.
  */
 public class Database {
 
-  static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  static final Logger logger = PALogger.getLogger();
 
   /** Bundle Resource */
   public static final String BUNDLE = "Bundle";
@@ -80,10 +79,9 @@ public class Database {
       style = new String(Files.readAllBytes(Paths.get(styleFile).toAbsolutePath()));
       script = new String(Files.readAllBytes(Paths.get(scriptFile).toAbsolutePath()));
     } catch (SQLException e) {
-      e.printStackTrace();
+      logger.log(Level.SEVERE, "Database::Database:SQLException", e);
     } catch (IOException e) {
-      logger.info("IOException");
-      e.printStackTrace();
+      logger.log(Level.SEVERE, "Database::Database:IOException", e);
     }
   }
 
@@ -162,7 +160,7 @@ public class Database {
       }
 
     } catch (SQLException e) {
-      e.printStackTrace();
+      logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
     }
 
     if (outputHtml) {
@@ -190,7 +188,7 @@ public class Database {
       Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
       maps.add(constraintMap);
       PreparedStatement stmt = generateStatement(sql, maps, connection);
-      logger.info("search query: " + stmt.toString());
+      logger.fine("search query: " + stmt.toString());
       ResultSet rs = stmt.executeQuery();
       int total = 0;
       while (rs.next()) {
@@ -208,7 +206,7 @@ public class Database {
       }
       results.setTotal(total);
     } catch (SQLException e) {
-      e.printStackTrace();
+      logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
     }
     return results;
   }
@@ -230,7 +228,7 @@ public class Database {
         Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
         maps.add(constraintParams);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
-        logger.info("read query: " + stmt.toString());
+        logger.fine("read query: " + stmt.toString());
         ResultSet rs = stmt.executeQuery();
 
         if (rs.next()) {
@@ -241,7 +239,7 @@ public class Database {
           result = (Resource) App.FHIR_CTX.newJsonParser().parseResource(json);
         }
       } catch (SQLException e) {
-        e.printStackTrace();
+        logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
     return result;
@@ -263,14 +261,14 @@ public class Database {
         Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
         maps.add(constraintParams);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
-        logger.info("read query: " + stmt.toString());
+        logger.fine("read query: " + stmt.toString());
         ResultSet rs = stmt.executeQuery();
 
         if (rs.next()) {
           return rs.getString("related");
         }
       } catch (SQLException e) {
-        e.printStackTrace();
+        logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
     return null;
@@ -294,12 +292,12 @@ public class Database {
         maps.add(constraintParams);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
         ResultSet rs = stmt.executeQuery();
-        logger.info("read status query: " + stmt.toString());
+        logger.fine("read status query: " + stmt.toString());
         if (rs.next()) {
           return rs.getString("status");
         }
       } catch (SQLException e) {
-        e.printStackTrace();
+        logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
     return null;
@@ -328,12 +326,14 @@ public class Database {
         maps.add(data);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
         result = stmt.execute();
-        logger.info(stmt.toString());
+        logger.fine(stmt.toString());
         result = true;
       } catch (JdbcSQLIntegrityConstraintViolationException e) {
-        logger.info("ERROR: Attempting to insert foreign key which does not exist");
+        logger.log(Level.SEVERE,
+            "Database::runQuery:JdbcSQLIntegrityConstraintViolationException(attempting to insert foreign key which does not exist)",
+            e);
       } catch (SQLException e) {
-        e.printStackTrace();
+        logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
     return result;
@@ -361,9 +361,9 @@ public class Database {
         maps.add(constraintParams);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
         result = stmt.execute();
-        logger.info(stmt.toString());
+        logger.fine(stmt.toString());
       } catch (SQLException e) {
-        e.printStackTrace();
+        logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
     return result;
@@ -379,7 +379,7 @@ public class Database {
   public String getMostRecentId(String id) {
     Map<String, Object> readConstraintMap = new HashMap<String, Object>();
     readConstraintMap.put("related", id);
-    Claim referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
+    Claim referencingClaim = (Claim) App.getDB().read(Database.CLAIM, readConstraintMap);
     String referecingId = id;
 
     while (referencingClaim != null) {
@@ -388,7 +388,7 @@ public class Database {
 
       // Get the new referencing claim
       readConstraintMap.replace("related", referecingId);
-      referencingClaim = (Claim) App.DB.read(Database.CLAIM, readConstraintMap);
+      referencingClaim = (Claim) App.getDB().read(Database.CLAIM, readConstraintMap);
     }
 
     return referecingId;
@@ -411,7 +411,8 @@ public class Database {
     int numValuesNeeded = (int) sql.chars().filter(ch -> ch == '?').count();
     int numValues = maps.stream().reduce(0, (subtotal, element) -> subtotal + element.size(), Integer::sum);
     if (numValues != numValuesNeeded) {
-      logger.info("Value mismatch. Need " + numValuesNeeded + " values but received " + numValues);
+      logger.warning(
+          "Database::generateStatement:Value mismatch. Need " + numValuesNeeded + " values but received " + numValues);
       return null;
     }
 
@@ -454,7 +455,7 @@ public class Database {
         stmt.setString(2, patient);
         result = stmt.execute();
       } catch (SQLException e) {
-        e.printStackTrace();
+        logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
     return result;
@@ -474,7 +475,7 @@ public class Database {
         PreparedStatement stmt = connection.prepareStatement("DELETE FROM " + resourceType + ";");
         result = stmt.execute();
       } catch (SQLException e) {
-        e.printStackTrace();
+        logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
     return result;

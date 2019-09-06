@@ -7,6 +7,10 @@ build
 # Ignore prettierignore file
 .prettierignore
 
+# Ignore all log files
+*.log
+*.log.lck
+
 # Ignore Eclipse files
 .project
 .classpath

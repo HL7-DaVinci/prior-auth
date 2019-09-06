@@ -34,6 +34,7 @@ public class ClaimResponseEndpointTest {
   @BeforeClass
   public static void setup() throws FileNotFoundException {
     client = new OkHttpClient();
+    App.initializeAppDB();
 
     // Create a single test Claim
     Path modulesFolder = Paths.get("src/test/resources");
@@ -48,7 +49,7 @@ public class ClaimResponseEndpointTest {
     claimMap.put("patient", "1");
     claimMap.put("status", FhirUtils.getStatusFromResource(claim));
     claimMap.put("resource", claim);
-    App.DB.write(Database.CLAIM, claimMap);
+    App.getDB().write(Database.CLAIM, claimMap);
 
     Bundle claimResponse = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(inputStream);
     Map<String, Object> claimResponseMap = new HashMap<String, Object>();
@@ -57,13 +58,13 @@ public class ClaimResponseEndpointTest {
     claimResponseMap.put("patient", "1");
     claimResponseMap.put("status", FhirUtils.getStatusFromResource(claimResponse));
     claimResponseMap.put("resource", claimResponse);
-    App.DB.write(Database.CLAIM_RESPONSE, claimResponseMap);
+    App.getDB().write(Database.CLAIM_RESPONSE, claimResponseMap);
   }
 
   @AfterClass
   public static void cleanup() {
-    App.DB.delete(Database.CLAIM, "minimal", "1");
-    App.DB.delete(Database.CLAIM_RESPONSE, "minimal", "1");
+    App.getDB().delete(Database.CLAIM, "minimal", "1");
+    App.getDB().delete(Database.CLAIM_RESPONSE, "minimal", "1");
   }
 
   @Test
@@ -119,7 +120,7 @@ public class ClaimResponseEndpointTest {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", "minimal");
     constraintMap.put("patient", "1");
-    Bundle bundleResponse = (Bundle) App.DB.read(Database.CLAIM_RESPONSE, constraintMap);
+    Bundle bundleResponse = (Bundle) App.getDB().read(Database.CLAIM_RESPONSE, constraintMap);
     Assert.assertNotNull(bundleResponse);
   }
 
