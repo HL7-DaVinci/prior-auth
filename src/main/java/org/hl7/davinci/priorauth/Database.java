@@ -36,6 +36,8 @@ public class Database {
   public static final String CLAIM_ITEM = "ClaimItem";
   /** ClaimResponse Resource */
   public static final String CLAIM_RESPONSE = "ClaimResponse";
+  /** Subscription Resource */
+  public static final String SUBSCRIPTION = "Subscription";
 
   private static final String createSqlFile = "src/main/java/org/hl7/davinci/priorauth/CreateDatabase.sql";
 
@@ -74,7 +76,7 @@ public class Database {
     try (Connection connection = getConnection()) {
       String sql = new String(Files.readAllBytes(Paths.get(createSqlFile).toAbsolutePath()));
       connection.prepareStatement(sql.replace("\"", "")).execute();
-      logger.info(sql);
+      logger.fine(sql);
 
       style = new String(Files.readAllBytes(Paths.get(styleFile).toAbsolutePath()));
       script = new String(Files.readAllBytes(Paths.get(scriptFile).toAbsolutePath()));

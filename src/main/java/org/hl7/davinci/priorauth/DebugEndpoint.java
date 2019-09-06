@@ -42,6 +42,12 @@ public class DebugEndpoint {
     return query(Database.CLAIM_ITEM);
   }
 
+  @GET
+  @Path("/Subscription")
+  public Response getSubscription() {
+    return query(Database.SUBSCRIPTION);
+  }
+
   private Response query(String resource) {
     logger.info("GET /query/" + resource);
     if (App.debugMode) {
