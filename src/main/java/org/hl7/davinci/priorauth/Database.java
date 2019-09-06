@@ -253,10 +253,22 @@ public class Database {
    * @return the related field of the database
    */
   public String readRelated(String resourceType, Map<String, Object> constraintParams) {
-    logger.info("Database::read(" + resourceType + ", " + constraintParams.toString() + ")");
-    if (resourceType != null && constraintParams != null) {
+    return readString(resourceType, constraintParams, "related");
+  }
+
+  /**
+   * Read the specified column from the database
+   *
+   * @param resourceType     - the FHIR resourceType to read.
+   * @param constraintParams - the search constraints for the SQL query.
+   * @param column           - the column to read.
+   * @return the specified column of the database
+   */
+  public String readString(String resourceType, Map<String, Object> constraintParams, String column) {
+    logger.info("Database::read(" + resourceType + ", " + constraintParams.toString() + ", " + column + ")");
+    if (resourceType != null && constraintParams != null && column != null) {
       try (Connection connection = getConnection()) {
-        String sql = "SELECT TOP 1 related FROM " + resourceType + " WHERE "
+        String sql = "SELECT TOP 1 " + column + " FROM " + resourceType + " WHERE "
             + generateClause(constraintParams, WHERE_CONCAT) + " ORDER BY timestamp DESC;";
         Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
         maps.add(constraintParams);
@@ -265,7 +277,7 @@ public class Database {
         ResultSet rs = stmt.executeQuery();
 
         if (rs.next()) {
-          return rs.getString("related");
+          return rs.getString(column);
         }
       } catch (SQLException e) {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);

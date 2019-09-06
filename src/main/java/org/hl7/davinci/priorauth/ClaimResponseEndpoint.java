@@ -26,14 +26,9 @@ public class ClaimResponseEndpoint {
   @GET
   @Path("/")
   @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
-  public Response readClaimResponse(@QueryParam("identifier") String id,
+  public Response readClaimResponseJson(@QueryParam("identifier") String id,
       @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
-    Map<String, Object> constraintMap = new HashMap<String, Object>();
-    constraintMap.put("id", App.getDB().getMostRecentId(id));
-    constraintMap.put("patient", patient);
-    if (status != null)
-      constraintMap.put("status", status);
-    return Endpoint.read(Database.CLAIM_RESPONSE, constraintMap, uri, RequestType.JSON);
+    return readClaimResponse(id, patient, status, RequestType.JSON);
   }
 
   @GET
@@ -41,12 +36,29 @@ public class ClaimResponseEndpoint {
   @Produces({ MediaType.APPLICATION_XML, "application/fhir+xml" })
   public Response readClaimResponseXml(@QueryParam("identifier") String id,
       @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
+    return readClaimResponse(id, patient, status, RequestType.XML);
+  }
+
+  public Response readClaimResponse(String id, String patient, String status, RequestType requestType) {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
-    constraintMap.put("id", App.getDB().getMostRecentId(id));
+
+    // get the claim id from the claim response id
+    constraintMap.put("id", id);
     constraintMap.put("patient", patient);
     if (status != null)
       constraintMap.put("status", status);
-    return Endpoint.read(Database.CLAIM_RESPONSE, constraintMap, uri, RequestType.XML);
+    String claimId = App.getDB().readString(Database.CLAIM_RESPONSE, constraintMap, "claimId");
+
+    // get the most recent claim id
+    claimId = App.getDB().getMostRecentId(claimId);
+
+    // get the most reset claim response
+    constraintMap.clear();
+    constraintMap.put("claimId", claimId);
+    constraintMap.put("patient", patient);
+    if (status != null)
+      constraintMap.put("status", status);
+    return Endpoint.read(Database.CLAIM_RESPONSE, constraintMap, uri, requestType);
   }
 
   @DELETE
