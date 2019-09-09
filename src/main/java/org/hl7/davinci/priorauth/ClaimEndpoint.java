@@ -1,11 +1,13 @@
 package org.hl7.davinci.priorauth;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimerTask;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.enterprise.context.RequestScoped;
@@ -47,6 +49,8 @@ import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
 
 import ca.uhn.fhir.parser.IParser;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
 
 /**
  * The Claim endpoint to READ, SEARCH for, and DELETE submitted claims.
@@ -612,10 +616,32 @@ public class ClaimEndpoint {
         // Send notification to the subscriber
         if (subscription != null) {
           SubscriptionChannelType subscriptionType = subscription.getChannel().getType();
-          String endpoint = subscription.getChannel().getEndpoint();
-          if (subscriptionType == SubscriptionChannelType.RESTHOOK
-              || subscriptionType == SubscriptionChannelType.WEBSOCKET) {
-            SubscriptionHandler.sendNotifcation(subscriptionType, endpoint);
+          if (subscriptionType == SubscriptionChannelType.RESTHOOK) {
+            // Send rest-hook notification...
+            String endpoint = subscription.getChannel().getEndpoint();
+            logger.info("SubscriptionHandler::Sending rest-hook notification to " + endpoint);
+            try {
+              OkHttpClient client = new OkHttpClient();
+              okhttp3.Response response = client.newCall(new Request.Builder().url(endpoint).build()).execute();
+              logger.fine("SubscriptionHandler::Resopnse " + response.code());
+            } catch (IOException e) {
+              logger.log(Level.SEVERE, "SubscriptionHandler::IOException in request", e);
+            }
+          } else if (subscriptionType == SubscriptionChannelType.WEBSOCKET) {
+            // Send websocket notification...
+            logger.info("SubscriptionHandler::Sending websocket notification for prior auth " + claimId);
+            try {
+              SubscriptionSocketEndpoint.sendPing(claimId);
+            } catch (IllegalArgumentException e) {
+              logger.log(Level.SEVERE, "SubscriptionHandler::IllegalArgumentException sending notification ping", e);
+            } catch (NullPointerException e) {
+              logger.log(Level.SEVERE,
+                  "SubscriptionHandler::NullPointerException sending notification ping. Perhaps no session exists for "
+                      + claimId,
+                  e);
+            } catch (IOException e) {
+              logger.log(Level.SEVERE, "SubscriptionHandler::IOException sending notification ping", e);
+            }
           } else {
             logger.severe(
                 "Invalid subscription channel type " + subscriptionType.name() + ". Must be Resthook or websocket");
