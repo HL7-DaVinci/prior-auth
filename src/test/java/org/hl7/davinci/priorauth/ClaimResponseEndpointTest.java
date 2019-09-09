@@ -178,8 +178,25 @@ public class ClaimResponseEndpointTest {
 
     // Test that non-existent ClaimResponse returns 404.
     Request request = new Request.Builder()
-        .url(base + "/ClaimResponse?identifier=ClaimResponseThatDoesNotExist&patient.identifier=45").build();
+        .url(base + "/ClaimResponse?identifier=ClaimResponseThatDoesNotExist&patient.identifier=45")
+        .header("Accept", "application/fhir+json").build();
     Response response = client.newCall(request).execute();
-    Assert.assertEquals(404, response.code());
+    Assert.assertEquals(200, response.code());
+
+    // Test the response has CORS headers
+    String cors = response.header("Access-Control-Allow-Origin");
+    Assert.assertEquals("*", cors);
+
+    // Test the response is a JSON Bundle
+    String body = response.body().string();
+    Bundle bundleResponse = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
+    Assert.assertNotNull(bundleResponse);
+
+    // Validate the response.
+    ValidationResult result = ValidationHelper.validate(bundleResponse);
+    Assert.assertTrue(result.isSuccessful());
+
+    // Validate there is nothing in the Bundle.
+    Assert.assertEquals(0, bundleResponse.getEntry().size());
   }
 }

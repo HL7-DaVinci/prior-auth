@@ -52,7 +52,7 @@ public class ClaimResponseEndpoint {
     // get the most recent claim id
     claimId = App.getDB().getMostRecentId(claimId);
 
-    // get the most reset claim response
+    // get the most recent claim response
     constraintMap.clear();
     constraintMap.put("claimId", claimId);
     constraintMap.put("patient", patient);
