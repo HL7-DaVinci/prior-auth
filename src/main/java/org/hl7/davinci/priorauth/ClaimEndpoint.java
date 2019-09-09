@@ -37,8 +37,10 @@ import org.hl7.fhir.r4.model.ClaimResponse.Use;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
+import org.hl7.fhir.r4.model.Subscription.SubscriptionChannelType;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ResourceType;
+import org.hl7.fhir.r4.model.Subscription;
 import org.hl7.fhir.r4.model.Type;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
@@ -473,7 +475,7 @@ public class ClaimEndpoint {
    * @param patient     - the Patient ID.
    * @param disposition - the new disposition of the updated Claim.
    */
-  private void updateClaim(Bundle bundle, String claimId, String patient, String disposition) {
+  private Bundle updateClaim(Bundle bundle, String claimId, String patient, String disposition) {
     logger.info("ClaimEndpoint::updateClaim(" + claimId + "/" + patient + ", disposition: " + disposition + ")");
 
     // Generate a new id...
@@ -484,9 +486,10 @@ public class ClaimEndpoint {
     claimConstraintMap.put("id", claimId);
     claimConstraintMap.put("patient", patient);
     Claim claim = (Claim) App.getDB().read(Database.CLAIM, claimConstraintMap);
-    if (claim != null) {
-      generateAndStoreClaimResponse(bundle, claim, id, "Granted", ClaimResponseStatus.ACTIVE, patient);
-    }
+    if (claim != null)
+      return generateAndStoreClaimResponse(bundle, claim, id, "Granted", ClaimResponseStatus.ACTIVE, patient);
+    else
+      return null;
   }
 
   /**
@@ -599,7 +602,26 @@ public class ClaimEndpoint {
 
     @Override
     public void run() {
-      updateClaim(bundle, claimId, patient, disposition);
+      if (updateClaim(bundle, claimId, patient, disposition) != null) {
+        // Check for subscription
+        Map<String, Object> constraintMap = new HashMap<String, Object>();
+        constraintMap.put("claimResponseId", claimId);
+        constraintMap.put("patient", patient);
+        Subscription subscription = (Subscription) App.getDB().read(Database.SUBSCRIPTION, constraintMap);
+
+        // Send notification to the subscriber
+        if (subscription != null) {
+          SubscriptionChannelType subscriptionType = subscription.getChannel().getType();
+          String endpoint = subscription.getChannel().getEndpoint();
+          if (subscriptionType == SubscriptionChannelType.RESTHOOK
+              || subscriptionType == SubscriptionChannelType.WEBSOCKET) {
+            SubscriptionHandler.sendNotifcation(subscriptionType, endpoint);
+          } else {
+            logger.severe(
+                "Invalid subscription channel type " + subscriptionType.name() + ". Must be Resthook or websocket");
+          }
+        }
+      }
     }
   }
 
@@ -612,7 +634,7 @@ public class ClaimEndpoint {
    * @param disposition - the new disposition of the updated Claim.
    */
   private void scheduleClaimUpdate(Bundle bundle, String id, String patient, String disposition) {
-    App.timer.schedule(new UpdateClaimTask(bundle, id, patient, disposition), 5000); // 5s
+    App.timer.schedule(new UpdateClaimTask(bundle, id, patient, disposition), 30000); // 30s
   }
 
   /**
