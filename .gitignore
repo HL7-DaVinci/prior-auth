@@ -11,10 +11,11 @@ build
 *.log
 *.log.lck
 
-# Ignore Eclipse files
+# Ignore Eclipse and vscode files
 .project
 .classpath
 .settings/
+.vscode/
 bin
 
 # Ignore Database files
