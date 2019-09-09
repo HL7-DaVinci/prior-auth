@@ -32,6 +32,8 @@ public class PopulateDatabase {
         String id = claim.getId();
         String patient = FhirUtils.getPatientIdFromResource(claim);
         String status = FhirUtils.getStatusFromResource(claim);
+        DB.delete(Database.CLAIM, id, patient);
+        DB.delete(Database.BUNDLE, id, patient);
         Map<String, Object> dataMap = new HashMap<String, Object>();
         dataMap.put("id", id);
         dataMap.put("patient", patient);
@@ -51,10 +53,12 @@ public class PopulateDatabase {
         String id = claimResponse.getId();
         String patient = FhirUtils.getPatientIdFromResource(claimResponse);
         String status = FhirUtils.getStatusFromResource(claimResponse);
+        DB.delete(Database.CLAIM_RESPONSE, id, patient);
+
         Map<String, Object> dataMap = new HashMap<String, Object>();
         dataMap.put("id", id);
-        dataMap.put("claimId", claimId);
         dataMap.put("patient", patient);
+        dataMap.put("claimId", claimId);
         dataMap.put("status", status);
         dataMap.put("resource", claimResponseBundle);
 
