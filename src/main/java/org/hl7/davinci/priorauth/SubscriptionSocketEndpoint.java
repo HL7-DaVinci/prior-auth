@@ -15,7 +15,7 @@ import javax.websocket.Session;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 
-@ServerEndpoint(value = "/Subscription/{priorauthid}")
+@ServerEndpoint(value = "/SocketSubscription/{priorauthid}")
 public class SubscriptionSocketEndpoint {
 
     static final Logger logger = PALogger.getLogger();
