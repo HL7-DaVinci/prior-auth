@@ -178,7 +178,8 @@ public class ClaimResponseEndpointTest {
 
     // Test that non-existent ClaimResponse returns 404.
     Request request = new Request.Builder()
-        .url(base + "/ClaimResponse?identifier=ClaimResponseThatDoesNotExist&patient.identifier=45").build();
+        .url(base + "/ClaimResponse?identifier=ClaimResponseThatDoesNotExist&patient.identifier=45")
+        .header("Accept", "application/fhir+json").build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(404, response.code());
   }

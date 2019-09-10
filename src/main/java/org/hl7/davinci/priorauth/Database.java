@@ -253,10 +253,34 @@ public class Database {
    * @return the related field of the database
    */
   public String readRelated(String resourceType, Map<String, Object> constraintParams) {
-    logger.info("Database::read(" + resourceType + ", " + constraintParams.toString() + ")");
-    if (resourceType != null && constraintParams != null) {
+    return readString(resourceType, constraintParams, "related");
+  }
+
+  /**
+   * Get the status of an item in the database
+   *
+   * @param resourceType - the FHIR resource type to read.
+   * @param id           - the id of the resource.
+   * @return - the string value of the status in the database of the first
+   *         matching entry with the provided id.
+   */
+  public String readStatus(String resourceType, Map<String, Object> constraintParams) {
+    return readString(resourceType, constraintParams, "status");
+  }
+
+  /**
+   * Read the specified column from the database
+   *
+   * @param resourceType     - the FHIR resourceType to read.
+   * @param constraintParams - the search constraints for the SQL query.
+   * @param column           - the column to read.
+   * @return the specified column of the database
+   */
+  public String readString(String resourceType, Map<String, Object> constraintParams, String column) {
+    logger.info("Database::read(" + resourceType + ", " + constraintParams.toString() + ", " + column + ")");
+    if (resourceType != null && constraintParams != null && column != null) {
       try (Connection connection = getConnection()) {
-        String sql = "SELECT TOP 1 related FROM " + resourceType + " WHERE "
+        String sql = "SELECT TOP 1 " + column + " FROM " + resourceType + " WHERE "
             + generateClause(constraintParams, WHERE_CONCAT) + " ORDER BY timestamp DESC;";
         Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
         maps.add(constraintParams);
@@ -265,36 +289,7 @@ public class Database {
         ResultSet rs = stmt.executeQuery();
 
         if (rs.next()) {
-          return rs.getString("related");
-        }
-      } catch (SQLException e) {
-        logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Get the status of an item in the database
-   * 
-   * @param resourceType - the FHIR resource type to read.
-   * @param id           - the id of the resource.
-   * @return - the string value of the status in the database of the first
-   *         matching entry with the provided id.
-   */
-  public String readStatus(String resourceType, Map<String, Object> constraintParams) {
-    logger.info("Database::readStatus(" + resourceType + ", " + constraintParams.toString() + ")");
-    if (resourceType != null && constraintParams != null) {
-      try (Connection connection = getConnection()) {
-        String sql = "SELECT status FROM " + resourceType + " WHERE " + generateClause(constraintParams, WHERE_CONCAT)
-            + ";";
-        Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
-        maps.add(constraintParams);
-        PreparedStatement stmt = generateStatement(sql, maps, connection);
-        ResultSet rs = stmt.executeQuery();
-        logger.fine("read status query: " + stmt.toString());
-        if (rs.next()) {
-          return rs.getString("status");
+          return rs.getString(column);
         }
       } catch (SQLException e) {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
