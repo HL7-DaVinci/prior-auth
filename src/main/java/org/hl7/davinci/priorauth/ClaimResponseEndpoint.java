@@ -54,7 +54,12 @@ public class ClaimResponseEndpoint {
 
     // get the most recent claim response
     constraintMap.clear();
-    constraintMap.put("claimId", claimId);
+    if (claimId == null) {
+      // no claim was found, call on the Endpoint.read to return the proper error
+      constraintMap.put("id", id);
+    } else {
+      constraintMap.put("claimId", claimId);
+    }
     constraintMap.put("patient", patient);
     if (status != null)
       constraintMap.put("status", status);
