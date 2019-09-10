@@ -178,6 +178,20 @@ Run the docker image:
 docker run -p 9000:9000 -it --rm --name davinci-prior-auth hspc/davinci-prior-auth:latest
 ```
 
+## Database Query Tool
+When the server is not running the database can be queried using the DatabaseTool and any SQL query.
+
+To query for all of the claims use the following command:
+
+```
+gradle :tools:run --args="'select * from claim'"
+```
+To include the full contents of the FHIR objects use the following command:
+
+```
+gradle :tools:run --args="'select * from claim' true"
+```
+
 ## Questions and Contributions
 
 Questions about the project can be asked in the [DaVinci stream on the FHIR Zulip Chat](https://chat.fhir.org/#narrow/stream/179283-DaVinci).

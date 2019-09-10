@@ -43,7 +43,8 @@ public class Endpoint {
             return Response.status(Status.UNAUTHORIZED).build();
         }
         String formattedData = null;
-        if (!constraintMap.containsKey("id") || constraintMap.get("id") == null) {
+        if ((!constraintMap.containsKey("id") || constraintMap.get("id") == null)
+                && (!constraintMap.containsKey("claimId") || constraintMap.get("claimId") == null)) {
             // Search
             App.getDB().setBaseUrl(uri.getBaseUri());
             constraintMap.remove("id");
