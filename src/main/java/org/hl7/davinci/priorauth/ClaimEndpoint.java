@@ -629,19 +629,7 @@ public class ClaimEndpoint {
             }
           } else if (subscriptionType == SubscriptionChannelType.WEBSOCKET) {
             // Send websocket notification...
-            logger.info("SubscriptionHandler::Sending websocket notification for prior auth " + claimId);
-            try {
-              SubscriptionSocketEndpoint.sendPing(claimId);
-            } catch (IllegalArgumentException e) {
-              logger.log(Level.SEVERE, "SubscriptionHandler::IllegalArgumentException sending notification ping", e);
-            } catch (NullPointerException e) {
-              logger.log(Level.SEVERE,
-                  "SubscriptionHandler::NullPointerException sending notification ping. Perhaps no session exists for "
-                      + claimId,
-                  e);
-            } catch (IOException e) {
-              logger.log(Level.SEVERE, "SubscriptionHandler::IOException sending notification ping", e);
-            }
+            logger.warning("SubscriptionHandler::Websocket subscriptions not yet supported");
           } else {
             logger.severe(
                 "Invalid subscription channel type " + subscriptionType.name() + ". Must be Resthook or websocket");
