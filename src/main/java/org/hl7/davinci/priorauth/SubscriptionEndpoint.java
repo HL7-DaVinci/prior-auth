@@ -26,6 +26,7 @@ import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Subscription;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
+import org.hl7.fhir.r4.model.Subscription.SubscriptionChannelType;
 
 import ca.uhn.fhir.parser.IParser;
 
@@ -42,6 +43,7 @@ public class SubscriptionEndpoint {
     String REQUIRES_SUBSCRIPTION = "Prior Authorization Subscription Operation requires a Subscription resource";
     String SUBSCRIPTION_ADDED_SUCCESS = "Subscription successful";
     String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
+    String INVALID_CHANNEL_TYPE = "Invalid channel type. Must be rest-hook or websocket";
 
     @Context
     private UriInfo uri;
@@ -87,12 +89,25 @@ public class SubscriptionEndpoint {
             IBaseResource resource = parser.parseResource(body);
             if (resource instanceof Subscription) {
                 Subscription subscription = (Subscription) resource;
-                if (processSubscription(subscription))
-                    formattedData = SUBSCRIPTION_ADDED_SUCCESS;
-                else {
+                SubscriptionChannelType subscriptionType = subscription.getChannel().getType();
+
+                // Check valid subscription type
+                if (subscriptionType == SubscriptionChannelType.RESTHOOK
+                        || subscriptionType == SubscriptionChannelType.WEBSOCKET) {
+                    if (processSubscription(subscription))
+                        formattedData = SUBSCRIPTION_ADDED_SUCCESS;
+                    else {
+                        status = Status.BAD_REQUEST;
+                        OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID,
+                                PROCESS_FAILED);
+                        formattedData = requestType == RequestType.JSON ? App.getDB().json(error)
+                                : App.getDB().xml(error);
+                    }
+                } else {
+                    // Subscription must be rest-hook or websocket....
                     status = Status.BAD_REQUEST;
                     OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID,
-                            PROCESS_FAILED);
+                            INVALID_CHANNEL_TYPE);
                     formattedData = requestType == RequestType.JSON ? App.getDB().json(error) : App.getDB().xml(error);
                 }
             } else {

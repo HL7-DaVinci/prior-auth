@@ -614,26 +614,21 @@ public class ClaimEndpoint {
         Subscription subscription = (Subscription) App.getDB().read(Database.SUBSCRIPTION, constraintMap);
 
         // Send notification to the subscriber
-        if (subscription != null) {
-          SubscriptionChannelType subscriptionType = subscription.getChannel().getType();
-          if (subscriptionType == SubscriptionChannelType.RESTHOOK) {
-            // Send rest-hook notification...
-            String endpoint = subscription.getChannel().getEndpoint();
-            logger.info("SubscriptionHandler::Sending rest-hook notification to " + endpoint);
-            try {
-              OkHttpClient client = new OkHttpClient();
-              okhttp3.Response response = client.newCall(new Request.Builder().url(endpoint).build()).execute();
-              logger.fine("SubscriptionHandler::Resopnse " + response.code());
-            } catch (IOException e) {
-              logger.log(Level.SEVERE, "SubscriptionHandler::IOException in request", e);
-            }
-          } else if (subscriptionType == SubscriptionChannelType.WEBSOCKET) {
-            // Send websocket notification...
-            logger.warning("SubscriptionHandler::Websocket subscriptions not yet supported");
-          } else {
-            logger.severe(
-                "Invalid subscription channel type " + subscriptionType.name() + ". Must be Resthook or websocket");
+        SubscriptionChannelType subscriptionType = subscription.getChannel().getType();
+        if (subscriptionType == SubscriptionChannelType.RESTHOOK) {
+          // Send rest-hook notification...
+          String endpoint = subscription.getChannel().getEndpoint();
+          logger.info("SubscriptionHandler::Sending rest-hook notification to " + endpoint);
+          try {
+            OkHttpClient client = new OkHttpClient();
+            okhttp3.Response response = client.newCall(new Request.Builder().url(endpoint).build()).execute();
+            logger.fine("SubscriptionHandler::Resopnse " + response.code());
+          } catch (IOException e) {
+            logger.log(Level.SEVERE, "SubscriptionHandler::IOException in request", e);
           }
+        } else if (subscriptionType == SubscriptionChannelType.WEBSOCKET) {
+          // Send websocket notification...
+          logger.warning("SubscriptionHandler::Websocket subscriptions not yet supported");
         }
       }
     }
