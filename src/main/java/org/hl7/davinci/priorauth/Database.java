@@ -37,7 +37,8 @@ public class Database {
   /** ClaimResponse Resource */
   public static final String CLAIM_RESPONSE = "ClaimResponse";
 
-  private static final String createSqlFile = "src/main/java/org/hl7/davinci/priorauth/CreateDatabase.sql";
+  private static final String CREATE_SQL_FILE = "src/main/java/org/hl7/davinci/priorauth/CreateDatabase.sql";
+  private String SQL_FILE;
 
   private static final String styleFile = "src/main/resources/style.html";
   private static final String scriptFile = "src/main/resources/script.html";
@@ -51,7 +52,10 @@ public class Database {
   // DB_CLOSE_DELAY=-1 maintains the DB in memory after all connections closed
   // (so that we don't lose everything between a connection closing and the next
   // being opened)
-  private static final String JDBC_STRING = "jdbc:h2:./database;DB_CLOSE_DELAY=-1";
+  private static final String JDBC_TYPE = "jdbc:h2:";
+  private static final String JDBC_FILE = "database";
+  private static final String JDBC_OPTIONS = ";DB_CLOSE_DELAY=-1";
+  private String JDBC_STRING;
 
   static {
     try {
@@ -71,13 +75,20 @@ public class Database {
   private String baseUrl;
 
   public Database() {
+    this("./");
+  }
+
+  public Database(String relativePath) {
+    JDBC_STRING = JDBC_TYPE + relativePath + JDBC_FILE + JDBC_OPTIONS;
+    logger.info("JDBC: " + JDBC_STRING);
+    SQL_FILE = relativePath + CREATE_SQL_FILE;
     try (Connection connection = getConnection()) {
-      String sql = new String(Files.readAllBytes(Paths.get(createSqlFile).toAbsolutePath()));
+      String sql = new String(Files.readAllBytes(Paths.get(SQL_FILE).toAbsolutePath()));
       connection.prepareStatement(sql.replace("\"", "")).execute();
       logger.info(sql);
 
-      style = new String(Files.readAllBytes(Paths.get(styleFile).toAbsolutePath()));
-      script = new String(Files.readAllBytes(Paths.get(scriptFile).toAbsolutePath()));
+      style = new String(Files.readAllBytes(Paths.get(relativePath + styleFile).toAbsolutePath()));
+      script = new String(Files.readAllBytes(Paths.get(relativePath + scriptFile).toAbsolutePath()));
     } catch (SQLException e) {
       logger.log(Level.SEVERE, "Database::Database:SQLException", e);
     } catch (IOException e) {
@@ -253,10 +264,34 @@ public class Database {
    * @return the related field of the database
    */
   public String readRelated(String resourceType, Map<String, Object> constraintParams) {
-    logger.info("Database::read(" + resourceType + ", " + constraintParams.toString() + ")");
-    if (resourceType != null && constraintParams != null) {
+    return readString(resourceType, constraintParams, "related");
+  }
+
+  /**
+   * Get the status of an item in the database
+   *
+   * @param resourceType - the FHIR resource type to read.
+   * @param id           - the id of the resource.
+   * @return - the string value of the status in the database of the first
+   *         matching entry with the provided id.
+   */
+  public String readStatus(String resourceType, Map<String, Object> constraintParams) {
+    return readString(resourceType, constraintParams, "status");
+  }
+
+  /**
+   * Read the specified column from the database
+   *
+   * @param resourceType     - the FHIR resourceType to read.
+   * @param constraintParams - the search constraints for the SQL query.
+   * @param column           - the column to read.
+   * @return the specified column of the database
+   */
+  public String readString(String resourceType, Map<String, Object> constraintParams, String column) {
+    logger.info("Database::read(" + resourceType + ", " + constraintParams.toString() + ", " + column + ")");
+    if (resourceType != null && constraintParams != null && column != null) {
       try (Connection connection = getConnection()) {
-        String sql = "SELECT TOP 1 related FROM " + resourceType + " WHERE "
+        String sql = "SELECT TOP 1 " + column + " FROM " + resourceType + " WHERE "
             + generateClause(constraintParams, WHERE_CONCAT) + " ORDER BY timestamp DESC;";
         Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
         maps.add(constraintParams);
@@ -265,36 +300,7 @@ public class Database {
         ResultSet rs = stmt.executeQuery();
 
         if (rs.next()) {
-          return rs.getString("related");
-        }
-      } catch (SQLException e) {
-        logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Get the status of an item in the database
-   * 
-   * @param resourceType - the FHIR resource type to read.
-   * @param id           - the id of the resource.
-   * @return - the string value of the status in the database of the first
-   *         matching entry with the provided id.
-   */
-  public String readStatus(String resourceType, Map<String, Object> constraintParams) {
-    logger.info("Database::readStatus(" + resourceType + ", " + constraintParams.toString() + ")");
-    if (resourceType != null && constraintParams != null) {
-      try (Connection connection = getConnection()) {
-        String sql = "SELECT status FROM " + resourceType + " WHERE " + generateClause(constraintParams, WHERE_CONCAT)
-            + ";";
-        Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
-        maps.add(constraintParams);
-        PreparedStatement stmt = generateStatement(sql, maps, connection);
-        ResultSet rs = stmt.executeQuery();
-        logger.fine("read status query: " + stmt.toString());
-        if (rs.next()) {
-          return rs.getString("status");
+          return rs.getString(column);
         }
       } catch (SQLException e) {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);

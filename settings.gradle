@@ -8,3 +8,5 @@
  */
 
 rootProject.name = 'prior-auth'
+
+include 'tools'
