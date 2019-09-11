@@ -66,10 +66,6 @@ public class App {
     // builder.setJaxrsMapping("/fhir/*");
     // builder.setJsonpPrettify(true);
 
-    // // Launch the microservice
-    // try (Meecrowave meecrowave = new Meecrowave(builder)) {
-    // meecrowave.bake().await();
-    // }
   }
 
   public static void initializeAppDB() {

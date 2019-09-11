@@ -2,53 +2,47 @@ package org.hl7.davinci.priorauth;
 
 import java.util.logging.Logger;
 
-import javax.enterprise.context.RequestScoped;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-@RequestScoped
-@Path("query")
+@RestController
+@RequestMapping("/query")
 public class DebugEndpoint {
 
   static final Logger logger = PALogger.getLogger();
 
-  @Context
-  private UriInfo uri;
-
-  @GET
-  @Path("/Bundle")
-  public Response getBundles() {
+  @GetMapping("/Bundle")
+  public ResponseEntity<String> getBundles() {
     return query(Database.BUNDLE);
   }
 
-  @GET
-  @Path("/Claim")
-  public Response getClaims() {
+  @GetMapping("/Claim")
+  public ResponseEntity<String> getClaims() {
     return query(Database.CLAIM);
   }
 
-  @GET
-  @Path("/ClaimResponse")
-  public Response getClaimResponses() {
+  @GetMapping("/ClaimResponse")
+  public ResponseEntity<String> getClaimResponses() {
     return query(Database.CLAIM_RESPONSE);
   }
 
-  @GET
-  @Path("/ClaimItem")
-  public Response getClaimItems() {
+  @GetMapping("/ClaimItem")
+  public ResponseEntity<String> getClaimItems() {
     return query(Database.CLAIM_ITEM);
   }
 
-  private Response query(String resource) {
+  private ResponseEntity<String> query(String resource) {
     logger.info("GET /query/" + resource);
     if (App.debugMode) {
-      return Response.ok(App.getDB().generateAndRunQuery(resource)).build();
+      return new ResponseEntity<>(App.getDB().generateAndRunQuery(resource), HttpStatus.OK);
+      // return Response.ok(App.getDB().generateAndRunQuery(resource)).build();
     } else {
       logger.warning("DebugEndpoint::query disabled");
-      return Response.status(Response.Status.BAD_REQUEST).build();
+      return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+      // return Response.status(Response.Status.BAD_REQUEST).build();
     }
   }
 }
