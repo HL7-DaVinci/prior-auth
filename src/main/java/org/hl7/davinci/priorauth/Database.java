@@ -2,7 +2,6 @@ package org.hl7.davinci.priorauth;
 
 import java.util.*;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Connection;
@@ -493,8 +492,8 @@ public class Database {
    * 
    * @param base - from @Context UriInfo uri.getBaseUri()
    */
-  public void setBaseUrl(URI base) {
-    this.baseUrl = base.toString();
+  public void setBaseUrl(String base) {
+    this.baseUrl = base;
   }
 
   /**
