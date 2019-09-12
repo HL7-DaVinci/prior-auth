@@ -24,7 +24,7 @@ public class ClaimResponseEndpoint {
 
   private static String uri;
 
-  @GetMapping(value = "/", produces = "application/fhir+json")
+  @GetMapping(value = "", produces = "application/fhir+json")
   public ResponseEntity<String> readClaimResponseJson(HttpServletRequest request,
       @RequestParam(name = "identifier") String id, @RequestParam(name = "patient.identifier") String patient,
       @RequestParam(name = "status") String status) {
@@ -32,7 +32,7 @@ public class ClaimResponseEndpoint {
     return readClaimResponse(id, patient, status, RequestType.JSON);
   }
 
-  @GetMapping(value = "/", produces = "application/fhir+xml")
+  @GetMapping(value = "", produces = "application/fhir+xml")
   public ResponseEntity<String> readClaimResponseXml(HttpServletRequest request,
       @RequestParam(name = "identifier") String id, @RequestParam(name = "patient.identifier") String patient,
       @RequestParam(name = "status") String status) {
