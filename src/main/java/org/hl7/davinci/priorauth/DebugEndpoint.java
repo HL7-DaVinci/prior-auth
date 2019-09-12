@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/query")
+@RequestMapping("/debug")
 public class DebugEndpoint {
 
   static final Logger logger = PALogger.getLogger();
@@ -34,8 +34,13 @@ public class DebugEndpoint {
     return query(Database.CLAIM_ITEM);
   }
 
+  @GetMapping("/Subscription")
+  public ResponseEntity<String> getSubscription() {
+    return query(Database.SUBSCRIPTION);
+  }
+
   private ResponseEntity<String> query(String resource) {
-    logger.info("GET /query/" + resource);
+    logger.info("GET /debug/" + resource);
     if (App.debugMode) {
       return new ResponseEntity<>(App.getDB().generateAndRunQuery(resource), HttpStatus.OK);
     } else {

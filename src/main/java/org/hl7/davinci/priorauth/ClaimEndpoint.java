@@ -1,11 +1,13 @@
 package org.hl7.davinci.priorauth;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimerTask;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -35,14 +37,18 @@ import org.hl7.fhir.r4.model.ClaimResponse.Use;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
+import org.hl7.fhir.r4.model.Subscription.SubscriptionChannelType;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ResourceType;
+import org.hl7.fhir.r4.model.Subscription;
 import org.hl7.fhir.r4.model.Type;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
 
 import ca.uhn.fhir.parser.IParser;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
 
 /**
  * The Claim endpoint to READ, SEARCH for, and DELETE submitted claims.
@@ -456,7 +462,7 @@ public class ClaimEndpoint {
    * @param patient     - the Patient ID.
    * @param disposition - the new disposition of the updated Claim.
    */
-  private void updateClaim(Bundle bundle, String claimId, String patient, String disposition) {
+  private Bundle updateClaim(Bundle bundle, String claimId, String patient, String disposition) {
     logger.info("ClaimEndpoint::updateClaim(" + claimId + "/" + patient + ", disposition: " + disposition + ")");
 
     // Generate a new id...
@@ -467,9 +473,10 @@ public class ClaimEndpoint {
     claimConstraintMap.put("id", claimId);
     claimConstraintMap.put("patient", patient);
     Claim claim = (Claim) App.getDB().read(Database.CLAIM, claimConstraintMap);
-    if (claim != null) {
-      generateAndStoreClaimResponse(bundle, claim, id, "Granted", ClaimResponseStatus.ACTIVE, patient);
-    }
+    if (claim != null)
+      return generateAndStoreClaimResponse(bundle, claim, id, "Granted", ClaimResponseStatus.ACTIVE, patient);
+    else
+      return null;
   }
 
   /**
@@ -582,7 +589,34 @@ public class ClaimEndpoint {
 
     @Override
     public void run() {
-      updateClaim(bundle, claimId, patient, disposition);
+      if (updateClaim(bundle, claimId, patient, disposition) != null) {
+        // Check for subscription
+        Map<String, Object> constraintMap = new HashMap<String, Object>();
+        constraintMap.put("claimResponseId", claimId);
+        constraintMap.put("patient", patient);
+        List<IBaseResource> subscriptions = App.getDB().readAll(Database.SUBSCRIPTION, constraintMap);
+
+        // Send notification to each subscriber
+        subscriptions.stream().forEach(resource -> {
+          Subscription subscription = (Subscription) resource;
+          SubscriptionChannelType subscriptionType = subscription.getChannel().getType();
+          if (subscriptionType == SubscriptionChannelType.RESTHOOK) {
+            // Send rest-hook notification...
+            String endpoint = subscription.getChannel().getEndpoint();
+            logger.info("SubscriptionHandler::Sending rest-hook notification to " + endpoint);
+            try {
+              OkHttpClient client = new OkHttpClient();
+              okhttp3.Response response = client.newCall(new Request.Builder().url(endpoint).build()).execute();
+              logger.fine("SubscriptionHandler::Resopnse " + response.code());
+            } catch (IOException e) {
+              logger.log(Level.SEVERE, "SubscriptionHandler::IOException in request", e);
+            }
+          } else if (subscriptionType == SubscriptionChannelType.WEBSOCKET) {
+            // Send websocket notification...
+            logger.warning("SubscriptionHandler::Websocket subscriptions not yet supported");
+          }
+        });
+      }
     }
   }
 
@@ -595,7 +629,7 @@ public class ClaimEndpoint {
    * @param disposition - the new disposition of the updated Claim.
    */
   private void scheduleClaimUpdate(Bundle bundle, String id, String patient, String disposition) {
-    App.timer.schedule(new UpdateClaimTask(bundle, id, patient, disposition), 5000); // 5s
+    App.timer.schedule(new UpdateClaimTask(bundle, id, patient, disposition), 30000); // 30s
   }
 
   /**
