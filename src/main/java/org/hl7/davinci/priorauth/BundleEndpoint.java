@@ -24,7 +24,8 @@ public class BundleEndpoint {
   private static String uri;
 
   @GetMapping(value = "", produces = "application/fhir+json")
-  public ResponseEntity<String> readBundle(HttpServletRequest request, @RequestParam(name = "identifier") String id,
+  public ResponseEntity<String> readBundle(HttpServletRequest request,
+      @RequestParam(name = "identifier", required = false) String id,
       @RequestParam(name = "patient.identifier") String patient) {
     uri = request.getRequestURL().toString();
     Map<String, Object> constraintMap = new HashMap<String, Object>();
@@ -34,7 +35,8 @@ public class BundleEndpoint {
   }
 
   @GetMapping(value = "", produces = "application/fhir+xml")
-  public ResponseEntity<String> readBundleXml(HttpServletRequest request, @RequestParam(name = "identifier") String id,
+  public ResponseEntity<String> readBundleXml(HttpServletRequest request,
+      @RequestParam(name = "identifier", required = false) String id,
       @RequestParam(name = "patient.identifier") String patient) {
     uri = request.getRequestURL().toString();
     Map<String, Object> constraintMap = new HashMap<String, Object>();

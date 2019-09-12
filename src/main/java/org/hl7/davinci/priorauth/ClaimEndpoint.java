@@ -59,8 +59,10 @@ public class ClaimEndpoint {
   private static String uri;
 
   @GetMapping(value = "", produces = "application/fhir+json")
-  public ResponseEntity<String> readClaimJson(HttpServletRequest request, @RequestParam(name = "identifier") String id,
-      @RequestParam(name = "patient.identifier") String patient, @RequestParam(name = "status") String status) {
+  public ResponseEntity<String> readClaimJson(HttpServletRequest request,
+      @RequestParam(name = "identifier", required = false) String id,
+      @RequestParam(name = "patient.identifier") String patient,
+      @RequestParam(name = "status", required = false) String status) {
     uri = request.getRequestURL().toString();
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", id);
@@ -71,8 +73,10 @@ public class ClaimEndpoint {
   }
 
   @GetMapping(value = "", produces = "application/fhir+xm;")
-  public ResponseEntity<String> readClaimXml(HttpServletRequest request, @RequestParam(name = "identifier") String id,
-      @RequestParam(name = "patient.identifier") String patient, @RequestParam(name = "status") String status) {
+  public ResponseEntity<String> readClaimXml(HttpServletRequest request,
+      @RequestParam(name = "identifier", required = false) String id,
+      @RequestParam(name = "patient.identifier") String patient,
+      @RequestParam(name = "status", required = false) String status) {
     uri = request.getRequestURL().toString();
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", id);

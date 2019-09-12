@@ -26,16 +26,18 @@ public class ClaimResponseEndpoint {
 
   @GetMapping(value = "", produces = "application/fhir+json")
   public ResponseEntity<String> readClaimResponseJson(HttpServletRequest request,
-      @RequestParam(name = "identifier") String id, @RequestParam(name = "patient.identifier") String patient,
-      @RequestParam(name = "status") String status) {
+      @RequestParam(name = "identifier", required = false) String id,
+      @RequestParam(name = "patient.identifier") String patient,
+      @RequestParam(name = "status", required = false) String status) {
     uri = request.getRequestURL().toString();
     return readClaimResponse(id, patient, status, RequestType.JSON);
   }
 
   @GetMapping(value = "", produces = "application/fhir+xml")
   public ResponseEntity<String> readClaimResponseXml(HttpServletRequest request,
-      @RequestParam(name = "identifier") String id, @RequestParam(name = "patient.identifier") String patient,
-      @RequestParam(name = "status") String status) {
+      @RequestParam(name = "identifier", required = false) String id,
+      @RequestParam(name = "patient.identifier") String patient,
+      @RequestParam(name = "status", required = false) String status) {
     uri = request.getRequestURL().toString();
     return readClaimResponse(id, patient, status, RequestType.XML);
   }
