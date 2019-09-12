@@ -259,6 +259,41 @@ public class Database {
   }
 
   /**
+   * Read a specific resource from the database.
+   * 
+   * @param resourceType     - the FHIR resourceType to read.
+   * @param constraintParams - the search constraints for the SQL query.
+   * @return List of IBaseResource for all resources matching the constraints.
+   *         Empty list if none
+   */
+  public List<IBaseResource> readAll(String resourceType, Map<String, Object> constraintParams) {
+    logger.info("Database::readAll(" + resourceType + ", " + constraintParams.toString() + ")");
+    List<IBaseResource> results = new ArrayList<IBaseResource>();
+    if (resourceType != null && constraintParams != null) {
+      try (Connection connection = getConnection()) {
+        String sql = "SELECT id, patient, resource FROM " + resourceType + " WHERE "
+            + generateClause(constraintParams, WHERE_CONCAT) + " ORDER BY timestamp DESC;";
+        Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
+        maps.add(constraintParams);
+        PreparedStatement stmt = generateStatement(sql, maps, connection);
+        logger.fine("read query: " + stmt.toString());
+        ResultSet rs = stmt.executeQuery();
+
+        while (rs.next()) {
+          String id = rs.getString("id");
+          String json = rs.getString("resource");
+          String patientOut = rs.getString("patient");
+          logger.info("read: " + id + "/" + patientOut);
+          results.add((Resource) App.FHIR_CTX.newJsonParser().parseResource(json));
+        }
+      } catch (SQLException e) {
+        logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
+      }
+    }
+    return results;
+  }
+
+  /**
    * Read the related field from the database
    * 
    * @param resourceType     - the FHIR resourceType to read.

@@ -43,7 +43,7 @@ BEGIN TRANSACTION;
         "status" varchar,
         "timestamp" datetime DEFAULT CURRENT_TIMESTAMP,
         "resource" clob,
-        FOREIGN KEY ("claimResponseId") REFERENCES ClaimResponse("id") ON DELETE CASCADE
+        FOREIGN KEY ("claimResponseId") REFERENCES ClaimResponse("id") 
     );
 
 COMMIT;
