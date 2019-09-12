@@ -15,6 +15,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
+import org.springframework.http.ResponseEntity;
 
 /**
  * The Bundle endpoint to READ, SEARCH for, and DELETE submitted Bundles.
@@ -29,7 +30,8 @@ public class BundleEndpoint {
   @GET
   @Path("/")
   @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
-  public Response readBundle(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient) {
+  public ResponseEntity<String> readBundle(@QueryParam("identifier") String id,
+      @QueryParam("patient.identifier") String patient) {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", id);
     constraintMap.put("patient", patient);
@@ -39,7 +41,8 @@ public class BundleEndpoint {
   @GET
   @Path("/")
   @Produces({ MediaType.APPLICATION_XML, "application/fhir+xml" })
-  public Response readBundleXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient) {
+  public ResponseEntity<String> readBundleXml(@QueryParam("identifier") String id,
+      @QueryParam("patient.identifier") String patient) {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", id);
     constraintMap.put("patient", patient);
@@ -49,14 +52,15 @@ public class BundleEndpoint {
   @DELETE
   @Path("/")
   @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
-  public Response deleteBundle(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient) {
+  public ResponseEntity<String> deleteBundle(@QueryParam("identifier") String id,
+      @QueryParam("patient.identifier") String patient) {
     return Endpoint.delete(id, patient, Database.BUNDLE, RequestType.JSON);
   }
 
   @DELETE
   @Path("/")
   @Produces({ MediaType.APPLICATION_JSON, "application/fhir+xml" })
-  public Response deleteBundleXml(@QueryParam("identifier") String id,
+  public ResponseEntity<String> deleteBundleXml(@QueryParam("identifier") String id,
       @QueryParam("patient.identifier") String patient) {
     return Endpoint.delete(id, patient, Database.BUNDLE, RequestType.XML);
   }

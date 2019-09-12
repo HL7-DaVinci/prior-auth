@@ -6,6 +6,8 @@ import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,16 +21,15 @@ public class LogEndpoint {
     static final Logger logger = PALogger.getLogger();
 
     @GetMapping("")
-    public ResponseEntity<String> getLog() {
+    public ResponseEntity<String> getLog(HttpServletRequest request) {
         logger.info("GET /Log");
+        logger.info("LOG::Request uri " + request.getRequestURI());
         try {
             String log = new String(Files.readAllBytes(Paths.get(PALogger.getLogPath())));
             return new ResponseEntity<>(log, HttpStatus.OK);
-            // return Response.ok(log).build();
         } catch (IOException e) {
             logger.log(Level.SEVERE, "LogEndpoint::IOException", e);
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-            // return Response.status(Response.Status.BAD_REQUEST).build();
         }
     }
 }

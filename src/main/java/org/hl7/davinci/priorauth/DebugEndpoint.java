@@ -38,11 +38,9 @@ public class DebugEndpoint {
     logger.info("GET /query/" + resource);
     if (App.debugMode) {
       return new ResponseEntity<>(App.getDB().generateAndRunQuery(resource), HttpStatus.OK);
-      // return Response.ok(App.getDB().generateAndRunQuery(resource)).build();
     } else {
       logger.warning("DebugEndpoint::query disabled");
       return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-      // return Response.status(Response.Status.BAD_REQUEST).build();
     }
   }
 }

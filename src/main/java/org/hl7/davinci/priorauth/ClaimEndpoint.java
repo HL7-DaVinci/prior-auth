@@ -37,6 +37,7 @@ import org.hl7.fhir.r4.model.ClaimResponse.Use;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
+import org.springframework.http.ResponseEntity;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.Type;
@@ -66,8 +67,8 @@ public class ClaimEndpoint {
   @GET
   @Path("/")
   @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
-  public Response readClaimJson(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient,
-      @QueryParam("status") String status) {
+  public ResponseEntity<String> readClaimJson(@QueryParam("identifier") String id,
+      @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", id);
     constraintMap.put("patient", patient);
@@ -79,8 +80,8 @@ public class ClaimEndpoint {
   @GET
   @Path("/")
   @Produces({ MediaType.APPLICATION_XML, "application/fhir+xml" })
-  public Response readClaimXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient,
-      @QueryParam("status") String status) {
+  public ResponseEntity<String> readClaimXml(@QueryParam("identifier") String id,
+      @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", id);
     constraintMap.put("patient", patient);
@@ -92,7 +93,7 @@ public class ClaimEndpoint {
   @DELETE
   @Path("/")
   @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
-  public Response deleteClaimJson(@QueryParam("identifier") String id,
+  public ResponseEntity<String> deleteClaimJson(@QueryParam("identifier") String id,
       @QueryParam("patient.identifier") String patient) {
     return Endpoint.delete(id, patient, Database.CLAIM, RequestType.JSON);
   }
@@ -100,7 +101,7 @@ public class ClaimEndpoint {
   @DELETE
   @Path("/")
   @Produces({ MediaType.APPLICATION_JSON, "application/fhir+xml" })
-  public Response deleteClaimXml(@QueryParam("identifier") String id,
+  public ResponseEntity<String> deleteClaimXml(@QueryParam("identifier") String id,
       @QueryParam("patient.identifier") String patient) {
     return Endpoint.delete(id, patient, Database.CLAIM, RequestType.XML);
   }
