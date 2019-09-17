@@ -54,7 +54,7 @@ import okhttp3.Request;
  * The Claim endpoint to READ, SEARCH for, and DELETE submitted claims.
  */
 @RestController
-@RequestMapping("/Claim")
+@RequestMapping("/fhir/Claim")
 public class ClaimEndpoint {
 
   static final Logger logger = PALogger.getLogger();
@@ -78,7 +78,7 @@ public class ClaimEndpoint {
     return Endpoint.read(Database.CLAIM, constraintMap, uri, RequestType.JSON);
   }
 
-  @GetMapping(value = "", produces = "application/fhir+xm;")
+  @GetMapping(value = "", produces = "application/fhir+xml")
   public ResponseEntity<String> readClaimXml(HttpServletRequest request,
       @RequestParam(name = "identifier", required = false) String id,
       @RequestParam(name = "patient.identifier") String patient,

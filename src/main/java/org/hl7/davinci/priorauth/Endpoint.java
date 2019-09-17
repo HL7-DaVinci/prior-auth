@@ -9,8 +9,10 @@ import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.MultiValueMap;
 
 public class Endpoint {
 
@@ -74,7 +76,9 @@ public class Endpoint {
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
         }
-        return new ResponseEntity<>(formattedData, HttpStatus.OK);
+        MultiValueMap<String, String> headers = new HttpHeaders();
+        headers.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+        return new ResponseEntity<String>(formattedData, headers, HttpStatus.OK);
     }
 
     /**

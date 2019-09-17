@@ -31,7 +31,7 @@ import ca.uhn.fhir.parser.IParser;
  * ones.
  */
 @RestController
-@RequestMapping("/Subscription")
+@RequestMapping("/fhir/Subscription")
 public class SubscriptionEndpoint {
 
     static final Logger logger = PALogger.getLogger();

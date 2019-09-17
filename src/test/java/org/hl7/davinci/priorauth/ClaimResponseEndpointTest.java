@@ -8,9 +8,11 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.HashMap;
 
-import org.apache.meecrowave.Meecrowave;
-import org.apache.meecrowave.junit.MonoMeecrowave;
-import org.apache.meecrowave.testing.ConfigurationInject;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.test.context.junit4.SpringRunner;
+
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.junit.AfterClass;
@@ -24,11 +26,13 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-@RunWith(MonoMeecrowave.Runner.class)
+@RunWith(SpringRunner.class)
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 public class ClaimResponseEndpointTest {
 
-  @ConfigurationInject
-  private Meecrowave.Builder config;
+  @LocalServerPort
+  private int port;
+
   private static OkHttpClient client;
 
   @BeforeClass
@@ -69,7 +73,7 @@ public class ClaimResponseEndpointTest {
 
   @Test
   public void searchClaimResponses() throws IOException {
-    String base = "http://localhost:" + config.getHttpPort();
+    String base = "http://localhost:" + port + "/fhir";
 
     // Test that we can GET /fhir/ClaimResponse.
     Request request = new Request.Builder().url(base + "/ClaimResponse?patient.identifier=1")
@@ -93,7 +97,7 @@ public class ClaimResponseEndpointTest {
 
   @Test
   public void searchClaimResponsesXml() throws IOException {
-    String base = "http://localhost:" + config.getHttpPort();
+    String base = "http://localhost:" + port + "/fhir";
 
     // Test that we can GET /fhir/ClaimResponse.
     Request request = new Request.Builder().url(base + "/ClaimResponse?patient.identifier=1")
@@ -126,7 +130,7 @@ public class ClaimResponseEndpointTest {
 
   @Test
   public void getClaimResponse() throws IOException {
-    String base = "http://localhost:" + config.getHttpPort();
+    String base = "http://localhost:" + port + "/fhir";
 
     // Test that we can GET /fhir/ClaimResponse/minimal
     Request request = new Request.Builder().url(base + "/ClaimResponse?identifier=minimal&patient.identifier=1")
@@ -150,7 +154,7 @@ public class ClaimResponseEndpointTest {
 
   @Test
   public void getClaimResponseXml() throws IOException {
-    String base = "http://localhost:" + config.getHttpPort();
+    String base = "http://localhost:" + port + "/fhir";
 
     // Test that we can GET /fhir/ClaimResponse/minimal
     Request request = new Request.Builder().url(base + "/ClaimResponse?identifier=minimal&patient.identifier=1")
@@ -174,7 +178,7 @@ public class ClaimResponseEndpointTest {
 
   @Test
   public void getClaimResponseThatDoesNotExist() throws IOException {
-    String base = "http://localhost:" + config.getHttpPort();
+    String base = "http://localhost:" + port + "/fhir";
 
     // Test that non-existent ClaimResponse returns 404.
     Request request = new Request.Builder()

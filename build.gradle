@@ -43,6 +43,8 @@ dependencies {
     implementation 'com.h2database:h2:1.4.199'
 
     testCompile("org.springframework.boot:spring-boot-starter-test")
+    testCompile 'org.springframework.boot:spring-boot-starter-webflux'
+    testCompile 'org.projectreactor:reactor-spring:1.0.1.RELEASE'
     testImplementation 'junit:junit:4.12'
     testImplementation 'org.apache.meecrowave:meecrowave-junit:1.2.6'
     testImplementation 'com.squareup.okhttp3:okhttp:3.14.1'

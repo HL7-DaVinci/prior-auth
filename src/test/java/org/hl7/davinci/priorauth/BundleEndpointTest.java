@@ -8,9 +8,11 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.HashMap;
 
-import org.apache.meecrowave.Meecrowave;
-import org.apache.meecrowave.junit.MonoMeecrowave;
-import org.apache.meecrowave.testing.ConfigurationInject;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.test.context.junit4.SpringRunner;
+
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -23,11 +25,13 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-@RunWith(MonoMeecrowave.Runner.class)
+@RunWith(SpringRunner.class)
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 public class BundleEndpointTest {
 
-  @ConfigurationInject
-  private Meecrowave.Builder config;
+  @LocalServerPort
+  private int port;
+
   private static OkHttpClient client;
 
   @BeforeClass
@@ -54,17 +58,13 @@ public class BundleEndpointTest {
 
   @Test
   public void searchBundles() throws IOException {
-    String base = "http://localhost:" + config.getHttpPort();
+    String base = "http://localhost:" + port + "/fhir";
 
     // Test that we can GET /fhir/Bundle.
     Request request = new Request.Builder().url(base + "/Bundle?patient.identifier=1")
         .header("Accept", "application/fhir+json").build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(200, response.code());
-
-    // Test the response has CORS headers
-    String cors = response.header("Access-Control-Allow-Origin");
-    Assert.assertEquals("*", cors);
 
     // Test the response is a JSON Bundle
     String body = response.body().string();
@@ -78,7 +78,7 @@ public class BundleEndpointTest {
 
   @Test
   public void searchBundlesXml() throws IOException {
-    String base = "http://localhost:" + config.getHttpPort();
+    String base = "http://localhost:" + port + "/fhir";
 
     // Test that we can GET /fhir/Bundle.
     Request request = new Request.Builder().url(base + "/Bundle?patient.identifier=1")
@@ -111,7 +111,7 @@ public class BundleEndpointTest {
 
   @Test
   public void getBundle() throws IOException {
-    String base = "http://localhost:" + config.getHttpPort();
+    String base = "http://localhost:" + port + "/fhir";
 
     // Test that we can get fhir/Bundle/minimal
     Request request = new Request.Builder().url(base + "/Bundle?identifier=minimal&patient.identifier=1")
@@ -135,7 +135,7 @@ public class BundleEndpointTest {
 
   @Test
   public void getBundleXml() throws IOException {
-    String base = "http://localhost:" + config.getHttpPort();
+    String base = "http://localhost:" + port + "/fhir";
 
     // Test that we can get fhir/Bundle/minimal
     Request request = new Request.Builder().url(base + "/Bundle?identifier=minimal&patient.identifier=1")
@@ -159,7 +159,7 @@ public class BundleEndpointTest {
 
   @Test
   public void getBundleThatDoesNotExist() throws IOException {
-    String base = "http://localhost:" + config.getHttpPort();
+    String base = "http://localhost:" + port + "/fhir";
 
     // Test that non-existent Bundle returns 404.
     Request request = new Request.Builder()
@@ -167,4 +167,5 @@ public class BundleEndpointTest {
     Response response = client.newCall(request).execute();
     Assert.assertEquals(404, response.code());
   }
+
 }

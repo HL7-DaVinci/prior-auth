@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/debug")
+@RequestMapping("/fhir/debug")
 public class DebugEndpoint {
 
   static final Logger logger = PALogger.getLogger();
