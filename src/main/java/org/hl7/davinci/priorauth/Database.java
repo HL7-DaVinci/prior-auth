@@ -220,6 +220,7 @@ public class Database {
     } catch (SQLException e) {
       logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
     }
+    logger.info(App.getDB().json(results));
     return results;
   }
 
@@ -368,7 +369,7 @@ public class Database {
         maps.add(data);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
         result = stmt.execute();
-        logger.fine(stmt.toString());
+        logger.info(stmt.toString());
         result = true;
       } catch (JdbcSQLIntegrityConstraintViolationException e) {
         logger.log(Level.SEVERE,
@@ -531,6 +532,15 @@ public class Database {
    */
   public void setBaseUrl(String base) {
     this.baseUrl = base;
+  }
+
+  /**
+   * Get the base URL for the microservice
+   * 
+   * @return the the base url
+   */
+  public String getBaseUrl() {
+    return this.baseUrl;
   }
 
   /**
