@@ -5,6 +5,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,7 +25,7 @@ public class ClaimResponseEndpoint {
 
   private static String uri;
 
-  @GetMapping(value = "", produces = "application/fhir+json")
+  @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> readClaimResponseJson(HttpServletRequest request,
       @RequestParam(name = "identifier", required = false) String id,
       @RequestParam(name = "patient.identifier") String patient,
@@ -33,7 +34,7 @@ public class ClaimResponseEndpoint {
     return readClaimResponse(id, patient, status, RequestType.JSON);
   }
 
-  @GetMapping(value = "", produces = "application/fhir+xml")
+  @GetMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
   public ResponseEntity<String> readClaimResponseXml(HttpServletRequest request,
       @RequestParam(name = "identifier", required = false) String id,
       @RequestParam(name = "patient.identifier") String patient,
@@ -69,13 +70,13 @@ public class ClaimResponseEndpoint {
     return Endpoint.read(Database.CLAIM_RESPONSE, constraintMap, uri, requestType);
   }
 
-  @DeleteMapping(value = "", produces = "application/fhir+json")
+  @DeleteMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> deleteClaimResponse(@RequestParam(name = "identifier") String id,
       @RequestParam(name = "patient.identifier") String patient) {
     return Endpoint.delete(id, patient, Database.CLAIM_RESPONSE, RequestType.JSON);
   }
 
-  @DeleteMapping(value = "", produces = "application/fhir+xml")
+  @DeleteMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
   public ResponseEntity<String> deleteClaimResponseXml(@RequestParam(name = "identifier") String id,
       @RequestParam(name = "patient.identifier") String patient) {
     return Endpoint.delete(id, patient, Database.CLAIM_RESPONSE, RequestType.XML);

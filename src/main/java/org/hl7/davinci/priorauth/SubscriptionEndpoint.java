@@ -41,23 +41,23 @@ public class SubscriptionEndpoint {
     String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
     String INVALID_CHANNEL_TYPE = "Invalid channel type. Must be rest-hook or websocket";
 
-    @PostMapping(value = "", consumes = "application/fhir+json")
+    @PostMapping(value = "", consumes = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
     public ResponseEntity<String> addSubscriptionJSON(HttpEntity<String> entity) {
         return addSubscription(entity.getBody(), RequestType.JSON);
     }
 
-    @PostMapping(value = "", consumes = "application/fhir+xml")
+    @PostMapping(value = "", consumes = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
     public ResponseEntity<String> addSubscriptionXML(HttpEntity<String> entity) {
         return addSubscription(entity.getBody(), RequestType.XML);
     }
 
-    @DeleteMapping(value = "", consumes = "application/fhir+json")
+    @DeleteMapping(value = "", consumes = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
     public ResponseEntity<String> deleteSubscriptionJSON(@RequestParam("identifier") String id,
             @RequestParam("patient.identifier") String patient) {
         return Endpoint.delete(id, patient, Database.SUBSCRIPTION, RequestType.JSON);
     }
 
-    @DeleteMapping(value = "", consumes = "application/fhir+xml")
+    @DeleteMapping(value = "", consumes = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
     public ResponseEntity<String> deleteSubscriptionXML(@RequestParam("identifier") String id,
             @RequestParam("patient.identifier") String patient) {
         return Endpoint.delete(id, patient, Database.SUBSCRIPTION, RequestType.XML);

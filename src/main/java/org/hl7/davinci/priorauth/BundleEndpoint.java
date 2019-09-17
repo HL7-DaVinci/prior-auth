@@ -5,6 +5,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,7 +24,7 @@ public class BundleEndpoint {
 
   private static String uri;
 
-  @GetMapping(value = "", produces = "application/fhir+json")
+  @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> readBundle(HttpServletRequest request,
       @RequestParam(name = "identifier", required = false) String id,
       @RequestParam(name = "patient.identifier") String patient) {
@@ -34,7 +35,7 @@ public class BundleEndpoint {
     return Endpoint.read(Database.BUNDLE, constraintMap, uri, RequestType.JSON);
   }
 
-  @GetMapping(value = "", produces = "application/fhir+xml")
+  @GetMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
   public ResponseEntity<String> readBundleXml(HttpServletRequest request,
       @RequestParam(name = "identifier", required = false) String id,
       @RequestParam(name = "patient.identifier") String patient) {
@@ -45,13 +46,13 @@ public class BundleEndpoint {
     return Endpoint.read(Database.BUNDLE, constraintMap, uri, RequestType.XML);
   }
 
-  @DeleteMapping(value = "", produces = "application/fhir+json")
+  @DeleteMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> deleteBundle(@RequestParam(name = "identifier") String id,
       @RequestParam(name = "patient.identifier") String patient) {
     return Endpoint.delete(id, patient, Database.BUNDLE, RequestType.JSON);
   }
 
-  @DeleteMapping(value = "", produces = "application/fhir+xml")
+  @DeleteMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
   public ResponseEntity<String> deleteBundleXml(@RequestParam(name = "identifier") String id,
       @RequestParam(name = "patient.identifier") String patient) {
     return Endpoint.delete(id, patient, Database.BUNDLE, RequestType.XML);

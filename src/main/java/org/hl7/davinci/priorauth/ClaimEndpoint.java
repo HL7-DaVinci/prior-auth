@@ -13,6 +13,7 @@ import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -173,8 +174,8 @@ public class ClaimEndpoint {
     }
     MediaType contentType = requestType == RequestType.JSON ? MediaType.APPLICATION_JSON : MediaType.APPLICATION_XML;
     return ResponseEntity.status(status).contentType(contentType)
-        .header("Location", uri + "ClaimResponse?identifier=" + id + "&patient.identifier=" + patient)
-        .header("Access-Control-Allow-Origin", "*").body(formattedData);
+        .header(HttpHeaders.LOCATION, uri + "ClaimResponse?identifier=" + id + "&patient.identifier=" + patient)
+        .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*").body(formattedData);
 
   }
 
