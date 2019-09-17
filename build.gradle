@@ -66,3 +66,5 @@ jacocoTestReport {
 
 check.dependsOn jacocoTestReport
 
+// Define the main class for the application
+mainClassName = 'org.hl7.davinci.priorauth.App'
