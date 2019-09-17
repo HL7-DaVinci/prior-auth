@@ -211,7 +211,9 @@ public class Database {
         Resource resource = (Resource) App.FHIR_CTX.newJsonParser().parseResource(json);
         resource.setId(id);
         BundleEntryComponent entry = new BundleEntryComponent();
-        entry.setFullUrl(baseUrl + resourceType + "?identifier=" + id + "&patient.identifier=" + patientOut);
+        entry.setFullUrl(baseUrl + resourceType + "/" + id);
+        // entry.setFullUrl(baseUrl + resourceType + "?identifier=" + id +
+        // "&patient.identifier=" + patientOut);
         entry.setResource(resource);
         results.addEntry(entry);
         total += 1;
@@ -220,7 +222,6 @@ public class Database {
     } catch (SQLException e) {
       logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
     }
-    logger.info(App.getDB().json(results));
     return results;
   }
 
@@ -369,7 +370,7 @@ public class Database {
         maps.add(data);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
         result = stmt.execute();
-        logger.info(stmt.toString());
+        logger.fine(stmt.toString());
         result = true;
       } catch (JdbcSQLIntegrityConstraintViolationException e) {
         logger.log(Level.SEVERE,
