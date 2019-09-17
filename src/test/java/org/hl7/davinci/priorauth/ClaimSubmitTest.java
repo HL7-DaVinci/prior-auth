@@ -93,7 +93,8 @@ public class ClaimSubmitTest {
 
     // Test that we can POST /fhir/Claim/$submit
     RequestBody requestBody = RequestBody.create(JSON, completeClaim);
-    Request request = new Request.Builder().url(base + "/Claim/$submit").post(requestBody).build();
+    Request request = new Request.Builder().addHeader("Content-Type", "application/fhir+json")
+        .url(base + "/Claim/$submit").post(requestBody).build();
     Response response = client.newCall(request).execute();
 
     // Check Location header if it exists...

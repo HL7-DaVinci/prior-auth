@@ -64,7 +64,7 @@ public class ClaimEndpoint {
 
   private static String uri;
 
-  @GetMapping(value = "", produces = "application/fhir+json")
+  @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> readClaimJson(HttpServletRequest request,
       @RequestParam(name = "identifier", required = false) String id,
       @RequestParam(name = "patient.identifier") String patient,
@@ -78,7 +78,7 @@ public class ClaimEndpoint {
     return Endpoint.read(Database.CLAIM, constraintMap, uri, RequestType.JSON);
   }
 
-  @GetMapping(value = "", produces = "application/fhir+xml")
+  @GetMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
   public ResponseEntity<String> readClaimXml(HttpServletRequest request,
       @RequestParam(name = "identifier", required = false) String id,
       @RequestParam(name = "patient.identifier") String patient,
@@ -92,24 +92,24 @@ public class ClaimEndpoint {
     return Endpoint.read(Database.CLAIM, constraintMap, uri, RequestType.XML);
   }
 
-  @DeleteMapping(value = "", produces = "application/fhir+json")
+  @DeleteMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> deleteClaimJson(@RequestParam(name = "identifier") String id,
       @RequestParam(name = "patient.identifier") String patient) {
     return Endpoint.delete(id, patient, Database.CLAIM, RequestType.JSON);
   }
 
-  @DeleteMapping(value = "", produces = "application/fhir+xml")
+  @DeleteMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
   public ResponseEntity<String> deleteClaimXml(@RequestParam(name = "identifier") String id,
       @RequestParam(name = "patient.identifier") String patient) {
     return Endpoint.delete(id, patient, Database.CLAIM, RequestType.XML);
   }
 
-  @PostMapping(value = "/$submit", consumes = "application/fhir+json")
+  @PostMapping(value = "/$submit", consumes = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> submitOperationJson(HttpEntity<String> entity) {
     return submitOperation(entity.getBody(), RequestType.JSON);
   }
 
-  @PostMapping(value = "/$submit", consumes = "application/fhir+xml")
+  @PostMapping(value = "/$submit", consumes = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
   public ResponseEntity<String> submitOperationXml(HttpEntity<String> entity) {
     return submitOperation(entity.getBody(), RequestType.XML);
   }
@@ -174,7 +174,7 @@ public class ClaimEndpoint {
     MediaType contentType = requestType == RequestType.JSON ? MediaType.APPLICATION_JSON : MediaType.APPLICATION_XML;
     return ResponseEntity.status(status).contentType(contentType)
         .header("Location", uri + "ClaimResponse?identifier=" + id + "&patient.identifier=" + patient)
-        .body(formattedData);
+        .header("Access-Control-Allow-Origin", "*").body(formattedData);
 
   }
 
