@@ -2,15 +2,6 @@ package org.hl7.davinci.priorauth;
 
 import java.util.Calendar;
 
-import javax.enterprise.context.RequestScoped;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
-
 import org.hl7.fhir.r4.model.CapabilityStatement;
 import org.hl7.fhir.r4.model.CapabilityStatement.CapabilityStatementImplementationComponent;
 import org.hl7.fhir.r4.model.CapabilityStatement.CapabilityStatementKind;
@@ -22,40 +13,47 @@ import org.hl7.fhir.r4.model.CapabilityStatement.RestfulCapabilityMode;
 import org.hl7.fhir.r4.model.CapabilityStatement.TypeRestfulInteraction;
 import org.hl7.fhir.r4.model.Enumerations.FHIRVersion;
 import org.hl7.fhir.r4.model.Enumerations.PublicationStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * The metadata microservice provides a CapabilityStatement.
  */
-@RequestScoped
-@Path("metadata")
+@RestController
+@RequestMapping("/fhir/metadata")
 public class Metadata {
-
-  @Context
-  private UriInfo uri;
 
   /**
    * Cached CapabilityStatement.
    */
   private CapabilityStatement capabilityStatement = null;
 
-  @GET
-  @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
-  public Response getMetadata() {
+  @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
+  public ResponseEntity<String> getMetadata() {
     if (capabilityStatement == null) {
       capabilityStatement = buildCapabilityStatement();
     }
     String json = App.getDB().json(capabilityStatement);
-    return Response.ok(json).build();
+    MultiValueMap<String, String> headers = new HttpHeaders();
+    headers.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+    return new ResponseEntity<String>(json, headers, HttpStatus.OK);
   }
 
-  @GET
-  @Produces({ MediaType.APPLICATION_XML, "application/fhir+xml" })
-  public Response getMetadataXml() {
+  @GetMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
+  public ResponseEntity<String> getMetadataXml() {
     if (capabilityStatement == null) {
       capabilityStatement = buildCapabilityStatement();
     }
     String xml = App.getDB().xml(capabilityStatement);
-    return Response.ok(xml).build();
+    MultiValueMap<String, String> headers = new HttpHeaders();
+    headers.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+    return new ResponseEntity<String>(xml, headers, HttpStatus.OK);
   }
 
   /**
@@ -79,7 +77,7 @@ public class Metadata {
     metadata.setSoftware(software);
     CapabilityStatementImplementationComponent implementation = new CapabilityStatementImplementationComponent();
     implementation.setDescription(metadata.getTitle());
-    implementation.setUrl(uri.getBaseUri() + "metadata");
+    implementation.setUrl(App.getDB().getBaseUrl() + "metadata");
     metadata.setImplementation(implementation);
     metadata.setFhirVersion(FHIRVersion._4_0_0);
     metadata.addFormat("json");
