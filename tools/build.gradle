@@ -1,8 +1,8 @@
 
-
 apply plugin: 'application'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
 
-mainClassName = 'org.hl7.davinci.priorauth.tools.DatabaseTool'
 
 repositories {
   // Use jcenter for resolving your dependencies.
@@ -12,9 +12,8 @@ repositories {
 
 dependencies {
   compile project(':')
-
-  compile "org.slf4j:slf4j-api:1.7.25"
-  compile "org.slf4j:slf4j-jdk14:1.7.25"
+  compile 'org.springframework.boot:spring-boot-starter-websocket'
+  compile 'org.webjars:webjars-locator-core'
   
   // This dependency is found on compile classpath of this component and consumers.
   implementation 'com.google.guava:guava:27.0.1-jre'
@@ -27,3 +26,5 @@ run {
         args Eval.me(appArgs)
     }
 }
+
+mainClassName = 'org.hl7.davinci.priorauth.tools.DatabaseTool'
