@@ -192,7 +192,7 @@ Assuming the contents of the Subscription are valid and the server is able to pr
 ```json
 {
   "resourceType": "Subscription",
-  "id": "{new subscription id}"
+  "id": "{new subscription id}",
   "criteria": "identifier={id}&patient.identifier={patient}&status=active",
   "channel": {
     "type": "websocket"
@@ -274,22 +274,6 @@ Run the docker image:
 
 ```
 docker run -p 9000:9000 -it --rm --name davinci-prior-auth hspc/davinci-prior-auth:latest
-```
-
-## Database Query Tool
-
-When the server is not running the database can be queried using the DatabaseTool and any SQL query.
-
-To query for all of the claims use the following command:
-
-```
-gradle :tools:run --args="'select * from claim'"
-```
-
-To include the full contents of the FHIR objects use the following command:
-
-```
-gradle :tools:run --args="'select * from claim' true"
 ```
 
 ## Questions and Contributions
