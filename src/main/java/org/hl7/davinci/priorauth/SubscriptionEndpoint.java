@@ -2,6 +2,7 @@ package org.hl7.davinci.priorauth;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -79,8 +80,10 @@ public class SubscriptionEndpoint {
                 // Check valid subscription type
                 if (subscriptionType == SubscriptionChannelType.RESTHOOK
                         || subscriptionType == SubscriptionChannelType.WEBSOCKET) {
-                    if (processSubscription(subscription))
-                        formattedData = SUBSCRIPTION_ADDED_SUCCESS;
+                    Subscription processedSubscription = processSubscription(subscription);
+                    if (processedSubscription != null)
+                        formattedData = requestType == RequestType.JSON ? App.getDB().json(processedSubscription)
+                                : App.getDB().xml(processedSubscription);
                     else {
                         status = HttpStatus.BAD_REQUEST;
                         OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID,
@@ -114,7 +117,7 @@ public class SubscriptionEndpoint {
         return ResponseEntity.status(status).contentType(contentType).body(formattedData);
     }
 
-    private boolean processSubscription(Subscription subscription) {
+    private Subscription processSubscription(Subscription subscription) {
         // Get the criteria details parsed
         String claimResponseId = "";
         String patient = "";
@@ -132,15 +135,22 @@ public class SubscriptionEndpoint {
         } else {
             logger.fine("Subscription.criteria: " + criteria);
             logger.severe("Subcription.criteria is not in the form " + regex);
-            return false;
+            return null;
         }
 
         // Add to db
+        String id = UUID.randomUUID().toString();
+        subscription.setId(id);
+        logger.fine("SubscriptionEndpoint::Subscription given uuid " + id);
         Map<String, Object> dataMap = new HashMap<String, Object>();
+        dataMap.put("id", id);
         dataMap.put("claimResponseId", claimResponseId);
         dataMap.put("patient", patient);
         dataMap.put("status", status);
         dataMap.put("resource", subscription);
-        return App.getDB().write(Database.SUBSCRIPTION, dataMap);
+        if (App.getDB().write(Database.SUBSCRIPTION, dataMap))
+            return subscription;
+        else
+            return null;
     }
 }

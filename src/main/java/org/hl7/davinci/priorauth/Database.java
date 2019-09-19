@@ -404,7 +404,8 @@ public class Database {
         maps.add(data);
         maps.add(constraintParams);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
-        result = stmt.execute();
+        stmt.execute();
+        result = stmt.getUpdateCount() > 0 ? true : false;
         logger.fine(stmt.toString());
       } catch (SQLException e) {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);

@@ -37,10 +37,11 @@ BEGIN TRANSACTION;
     );
 
     CREATE TABLE IF NOT EXISTS Subscription (
-        "id" varchar PRIMARY KEY AUTO_INCREMENT,
+        "id" varchar PRIMARY KEY,
         "claimResponseId" varchar,
         "patient" varchar,
         "status" varchar,
+        "websocketId" varchar DEFAULT NULL,
         "timestamp" datetime DEFAULT CURRENT_TIMESTAMP,
         "resource" clob,
         FOREIGN KEY ("claimResponseId") REFERENCES ClaimResponse("id") 

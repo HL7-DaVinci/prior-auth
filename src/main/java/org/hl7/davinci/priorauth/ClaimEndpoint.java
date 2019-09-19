@@ -1,6 +1,7 @@
 package org.hl7.davinci.priorauth;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +40,7 @@ import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionChannelType;
+import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.Subscription;
@@ -614,7 +616,19 @@ public class ClaimEndpoint {
             }
           } else if (subscriptionType == SubscriptionChannelType.WEBSOCKET) {
             // Send websocket notification...
-            logger.warning("SubscriptionHandler::Websocket subscriptions not yet supported");
+            String subscriptionId = subscription.getIdElement().getIdPart();
+            String websocketId = App.getDB().readString(Database.SUBSCRIPTION,
+                Collections.singletonMap("id", subscriptionId), "websocketId");
+            if (websocketId != null) {
+              logger.info("SubscriptionHandler::Sending web-socket notification to " + websocketId);
+              SubscribeController.sendMessageToUser(websocketId, WebSocketConfig.SUBSCRIBE_USER_NOTIFICATION,
+                  "ping: " + subscriptionId);
+            } else {
+              logger.severe("SubscriptionHandler::Unable to send web-socket notification for subscription "
+                  + subscriptionId + " because web-socket id is null. Client did not bind a websocket to id");
+              App.getDB().update(Database.SUBSCRIPTION, Collections.singletonMap("id", subscriptionId),
+                  Collections.singletonMap("status", SubscriptionStatus.ERROR.name().toLowerCase()));
+            }
           }
         });
       }
