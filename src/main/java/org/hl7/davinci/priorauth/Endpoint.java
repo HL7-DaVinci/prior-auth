@@ -106,10 +106,8 @@ public class Endpoint {
             status = HttpStatus.BAD_REQUEST;
             outcome = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_PATIENT);
         } else {
-            // Cascading delete
-            App.getDB().delete(Database.BUNDLE, id, patient);
-            App.getDB().delete(Database.CLAIM, id, patient);
-            App.getDB().delete(Database.CLAIM_RESPONSE, id, patient);
+            // Delete the specified resource..
+            App.getDB().delete(resourceType, id, patient);
             outcome = FhirUtils.buildOutcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
         }
         String formattedData = requestType == RequestType.JSON ? App.getDB().json(outcome) : App.getDB().xml(outcome);
