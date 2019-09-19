@@ -97,8 +97,6 @@ public class DebugEndpoint {
 
     logger.info("DebugEndpoint::Prepopulating database complete");
     return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(responseData);
-    // return
-    // Response.status(status).type("application/fhir+json").entity(responseData).build();
   }
 
   private static Bundle getResource(String fileName) throws FileNotFoundException {
