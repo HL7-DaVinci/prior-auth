@@ -58,14 +58,6 @@ public class App {
     SpringApplication server = new SpringApplication(App.class);
     server.setDefaultProperties(Collections.singletonMap("server.port", "9000"));
     server.run();
-
-    // Assemble the microservice
-    // Meecrowave.Builder builder = new Meecrowave.Builder();
-    // builder.setHttpPort(9000);
-    // builder.setScanningPackageIncludes("org.hl7.davinci.priorauth");
-    // builder.setJaxrsMapping("/fhir/*");
-    // builder.setJsonpPrettify(true);
-
   }
 
   public static void initializeAppDB() {
