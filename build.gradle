@@ -20,8 +20,10 @@ repositories {
 }
 
 dependencies {
+  compile "javax.websocket:javax.websocket-api:1.1"
   compile "org.slf4j:slf4j-api:1.7.25"
   compile "org.slf4j:slf4j-jdk14:1.7.25"
+  compile "com.squareup.okhttp3:okhttp:3.14.1"
   
   // This dependency is found on compile classpath of this component and consumers.
   implementation 'com.google.guava:guava:27.0.1-jre'

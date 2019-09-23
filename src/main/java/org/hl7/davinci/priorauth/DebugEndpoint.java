@@ -56,6 +56,11 @@ public class DebugEndpoint {
   }
 
   @GET
+  @Path("/Subscription")
+  public Response getSubscription() {
+    return query(Database.SUBSCRIPTION);
+  }
+    
   @Path("/PopulateDatabaseTestData")
   public Response populateDatabase() {
     if (App.debugMode)

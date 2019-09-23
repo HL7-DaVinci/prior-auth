@@ -36,4 +36,14 @@ BEGIN TRANSACTION;
         FOREIGN KEY ("id") REFERENCES Claim("id") ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS Subscription (
+        "id" varchar PRIMARY KEY AUTO_INCREMENT,
+        "claimResponseId" varchar,
+        "patient" varchar,
+        "status" varchar,
+        "timestamp" datetime DEFAULT CURRENT_TIMESTAMP,
+        "resource" clob,
+        FOREIGN KEY ("claimResponseId") REFERENCES ClaimResponse("id") 
+    );
+
 COMMIT;
