@@ -21,7 +21,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public static final String ENDPOINT_CONNECT = "/connect";
     public static final String SUBSCRIBE_USER_PREFIX = "/private";
     public static final String SUBSCRIBE_USER_NOTIFICATION = "/notification";
-    public static final String SUBSCRIBE_QUEUE = "/queue";
 
     static final Logger logger = PALogger.getLogger();
 
@@ -35,7 +34,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        registry.enableSimpleBroker(SUBSCRIBE_QUEUE, SUBSCRIBE_USER_NOTIFICATION);
+        registry.enableSimpleBroker(SUBSCRIBE_USER_NOTIFICATION);
         registry.setUserDestinationPrefix(SUBSCRIBE_USER_PREFIX);
     }
 

@@ -43,8 +43,7 @@ public class SubscribeController {
             String subscriptionId = matcher.group(1);
             if (App.getDB().update(Database.SUBSCRIPTION, Collections.singletonMap("id", subscriptionId),
                     Collections.singletonMap("websocketId", username)))
-                sendMessageToUser(username, WebSocketConfig.SUBSCRIBE_USER_NOTIFICATION,
-                        "bound: " + subscriptionId);
+                sendMessageToUser(username, WebSocketConfig.SUBSCRIBE_USER_NOTIFICATION, "bound: " + subscriptionId);
             else
                 sendMessageToUser(username, WebSocketConfig.SUBSCRIBE_USER_NOTIFICATION,
                         "Unable to bind " + subscriptionId + " because it does not exist");
@@ -54,10 +53,6 @@ public class SubscribeController {
             sendMessageToUser(username, WebSocketConfig.SUBSCRIBE_USER_NOTIFICATION,
                     "Unuable to bind id. Request was not in the form \"" + regex + "\"");
         }
-
-        // Send to all subscribed to /queue
-        messagingTemplate.convertAndSend(WebSocketConfig.SUBSCRIBE_QUEUE, "Someone just registered saying: " + payload);
-        logger.info("SubscribeController::Response sent to " + WebSocketConfig.SUBSCRIBE_QUEUE);
     }
 
     public static void sendMessageToUser(String username, String channel, String msg) {
