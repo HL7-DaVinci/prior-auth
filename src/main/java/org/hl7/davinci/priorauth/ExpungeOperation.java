@@ -15,12 +15,12 @@ public class ExpungeOperation {
 
   static final Logger logger = PALogger.getLogger();
 
-  @GetMapping("/")
+  @GetMapping("")
   public ResponseEntity<String> getExpunge() {
     return expungeDatabase();
   }
 
-  @PostMapping("/")
+  @PostMapping("")
   public ResponseEntity<String> postExpunge() {
     return expungeDatabase();
   }
