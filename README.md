@@ -72,13 +72,14 @@ The service endpoints in the table below are relative to `http://localhost:9000/
 
 If debug mode is enabled the following endpoints are available for use at `http://localhost:9000/fhir/debug`:
 
-| Service          | Methods | Description                                               |
-| ---------------- | ------- | --------------------------------------------------------- |
-| `/Bundle`        | `GET`   | HTML page to view the Bundle table in the database        |
-| `/Claim`         | `GET`   | HTML page to view the Claim table in the database         |
-| `/ClaimResponse` | `GET`   | HTML page to view the ClaimResponse table in the database |
-| `/ClaimItem`     | `GET`   | HTML page to view the ClaimItem table in the database     |
-| `/Subscription`  | `GET`   | HTML page to view the Subscription table in the database  |
+| Service                     | Methods | Description                                                                                                                                                            |
+| --------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/Bundle`                   | `GET`   | HTML page to view the Bundle table in the database                                                                                                                     |
+| `/Claim`                    | `GET`   | HTML page to view the Claim table in the database                                                                                                                      |
+| `/ClaimResponse`            | `GET`   | HTML page to view the ClaimResponse table in the database                                                                                                              |
+| `/ClaimItem`                | `GET`   | HTML page to view the ClaimItem table in the database                                                                                                                  |
+| `/Subscription`             | `GET`   | HTML page to view the Subscription table in the database                                                                                                               |
+| `/PopulateDatabaseTestData` | `GET`   | Insert test data into the database. Remove any of the existing test data and insert a fresh copy. All test data has a timestamp in 2200 so it can easily be identifier |
 
 ## Contents of `/Claim/$submit` Submission
 
