@@ -610,7 +610,7 @@ public class ClaimEndpoint {
             try {
               OkHttpClient client = new OkHttpClient();
               okhttp3.Response response = client.newCall(new Request.Builder().url(endpoint).build()).execute();
-              logger.fine("SubscriptionHandler::Resopnse " + response.code());
+              logger.fine("SubscriptionHandler::Response " + response.code());
             } catch (IOException e) {
               logger.log(Level.SEVERE, "SubscriptionHandler::IOException in request", e);
             }
