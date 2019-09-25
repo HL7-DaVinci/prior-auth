@@ -51,7 +51,7 @@ public class SubscribeController {
         } else {
             logger.info("SubscribeController::Bind message does not match regex " + regex);
             sendMessageToUser(username, WebSocketConfig.SUBSCRIBE_USER_NOTIFICATION,
-                    "Unuable to bind id. Request was not in the form \"" + regex + "\"");
+                    "Unable to bind id. Request was not in the form \"" + regex + "\"");
         }
     }
 

@@ -38,7 +38,7 @@ public class Endpoint {
     public static ResponseEntity<String> read(String resourceType, Map<String, Object> constraintMap, String uri,
             RequestType requestType) {
         logger.info("GET /" + resourceType + ":" + constraintMap.toString() + " fhir+" + requestType.name());
-        if (!constraintMap.containsKey("patient") || constraintMap.get("patient") == null) {
+        if (!constraintMap.containsKey("patient")) {
             logger.warning("Endpoint::read:patient null");
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }

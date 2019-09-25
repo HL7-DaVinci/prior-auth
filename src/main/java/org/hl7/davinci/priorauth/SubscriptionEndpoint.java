@@ -1,6 +1,7 @@
 package org.hl7.davinci.priorauth;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -122,20 +123,36 @@ public class SubscriptionEndpoint {
         String claimResponseId = "";
         String patient = "";
         String status = "";
+        String statusVarName = "status";
+        String identifierVarName = "identifier";
+        String patientIdentifierVarName = "patient.identifier";
         String criteria = subscription.getCriteria();
-        String regex = "identifier=(.*)&patient.identifier=(.*)&status=(.*)";
+        String regex = "(.*)=(.*)&(.*)=(.*)&(.*)=(.*)";
 
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(criteria);
+        Map<String, String> criteriaMap = new HashMap<String, String>();
 
-        if (matcher.find() && matcher.groupCount() == 3) {
-            claimResponseId = matcher.group(1);
-            patient = matcher.group(2);
-            status = matcher.group(3);
+        if (matcher.find() && matcher.groupCount() == 6) {
+            criteriaMap.put(matcher.group(1), matcher.group(2));
+            criteriaMap.put(matcher.group(3), matcher.group(4));
+            criteriaMap.put(matcher.group(5), matcher.group(6));
         } else {
             logger.fine("Subscription.criteria: " + criteria);
             logger.severe("Subcription.criteria is not in the form " + regex);
             return null;
+        }
+
+        // Determine which variable is which
+        String variableName;
+        for (Iterator<String> iterator = criteriaMap.keySet().iterator(); iterator.hasNext();) {
+            variableName = iterator.next();
+            if (variableName.equals(identifierVarName))
+                claimResponseId = criteriaMap.get(variableName);
+            if (variableName.equals(patientIdentifierVarName))
+                patient = criteriaMap.get(variableName);
+            if (variableName.equals(statusVarName))
+                status = criteriaMap.get(variableName);
         }
 
         // Add to db
