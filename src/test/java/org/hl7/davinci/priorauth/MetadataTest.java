@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import org.hl7.fhir.r4.model.CapabilityStatement;
@@ -19,6 +20,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 @RunWith(SpringRunner.class)
+@TestPropertySource(properties = "server.servlet.contextPath=/fhir")
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 public class MetadataTest {
 

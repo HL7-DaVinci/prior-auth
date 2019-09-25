@@ -20,7 +20,7 @@ import org.hl7.davinci.priorauth.Endpoint.RequestType;
  * submitted claims.
  */
 @RestController
-@RequestMapping("/fhir/ClaimResponse")
+@RequestMapping("/ClaimResponse")
 public class ClaimResponseEndpoint {
 
   private static String uri;

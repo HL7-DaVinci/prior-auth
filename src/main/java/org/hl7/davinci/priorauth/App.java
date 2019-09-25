@@ -6,6 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import ca.uhn.fhir.context.FhirContext;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Timer;
 
 /**
@@ -56,7 +58,10 @@ public class App {
 
     // Assemble the microservice
     SpringApplication server = new SpringApplication(App.class);
-    server.setDefaultProperties(Collections.singletonMap("server.port", "9000"));
+    Map<String, Object> defaultProperties = new HashMap<String, Object>();
+    defaultProperties.put("server.port", "9000");
+    defaultProperties.put("server.servlet.contextPath", "/fhir");
+    server.setDefaultProperties(defaultProperties);
     server.run();
   }
 

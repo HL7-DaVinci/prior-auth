@@ -19,7 +19,7 @@ import org.hl7.davinci.priorauth.Endpoint.RequestType;
  * The Bundle endpoint to READ, SEARCH for, and DELETE submitted Bundles.
  */
 @RestController
-@RequestMapping("/fhir/Bundle")
+@RequestMapping("/Bundle")
 public class BundleEndpoint {
 
   private static String uri;

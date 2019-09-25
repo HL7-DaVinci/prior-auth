@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/fhir/Log")
+@RequestMapping("/Log")
 public class LogEndpoint {
 
     static final Logger logger = PALogger.getLogger();

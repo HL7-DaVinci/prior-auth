@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
  * The metadata microservice provides a CapabilityStatement.
  */
 @RestController
-@RequestMapping("/fhir/metadata")
+@RequestMapping("/metadata")
 public class Metadata {
 
   /**

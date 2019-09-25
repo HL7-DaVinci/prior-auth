@@ -12,6 +12,7 @@ import java.util.Map;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import org.hl7.fhir.r4.model.Bundle;
@@ -30,6 +31,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 @RunWith(SpringRunner.class)
+@TestPropertySource(properties = "server.servlet.contextPath=/fhir")
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 public class ClaimSubmitTest {
 

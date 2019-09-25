@@ -57,7 +57,7 @@ import okhttp3.Request;
  * The Claim endpoint to READ, SEARCH for, and DELETE submitted claims.
  */
 @RestController
-@RequestMapping("/fhir/Claim")
+@RequestMapping("/Claim")
 public class ClaimEndpoint {
 
   static final Logger logger = PALogger.getLogger();

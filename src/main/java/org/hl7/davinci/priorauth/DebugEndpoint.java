@@ -22,7 +22,7 @@ import org.hl7.fhir.r4.model.ClaimResponse;
 import ca.uhn.fhir.context.FhirContext;
 
 @RestController
-@RequestMapping("/fhir/debug")
+@RequestMapping("/debug")
 public class DebugEndpoint {
 
   static final Logger logger = PALogger.getLogger();
