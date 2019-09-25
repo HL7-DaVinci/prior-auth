@@ -5,7 +5,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import ca.uhn.fhir.context.FhirContext;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
