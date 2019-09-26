@@ -83,35 +83,44 @@ public class SubscriptionEndpoint {
                         || subscriptionType == SubscriptionChannelType.WEBSOCKET) {
                     Subscription processedSubscription = processSubscription(subscription);
                     if (processedSubscription != null)
-                        formattedData = requestType == RequestType.JSON ? App.getDB().json(processedSubscription)
-                                : App.getDB().xml(processedSubscription);
+                        formattedData = FhirUtils.getFormattedData(processedSubscription, requestType);
+                    // formattedData = requestType == RequestType.JSON ?
+                    // App.getDB().json(processedSubscription)
+                    // : App.getDB().xml(processedSubscription);
                     else {
                         status = HttpStatus.BAD_REQUEST;
                         OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID,
                                 PROCESS_FAILED);
-                        formattedData = requestType == RequestType.JSON ? App.getDB().json(error)
-                                : App.getDB().xml(error);
+                        formattedData = FhirUtils.getFormattedData(error, requestType);
+                        // formattedData = requestType == RequestType.JSON ? App.getDB().json(error)
+                        // : App.getDB().xml(error);
                     }
                 } else {
                     // Subscription must be rest-hook or websocket....
                     status = HttpStatus.BAD_REQUEST;
                     OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID,
                             INVALID_CHANNEL_TYPE);
-                    formattedData = requestType == RequestType.JSON ? App.getDB().json(error) : App.getDB().xml(error);
+                    formattedData = FhirUtils.getFormattedData(error, requestType);
+                    // formattedData = requestType == RequestType.JSON ? App.getDB().json(error) :
+                    // App.getDB().xml(error);
                 }
             } else {
                 // Subscription is required...
                 status = HttpStatus.BAD_REQUEST;
                 OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID,
                         REQUIRES_SUBSCRIPTION);
-                formattedData = requestType == RequestType.JSON ? App.getDB().json(error) : App.getDB().xml(error);
+                formattedData = FhirUtils.getFormattedData(error, requestType);
+                // formattedData = requestType == RequestType.JSON ? App.getDB().json(error) :
+                // App.getDB().xml(error);
             }
         } catch (Exception e) {
             // The subscription failed so spectacularly that we need to
             // catch an exception and send back an error message...
             status = HttpStatus.BAD_REQUEST;
             OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.FATAL, IssueType.STRUCTURE, e.getMessage());
-            formattedData = requestType == RequestType.JSON ? App.getDB().json(error) : App.getDB().xml(error);
+            formattedData = FhirUtils.getFormattedData(error, requestType);
+            // formattedData = requestType == RequestType.JSON ? App.getDB().json(error) :
+            // App.getDB().xml(error);
         }
         MediaType contentType = requestType == RequestType.JSON ? MediaType.APPLICATION_JSON
                 : MediaType.APPLICATION_XML;

@@ -3,6 +3,7 @@ package org.hl7.davinci.priorauth;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
@@ -10,6 +11,8 @@ import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
+import org.hl7.fhir.r4.model.Claim.ClaimStatus;
+import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
 
 public class FhirUtils {
 
@@ -85,6 +88,42 @@ public class FhirUtils {
     }
 
     return claimResponse;
+  }
+
+  /**
+   * Return the id of a resource
+   * 
+   * @param resource - the resource to get the id from
+   * @return the id of the resource
+   */
+  public static String getIdFromResource(IBaseResource resource) {
+    return resource.getIdElement().getIdPart();
+    // return resource.getIdElement().asStringValue();
+  }
+
+  /**
+   * Format the resource status in a standard way for the database
+   * 
+   * @param status - the status
+   * @return standard string representation of the status
+   */
+  public static String formatResourceStatus(Object status) {
+    if (status instanceof ClaimStatus)
+      return ((ClaimStatus) status).getDisplay().toLowerCase();
+    else if (status instanceof SubscriptionStatus)
+      return ((SubscriptionStatus) status).getDisplay().toLowerCase();
+    return "error";
+  }
+
+  /**
+   * Format a resource into JSON or XML string
+   * 
+   * @param resource    - the resource to convert
+   * @param requestType - the type to represent it as
+   * @return JSON or XML string representation of the resource
+   */
+  public static String getFormattedData(IBaseResource resource, RequestType requestType) {
+    return requestType == RequestType.JSON ? App.getDB().json(resource) : App.getDB().xml(resource);
   }
 
   /**

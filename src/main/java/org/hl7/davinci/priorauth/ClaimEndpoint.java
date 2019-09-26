@@ -143,7 +143,9 @@ public class ClaimEndpoint {
             // Failed processing bundle...
             status = HttpStatus.BAD_REQUEST;
             OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, PROCESS_FAILED);
-            formattedData = requestType == RequestType.JSON ? App.getDB().json(error) : App.getDB().xml(error);
+            formattedData = FhirUtils.getFormattedData(error, requestType);
+            // formattedData = requestType == RequestType.JSON ? App.getDB().json(error) :
+            // App.getDB().xml(error);
           } else {
             ClaimResponse response = FhirUtils.getClaimResponseFromBundle(responseBundle);
             if (response.getIdElement().hasIdPart()) {
@@ -152,27 +154,35 @@ public class ClaimEndpoint {
             if (response.hasPatient()) {
               patient = FhirUtils.getPatientIdFromResource(response);
             }
-            formattedData = requestType == RequestType.JSON ? App.getDB().json(responseBundle)
-                : App.getDB().xml(responseBundle);
+            formattedData = FhirUtils.getFormattedData(responseBundle, requestType);
+            // formattedData = requestType == RequestType.JSON ?
+            // App.getDB().json(responseBundle)
+            // : App.getDB().xml(responseBundle);
           }
         } else {
           // Claim is required...
           status = HttpStatus.BAD_REQUEST;
           OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
-          formattedData = requestType == RequestType.JSON ? App.getDB().json(error) : App.getDB().xml(error);
+          formattedData = FhirUtils.getFormattedData(error, requestType);
+          // formattedData = requestType == RequestType.JSON ? App.getDB().json(error) :
+          // App.getDB().xml(error);
         }
       } else {
         // Bundle is required...
         status = HttpStatus.BAD_REQUEST;
         OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
-        formattedData = requestType == RequestType.JSON ? App.getDB().json(error) : App.getDB().xml(error);
+        formattedData = FhirUtils.getFormattedData(error, requestType);
+        // formattedData = requestType == RequestType.JSON ? App.getDB().json(error) :
+        // App.getDB().xml(error);
       }
     } catch (Exception e) {
       // The submission failed so spectacularly that we need
       // catch an exception and send back an error message...
       status = HttpStatus.BAD_REQUEST;
       OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.FATAL, IssueType.STRUCTURE, e.getMessage());
-      formattedData = requestType == RequestType.JSON ? App.getDB().json(error) : App.getDB().xml(error);
+      formattedData = FhirUtils.getFormattedData(error, requestType);
+      // formattedData = requestType == RequestType.JSON ? App.getDB().json(error) :
+      // App.getDB().xml(error);
     }
     MediaType contentType = requestType == RequestType.JSON ? MediaType.APPLICATION_JSON : MediaType.APPLICATION_XML;
     return ResponseEntity.status(status).contentType(contentType)
@@ -207,7 +217,8 @@ public class ClaimEndpoint {
 
     if (status == ClaimStatus.CANCELLED) {
       // Cancel the claim...
-      claimId = claim.getIdElement().getIdPart();
+      claimId = FhirUtils.getIdFromResource(claim);
+      // claimId = claim.getIdElement().getIdPart();
       if (cancelClaim(claimId, patient)) {
         responseStatus = ClaimResponseStatus.CANCELLED;
         responseDisposition = "Cancelled";
@@ -226,7 +237,8 @@ public class ClaimEndpoint {
       RelatedClaimComponent related = getRelatedComponent(claim);
       if (related != null) {
         // This is an update...
-        relatedId = related.getIdElement().asStringValue();
+        relatedId = FhirUtils.getIdFromResource(related);
+        // relatedId = related.getIdElement().asStringValue();
         relatedId = App.getDB().getMostRecentId(relatedId);
         logger.info("ClaimEndpoint::Udpated id to most recent: " + relatedId);
         claimMap.put("related", relatedId);
@@ -627,7 +639,7 @@ public class ClaimEndpoint {
               logger.severe("SubscriptionHandler::Unable to send web-socket notification for subscription "
                   + subscriptionId + " because web-socket id is null. Client did not bind a websocket to id");
               App.getDB().update(Database.SUBSCRIPTION, Collections.singletonMap("id", subscriptionId),
-                  Collections.singletonMap("status", SubscriptionStatus.ERROR.name().toLowerCase()));
+                  Collections.singletonMap("status", SubscriptionStatus.ERROR.getDisplay().toLowerCase()));
             }
           }
         });
