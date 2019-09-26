@@ -9,9 +9,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.meecrowave.Meecrowave;
-import org.apache.meecrowave.junit.MonoMeecrowave;
-import org.apache.meecrowave.testing.ConfigurationInject;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit4.SpringRunner;
+
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.junit.AfterClass;
@@ -27,13 +30,16 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-@RunWith(MonoMeecrowave.Runner.class)
+@RunWith(SpringRunner.class)
+@TestPropertySource(properties = "server.servlet.contextPath=/fhir")
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 public class ClaimSubmitTest {
+
+  @LocalServerPort
+  private int port;
 
   public static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
 
-  @ConfigurationInject
-  private Meecrowave.Builder config;
   private static OkHttpClient client;
 
   /** List of resource IDs that will need to be cleaned up after the tests */
@@ -85,11 +91,12 @@ public class ClaimSubmitTest {
 
   @Test
   public void submitCompleteClaim() throws IOException {
-    String base = "http://localhost:" + config.getHttpPort();
+    String base = "http://localhost:" + port + "/fhir";
 
     // Test that we can POST /fhir/Claim/$submit
     RequestBody requestBody = RequestBody.create(JSON, completeClaim);
-    Request request = new Request.Builder().url(base + "/Claim/$submit").post(requestBody).build();
+    Request request = new Request.Builder().addHeader("Content-Type", "application/fhir+json")
+        .url(base + "/Claim/$submit").post(requestBody).build();
     Response response = client.newCall(request).execute();
 
     // Check Location header if it exists...
@@ -146,7 +153,7 @@ public class ClaimSubmitTest {
   }
 
   private void checkErrors(String body) throws IOException {
-    String base = "http://localhost:" + config.getHttpPort();
+    String base = "http://localhost:" + port + "/fhir";
 
     // Test that we can POST /fhir/Claim/$submit
     RequestBody requestBody = RequestBody.create(JSON, body);

@@ -3,16 +3,16 @@ package org.hl7.davinci.priorauth;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriInfo;
-
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.MultiValueMap;
 
 public class Endpoint {
 
@@ -35,18 +35,18 @@ public class Endpoint {
      * @param requestType   - the RequestType of the request.
      * @return the desired resource if successful and an error message otherwise
      */
-    public static Response read(String resourceType, Map<String, Object> constraintMap, UriInfo uri,
+    public static ResponseEntity<String> read(String resourceType, Map<String, Object> constraintMap, String uri,
             RequestType requestType) {
         logger.info("GET /" + resourceType + ":" + constraintMap.toString() + " fhir+" + requestType.name());
-        if (!constraintMap.containsKey("patient") || constraintMap.get("patient") == null) {
+        if (!constraintMap.containsKey("patient")) {
             logger.warning("Endpoint::read:patient null");
-            return Response.status(Status.UNAUTHORIZED).build();
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
         String formattedData = null;
         if ((!constraintMap.containsKey("id") || constraintMap.get("id") == null)
                 && (!constraintMap.containsKey("claimId") || constraintMap.get("claimId") == null)) {
             // Search
-            App.getDB().setBaseUrl(uri.getBaseUri());
+            App.getDB().setBaseUrl(uri);
             constraintMap.remove("id");
             Bundle searchBundle;
             searchBundle = App.getDB().search(resourceType, constraintMap);
@@ -58,7 +58,7 @@ public class Endpoint {
             baseResource = App.getDB().read(resourceType, constraintMap);
 
             if (baseResource == null)
-                return Response.status(Status.NOT_FOUND).build();
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 
             // Convert to correct resourceType
             if (resourceType == Database.BUNDLE) {
@@ -73,10 +73,12 @@ public class Endpoint {
                         : App.getDB().xml(bundleResponse);
             } else {
                 logger.warning("Endpoint::read:invalid resourceType: " + resourceType);
-                return Response.status(Status.BAD_REQUEST).build();
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
         }
-        return Response.ok(formattedData).build();
+        MultiValueMap<String, String> headers = new HttpHeaders();
+        headers.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+        return new ResponseEntity<String>(formattedData, headers, HttpStatus.OK);
     }
 
     /**
@@ -88,28 +90,27 @@ public class Endpoint {
      * @param requestType  - the RequestType of the request.
      * @return status of the deleted resource
      */
-    public static Response delete(String id, String patient, String resourceType, RequestType requestType) {
+    public static ResponseEntity<String> delete(String id, String patient, String resourceType,
+            RequestType requestType) {
         logger.info("DELETE /" + resourceType + ":" + id + "/" + patient + " fhir+" + requestType.name());
-        Status status = Status.OK;
+        HttpStatus status = HttpStatus.OK;
         OperationOutcome outcome = null;
         if (id == null) {
             // Do not delete everything
             // ID is required...
-            status = Status.BAD_REQUEST;
+            status = HttpStatus.BAD_REQUEST;
             outcome = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_ID);
         } else if (patient == null) {
             // Do not delete everything
             // Patient ID is required...
-            status = Status.UNAUTHORIZED;
+            status = HttpStatus.BAD_REQUEST;
             outcome = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_PATIENT);
         } else {
-            // Cascading delete
-            App.getDB().delete(Database.BUNDLE, id, patient);
-            App.getDB().delete(Database.CLAIM, id, patient);
-            App.getDB().delete(Database.CLAIM_RESPONSE, id, patient);
+            // Delete the specified resource..
+            App.getDB().delete(resourceType, id, patient);
             outcome = FhirUtils.buildOutcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
         }
         String formattedData = requestType == RequestType.JSON ? App.getDB().json(outcome) : App.getDB().xml(outcome);
-        return Response.status(status).entity(formattedData).build();
+        return new ResponseEntity<>(formattedData, status);
     }
 }

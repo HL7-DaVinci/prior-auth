@@ -3,61 +3,58 @@ package org.hl7.davinci.priorauth;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.enterprise.context.RequestScoped;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
+import javax.servlet.http.HttpServletRequest;
+
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 
 /**
  * The Bundle endpoint to READ, SEARCH for, and DELETE submitted Bundles.
  */
-@RequestScoped
-@Path("Bundle")
+@RestController
+@RequestMapping("/Bundle")
 public class BundleEndpoint {
 
-  @Context
-  private UriInfo uri;
+  private static String uri;
 
-  @GET
-  @Path("/")
-  @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
-  public Response readBundle(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient) {
+  @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
+  public ResponseEntity<String> readBundle(HttpServletRequest request,
+      @RequestParam(name = "identifier", required = false) String id,
+      @RequestParam(name = "patient.identifier") String patient) {
+    uri = request.getRequestURL().toString();
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", id);
     constraintMap.put("patient", patient);
     return Endpoint.read(Database.BUNDLE, constraintMap, uri, RequestType.JSON);
   }
 
-  @GET
-  @Path("/")
-  @Produces({ MediaType.APPLICATION_XML, "application/fhir+xml" })
-  public Response readBundleXml(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient) {
+  @GetMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
+  public ResponseEntity<String> readBundleXml(HttpServletRequest request,
+      @RequestParam(name = "identifier", required = false) String id,
+      @RequestParam(name = "patient.identifier") String patient) {
+    uri = request.getRequestURL().toString();
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", id);
     constraintMap.put("patient", patient);
     return Endpoint.read(Database.BUNDLE, constraintMap, uri, RequestType.XML);
   }
 
-  @DELETE
-  @Path("/")
-  @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
-  public Response deleteBundle(@QueryParam("identifier") String id, @QueryParam("patient.identifier") String patient) {
+  @DeleteMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
+  public ResponseEntity<String> deleteBundle(@RequestParam(name = "identifier") String id,
+      @RequestParam(name = "patient.identifier") String patient) {
     return Endpoint.delete(id, patient, Database.BUNDLE, RequestType.JSON);
   }
 
-  @DELETE
-  @Path("/")
-  @Produces({ MediaType.APPLICATION_JSON, "application/fhir+xml" })
-  public Response deleteBundleXml(@QueryParam("identifier") String id,
-      @QueryParam("patient.identifier") String patient) {
+  @DeleteMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
+  public ResponseEntity<String> deleteBundleXml(@RequestParam(name = "identifier") String id,
+      @RequestParam(name = "patient.identifier") String patient) {
     return Endpoint.delete(id, patient, Database.BUNDLE, RequestType.XML);
   }
 }

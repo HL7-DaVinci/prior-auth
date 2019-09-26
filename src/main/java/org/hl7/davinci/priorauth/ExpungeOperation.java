@@ -2,25 +2,26 @@ package org.hl7.davinci.priorauth;
 
 import java.util.logging.Logger;
 
-import javax.enterprise.context.RequestScoped;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.Response;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-@RequestScoped
-@Path("$expunge")
+@RestController
+@RequestMapping("/$expunge")
 public class ExpungeOperation {
 
   static final Logger logger = PALogger.getLogger();
 
-  @GET
-  public Response getExpunge() {
+  @GetMapping("")
+  public ResponseEntity<String> getExpunge() {
     return expungeDatabase();
   }
 
-  @POST
-  public Response postExpunge() {
+  @PostMapping("")
+  public ResponseEntity<String> postExpunge() {
     return expungeDatabase();
   }
 
@@ -30,17 +31,19 @@ public class ExpungeOperation {
    * 
    * @return - HTTP 200
    */
-  private Response expungeDatabase() {
+  private ResponseEntity<String> expungeDatabase() {
     logger.info("GET/POST /$expunge");
     if (App.debugMode) {
       // Cascading delete of everything...
       App.getDB().delete(Database.BUNDLE);
       App.getDB().delete(Database.CLAIM);
+      App.getDB().delete(Database.CLAIM_ITEM);
       App.getDB().delete(Database.CLAIM_RESPONSE);
-      return Response.ok().build();
+      App.getDB().delete(Database.SUBSCRIPTION);
+      return ResponseEntity.ok().body("Expunge success!");
     } else {
       logger.warning("ExpungeOperation::expungeDatabase:query disabled");
-      return Response.status(Response.Status.BAD_REQUEST).build();
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Expunge operation disabled");
     }
   }
 }

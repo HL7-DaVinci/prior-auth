@@ -8,13 +8,12 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.enterprise.context.RequestScoped;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
-import javax.ws.rs.core.Response.Status;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
@@ -22,59 +21,51 @@ import org.hl7.fhir.r4.model.ClaimResponse;
 
 import ca.uhn.fhir.context.FhirContext;
 
-@RequestScoped
-@Path("debug")
+@RestController
+@RequestMapping("/debug")
 public class DebugEndpoint {
 
   static final Logger logger = PALogger.getLogger();
 
-  @Context
-  private UriInfo uri;
-
-  @GET
-  @Path("/Bundle")
-  public Response getBundles() {
+  @GetMapping("/Bundle")
+  public ResponseEntity<String> getBundles() {
     return query(Database.BUNDLE);
   }
 
-  @GET
-  @Path("/Claim")
-  public Response getClaims() {
+  @GetMapping("/Claim")
+  public ResponseEntity<String> getClaims() {
     return query(Database.CLAIM);
   }
 
-  @GET
-  @Path("/ClaimResponse")
-  public Response getClaimResponses() {
+  @GetMapping("/ClaimResponse")
+  public ResponseEntity<String> getClaimResponses() {
     return query(Database.CLAIM_RESPONSE);
   }
 
-  @GET
-  @Path("/ClaimItem")
-  public Response getClaimItems() {
+  @GetMapping("/ClaimItem")
+  public ResponseEntity<String> getClaimItems() {
     return query(Database.CLAIM_ITEM);
   }
 
-  @GET
-  @Path("/Subscription")
-  public Response getSubscription() {
+  @GetMapping("/Subscription")
+  public ResponseEntity<String> getSubscription() {
     return query(Database.SUBSCRIPTION);
   }
-    
-  @Path("/PopulateDatabaseTestData")
-  public Response populateDatabase() {
+
+  @GetMapping("/PopulateDatabaseTestData")
+  public ResponseEntity<String> populateDatabase() {
     if (App.debugMode)
       return populateDB();
     else {
       logger.warning("DebugEndpoint::populate datatbase with test data disabeled");
-      return Response.status(Response.Status.BAD_REQUEST).build();
+      return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
   }
 
-  private Response populateDB() {
+  private ResponseEntity<String> populateDB() {
     logger.info("DebugEndpoint::Prepopulating database with data");
     String responseData = "Success!";
-    Status status = Status.OK;
+    HttpStatus status = HttpStatus.OK;
 
     try {
       // Submit a claim and then update twice
@@ -99,13 +90,13 @@ public class DebugEndpoint {
       dataMap.replace("sequence", "2");
       App.getDB().write(Database.CLAIM_ITEM, dataMap);
     } catch (FileNotFoundException e) {
-      status = Status.BAD_REQUEST;
+      status = HttpStatus.BAD_REQUEST;
       responseData = "ERROR: Unable to read all resources to populate database";
       logger.log(Level.SEVERE, "DebugEndpoint::FileNotFoundException reading resource file to insert into database", e);
     }
 
     logger.info("DebugEndpoint::Prepopulating database complete");
-    return Response.status(status).type("application/fhir+json").entity(responseData).build();
+    return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(responseData);
   }
 
   private static Bundle getResource(String fileName) throws FileNotFoundException {
@@ -155,13 +146,13 @@ public class DebugEndpoint {
     return App.getDB().write(Database.CLAIM_RESPONSE, dataMap);
   }
 
-  private Response query(String resource) {
-    logger.info("GET /query/" + resource);
+  private ResponseEntity<String> query(String resource) {
+    logger.info("GET /debug/" + resource);
     if (App.debugMode) {
-      return Response.ok(App.getDB().generateAndRunQuery(resource)).build();
+      return new ResponseEntity<>(App.getDB().generateAndRunQuery(resource), HttpStatus.OK);
     } else {
       logger.warning("DebugEndpoint::query disabled");
-      return Response.status(Response.Status.BAD_REQUEST).build();
+      return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
   }
 }

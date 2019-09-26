@@ -3,12 +3,15 @@ package org.hl7.davinci.priorauth;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.enterprise.context.RequestScoped;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
+import javax.servlet.http.HttpServletRequest;
+
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 
@@ -16,30 +19,31 @@ import org.hl7.davinci.priorauth.Endpoint.RequestType;
  * The ClaimResponse endpoint to READ, SEARCH for, and DELETE ClaimResponses to
  * submitted claims.
  */
-@RequestScoped
-@Path("ClaimResponse")
+@RestController
+@RequestMapping("/ClaimResponse")
 public class ClaimResponseEndpoint {
 
-  @Context
-  private UriInfo uri;
+  private static String uri;
 
-  @GET
-  @Path("/")
-  @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
-  public Response readClaimResponseJson(@QueryParam("identifier") String id,
-      @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
+  @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
+  public ResponseEntity<String> readClaimResponseJson(HttpServletRequest request,
+      @RequestParam(name = "identifier", required = false) String id,
+      @RequestParam(name = "patient.identifier") String patient,
+      @RequestParam(name = "status", required = false) String status) {
+    uri = request.getRequestURL().toString();
     return readClaimResponse(id, patient, status, RequestType.JSON);
   }
 
-  @GET
-  @Path("/")
-  @Produces({ MediaType.APPLICATION_XML, "application/fhir+xml" })
-  public Response readClaimResponseXml(@QueryParam("identifier") String id,
-      @QueryParam("patient.identifier") String patient, @QueryParam("status") String status) {
+  @GetMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
+  public ResponseEntity<String> readClaimResponseXml(HttpServletRequest request,
+      @RequestParam(name = "identifier", required = false) String id,
+      @RequestParam(name = "patient.identifier") String patient,
+      @RequestParam(name = "status", required = false) String status) {
+    uri = request.getRequestURL().toString();
     return readClaimResponse(id, patient, status, RequestType.XML);
   }
 
-  public Response readClaimResponse(String id, String patient, String status, RequestType requestType) {
+  public ResponseEntity<String> readClaimResponse(String id, String patient, String status, RequestType requestType) {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
 
     // get the claim id from the claim response id
@@ -66,19 +70,15 @@ public class ClaimResponseEndpoint {
     return Endpoint.read(Database.CLAIM_RESPONSE, constraintMap, uri, requestType);
   }
 
-  @DELETE
-  @Path("/")
-  @Produces({ MediaType.APPLICATION_JSON, "application/fhir+json" })
-  public Response deleteClaimResponse(@QueryParam("identifier") String id,
-      @QueryParam("patient.identifier") String patient) {
+  @DeleteMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
+  public ResponseEntity<String> deleteClaimResponse(@RequestParam(name = "identifier") String id,
+      @RequestParam(name = "patient.identifier") String patient) {
     return Endpoint.delete(id, patient, Database.CLAIM_RESPONSE, RequestType.JSON);
   }
 
-  @DELETE
-  @Path("/")
-  @Produces({ MediaType.APPLICATION_JSON, "application/fhir+xml" })
-  public Response deleteClaimResponseXml(@QueryParam("identifier") String id,
-      @QueryParam("patient.identifier") String patient) {
+  @DeleteMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
+  public ResponseEntity<String> deleteClaimResponseXml(@RequestParam(name = "identifier") String id,
+      @RequestParam(name = "patient.identifier") String patient) {
     return Endpoint.delete(id, patient, Database.CLAIM_RESPONSE, RequestType.XML);
   }
 

@@ -1,15 +1,19 @@
 package org.hl7.davinci.priorauth;
 
-import org.apache.meecrowave.Meecrowave;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import ca.uhn.fhir.context.FhirContext;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Timer;
 
 /**
  * The Da Vinci Prior Authorization Reference Implementation microservice is
  * launched with this App.
  */
+@SpringBootApplication
 public class App {
 
   /**
@@ -52,16 +56,12 @@ public class App {
     initializeAppDB();
 
     // Assemble the microservice
-    Meecrowave.Builder builder = new Meecrowave.Builder();
-    builder.setHttpPort(9000);
-    builder.setScanningPackageIncludes("org.hl7.davinci.priorauth");
-    builder.setJaxrsMapping("/fhir/*");
-    builder.setJsonpPrettify(true);
-
-    // Launch the microservice
-    try (Meecrowave meecrowave = new Meecrowave(builder)) {
-      meecrowave.bake().await();
-    }
+    SpringApplication server = new SpringApplication(App.class);
+    Map<String, Object> defaultProperties = new HashMap<String, Object>();
+    defaultProperties.put("server.port", "9000");
+    defaultProperties.put("server.servlet.contextPath", "/fhir");
+    server.setDefaultProperties(defaultProperties);
+    server.run();
   }
 
   public static void initializeAppDB() {

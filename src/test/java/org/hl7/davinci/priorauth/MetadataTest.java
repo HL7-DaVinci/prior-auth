@@ -2,9 +2,12 @@ package org.hl7.davinci.priorauth;
 
 import java.io.IOException;
 
-import org.apache.meecrowave.Meecrowave;
-import org.apache.meecrowave.junit.MonoMeecrowave;
-import org.apache.meecrowave.testing.ConfigurationInject;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit4.SpringRunner;
+
 import org.hl7.fhir.r4.model.CapabilityStatement;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -16,13 +19,16 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-@RunWith(MonoMeecrowave.Runner.class)
+@RunWith(SpringRunner.class)
+@TestPropertySource(properties = "server.servlet.contextPath=/fhir")
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 public class MetadataTest {
 
-  @ConfigurationInject
-  private Meecrowave.Builder config;
+  @LocalServerPort
+  private int port;
+
   private static OkHttpClient client;
-   
+
   @BeforeClass
   public static void setup() {
     client = new OkHttpClient();
@@ -30,13 +36,10 @@ public class MetadataTest {
 
   @Test
   public void getMetadata() throws IOException {
-    String base = "http://localhost:" + config.getHttpPort();
+    String base = "http://localhost:" + port + "/fhir";
 
     // Test that we can GET /fhir/metadata.
-    Request request = new Request.Builder()
-        .url(base + "/metadata")
-        .header("Accept", "application/fhir+json")
-        .build();
+    Request request = new Request.Builder().url(base + "/metadata").header("Accept", "application/fhir+json").build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(200, response.code());
 
@@ -46,8 +49,7 @@ public class MetadataTest {
 
     // Test the response is a JSON Capability Statement
     String body = response.body().string();
-    CapabilityStatement capabilityStatement =
-        (CapabilityStatement) App.FHIR_CTX.newJsonParser().parseResource(body);
+    CapabilityStatement capabilityStatement = (CapabilityStatement) App.FHIR_CTX.newJsonParser().parseResource(body);
     Assert.assertNotNull(capabilityStatement);
 
     // Validate the response.
@@ -57,13 +59,10 @@ public class MetadataTest {
 
   @Test
   public void getMetadataXml() throws IOException {
-    String base = "http://localhost:" + config.getHttpPort();
+    String base = "http://localhost:" + port + "/fhir";
 
     // Test that we can GET /fhir/metadata.
-    Request request = new Request.Builder()
-        .url(base + "/metadata")
-        .header("Accept", "application/fhir+xml")
-        .build();
+    Request request = new Request.Builder().url(base + "/metadata").header("Accept", "application/fhir+xml").build();
     Response response = client.newCall(request).execute();
     Assert.assertEquals(200, response.code());
 
@@ -73,8 +72,7 @@ public class MetadataTest {
 
     // Test the response is an XML Capability Statement
     String body = response.body().string();
-    CapabilityStatement capabilityStatement =
-        (CapabilityStatement) App.FHIR_CTX.newXmlParser().parseResource(body);
+    CapabilityStatement capabilityStatement = (CapabilityStatement) App.FHIR_CTX.newXmlParser().parseResource(body);
     Assert.assertNotNull(capabilityStatement);
 
     // Validate the response.

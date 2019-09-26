@@ -2,7 +2,6 @@ package org.hl7.davinci.priorauth;
 
 import java.util.*;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Connection;
@@ -212,7 +211,9 @@ public class Database {
         Resource resource = (Resource) App.FHIR_CTX.newJsonParser().parseResource(json);
         resource.setId(id);
         BundleEntryComponent entry = new BundleEntryComponent();
-        entry.setFullUrl(baseUrl + resourceType + "?identifier=" + id + "&patient.identifier=" + patientOut);
+        entry.setFullUrl(baseUrl + resourceType + "/" + id);
+        // entry.setFullUrl(baseUrl + resourceType + "?identifier=" + id +
+        // "&patient.identifier=" + patientOut);
         entry.setResource(resource);
         results.addEntry(entry);
         total += 1;
@@ -403,7 +404,8 @@ public class Database {
         maps.add(data);
         maps.add(constraintParams);
         PreparedStatement stmt = generateStatement(sql, maps, connection);
-        result = stmt.execute();
+        stmt.execute();
+        result = stmt.getUpdateCount() > 0 ? true : false;
         logger.fine(stmt.toString());
       } catch (SQLException e) {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
@@ -530,8 +532,17 @@ public class Database {
    * 
    * @param base - from @Context UriInfo uri.getBaseUri()
    */
-  public void setBaseUrl(URI base) {
-    this.baseUrl = base.toString();
+  public void setBaseUrl(String base) {
+    this.baseUrl = base;
+  }
+
+  /**
+   * Get the base URL for the microservice
+   * 
+   * @return the the base url
+   */
+  public String getBaseUrl() {
+    return this.baseUrl;
   }
 
   /**
