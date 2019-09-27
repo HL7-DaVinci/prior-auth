@@ -467,7 +467,7 @@ public class Database {
         if (value instanceof String)
           valueStr = (String) value;
         else if (value instanceof IBaseResource)
-          valueStr = json((IBaseResource) value);
+          valueStr = FhirUtils.json((IBaseResource) value);
         else if (value == null)
           valueStr = "null";
         else
@@ -522,29 +522,6 @@ public class Database {
       }
     }
     return result;
-  }
-
-  // TODO: Move these to FhirUtils
-  /**
-   * Convert a FHIR resource into JSON.
-   * 
-   * @param resource - the resource to convert to JSON.
-   * @return String - the JSON.
-   */
-  public String json(IBaseResource resource) {
-    String json = App.FHIR_CTX.newJsonParser().setPrettyPrint(true).encodeResourceToString(resource);
-    return json;
-  }
-
-  /**
-   * Convert a FHIR resource into XML.
-   * 
-   * @param resource - the resource to convert to XML.
-   * @return String - the XML.
-   */
-  public String xml(IBaseResource resource) {
-    String xml = App.FHIR_CTX.newXmlParser().setPrettyPrint(true).encodeResourceToString(resource);
-    return xml;
   }
 
   /**

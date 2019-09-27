@@ -117,6 +117,28 @@ public class FhirUtils {
   }
 
   /**
+   * Convert a FHIR resource into JSON.
+   * 
+   * @param resource - the resource to convert to JSON.
+   * @return String - the JSON.
+   */
+  public static String json(IBaseResource resource) {
+    String json = App.FHIR_CTX.newJsonParser().setPrettyPrint(true).encodeResourceToString(resource);
+    return json;
+  }
+
+  /**
+   * Convert a FHIR resource into XML.
+   * 
+   * @param resource - the resource to convert to XML.
+   * @return String - the XML.
+   */
+  public static String xml(IBaseResource resource) {
+    String xml = App.FHIR_CTX.newXmlParser().setPrettyPrint(true).encodeResourceToString(resource);
+    return xml;
+  }
+
+  /**
    * Format the resource status in a standard way for the database
    * 
    * @param status - the status
@@ -138,7 +160,7 @@ public class FhirUtils {
    * @return JSON or XML string representation of the resource
    */
   public static String getFormattedData(IBaseResource resource, RequestType requestType) {
-    return requestType == RequestType.JSON ? App.getDB().json(resource) : App.getDB().xml(resource);
+    return requestType == RequestType.JSON ? FhirUtils.json(resource) : FhirUtils.xml(resource);
   }
 
   /**
