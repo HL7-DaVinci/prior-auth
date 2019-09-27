@@ -53,9 +53,6 @@ public class Endpoint {
             Bundle searchBundle;
             searchBundle = App.getDB().search(resourceType, constraintMap);
             formattedData = FhirUtils.getFormattedData(searchBundle, requestType);
-            // formattedData = requestType == RequestType.JSON ?
-            // App.getDB().json(searchBundle)
-            // : App.getDB().xml(searchBundle);
         } else {
             // Read
             IBaseResource baseResource;
@@ -68,19 +65,12 @@ public class Endpoint {
             if (resourceType == Database.BUNDLE) {
                 Bundle bundle = (Bundle) baseResource;
                 formattedData = FhirUtils.getFormattedData(bundle, requestType);
-                // formattedData = requestType == RequestType.JSON ? App.getDB().json(bundle) :
-                // App.getDB().xml(bundle);
             } else if (resourceType == Database.CLAIM) {
                 Claim claim = (Claim) baseResource;
                 formattedData = FhirUtils.getFormattedData(claim, requestType);
-                // formattedData = requestType == RequestType.JSON ? App.getDB().json(claim) :
-                // App.getDB().xml(claim);
             } else if (resourceType == Database.CLAIM_RESPONSE) {
                 Bundle bundleResponse = (Bundle) baseResource;
                 formattedData = FhirUtils.getFormattedData(bundleResponse, requestType);
-                // formattedData = requestType == RequestType.JSON ?
-                // App.getDB().json(bundleResponse)
-                // : App.getDB().xml(bundleResponse);
             } else {
                 logger.warning("Endpoint::read:invalid resourceType: " + resourceType);
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -121,8 +111,6 @@ public class Endpoint {
             outcome = FhirUtils.buildOutcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
         }
         String formattedData = FhirUtils.getFormattedData(outcome, requestType);
-        // String formattedData = requestType == RequestType.JSON ?
-        // App.getDB().json(outcome) : App.getDB().xml(outcome);
         return new ResponseEntity<>(formattedData, status);
     }
 
