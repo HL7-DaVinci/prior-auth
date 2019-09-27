@@ -3,6 +3,8 @@ package org.hl7.davinci.priorauth;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
@@ -72,6 +74,19 @@ public class FhirUtils {
       logger.log(Level.SEVERE, "FhirUtils::getPatientIdFromResource(error processing patient)", e);
     }
     return patient;
+  }
+
+  public static Bundle setBundleFullUrls(Bundle bundle) {
+    for (BundleEntryComponent entry : bundle.getEntry()) {
+      entry.setFullUrl(App.getBaseUrl() + "/" + entry.getResource().getResourceType() + "/"
+          + getIdFromResource(entry.getResource()));
+    }
+    return bundle;
+  }
+
+  public static String getServiceBaseUrl(HttpServletRequest request) {
+    return request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort()
+        + request.getContextPath();
   }
 
   /**

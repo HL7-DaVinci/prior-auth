@@ -3,6 +3,8 @@ package org.hl7.davinci.priorauth;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
@@ -35,9 +37,10 @@ public class Endpoint {
      * @param requestType   - the RequestType of the request.
      * @return the desired resource if successful and an error message otherwise
      */
-    public static ResponseEntity<String> read(String resourceType, Map<String, Object> constraintMap, String uri,
-            RequestType requestType) {
+    public static ResponseEntity<String> read(String resourceType, Map<String, Object> constraintMap,
+            HttpServletRequest request, RequestType requestType) {
         logger.info("GET /" + resourceType + ":" + constraintMap.toString() + " fhir+" + requestType.name());
+        App.setBaseUrl(FhirUtils.getServiceBaseUrl(request));
         if (!constraintMap.containsKey("patient")) {
             logger.warning("Endpoint::read:patient null");
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -46,7 +49,6 @@ public class Endpoint {
         if ((!constraintMap.containsKey("id") || constraintMap.get("id") == null)
                 && (!constraintMap.containsKey("claimId") || constraintMap.get("claimId") == null)) {
             // Search
-            App.getDB().setBaseUrl(uri);
             constraintMap.remove("id");
             Bundle searchBundle;
             searchBundle = App.getDB().search(resourceType, constraintMap);

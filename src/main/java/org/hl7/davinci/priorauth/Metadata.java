@@ -77,7 +77,7 @@ public class Metadata {
     metadata.setSoftware(software);
     CapabilityStatementImplementationComponent implementation = new CapabilityStatementImplementationComponent();
     implementation.setDescription(metadata.getTitle());
-    implementation.setUrl(App.getDB().getBaseUrl() + "metadata");
+    implementation.setUrl(App.getBaseUrl() + "metadata");
     metadata.setImplementation(implementation);
     metadata.setFhirVersion(FHIRVersion._4_0_0);
     metadata.addFormat("json");

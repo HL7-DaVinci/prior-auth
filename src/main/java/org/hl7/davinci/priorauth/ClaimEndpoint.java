@@ -72,13 +72,12 @@ public class ClaimEndpoint {
       @RequestParam(name = "identifier", required = false) String id,
       @RequestParam(name = "patient.identifier") String patient,
       @RequestParam(name = "status", required = false) String status) {
-    uri = request.getRequestURL().toString();
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", id);
     constraintMap.put("patient", patient);
     if (status != null)
       constraintMap.put("status", status);
-    return Endpoint.read(Database.CLAIM, constraintMap, uri, RequestType.JSON);
+    return Endpoint.read(Database.CLAIM, constraintMap, request, RequestType.JSON);
   }
 
   @GetMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
@@ -86,13 +85,12 @@ public class ClaimEndpoint {
       @RequestParam(name = "identifier", required = false) String id,
       @RequestParam(name = "patient.identifier") String patient,
       @RequestParam(name = "status", required = false) String status) {
-    uri = request.getRequestURL().toString();
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", id);
     constraintMap.put("patient", patient);
     if (status != null)
       constraintMap.put("status", status);
-    return Endpoint.read(Database.CLAIM, constraintMap, uri, RequestType.XML);
+    return Endpoint.read(Database.CLAIM, constraintMap, request, RequestType.XML);
   }
 
   @DeleteMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
@@ -108,13 +106,13 @@ public class ClaimEndpoint {
   }
 
   @PostMapping(value = "/$submit", consumes = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
-  public ResponseEntity<String> submitOperationJson(HttpEntity<String> entity) {
-    return submitOperation(entity.getBody(), RequestType.JSON);
+  public ResponseEntity<String> submitOperationJson(HttpServletRequest request, HttpEntity<String> entity) {
+    return submitOperation(entity.getBody(), RequestType.JSON, request);
   }
 
   @PostMapping(value = "/$submit", consumes = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
-  public ResponseEntity<String> submitOperationXml(HttpEntity<String> entity) {
-    return submitOperation(entity.getBody(), RequestType.XML);
+  public ResponseEntity<String> submitOperationXml(HttpServletRequest request, HttpEntity<String> entity) {
+    return submitOperation(entity.getBody(), RequestType.XML, request);
   }
 
   /**
@@ -124,8 +122,9 @@ public class ClaimEndpoint {
    * @param requestType - the RequestType of the request.
    * @return - claimResponse response
    */
-  private ResponseEntity<String> submitOperation(String body, RequestType requestType) {
+  private ResponseEntity<String> submitOperation(String body, RequestType requestType, HttpServletRequest request) {
     logger.info("POST /Claim/$submit fhir+" + requestType.name());
+    App.setBaseUrl(FhirUtils.getServiceBaseUrl(request));
 
     String id = null;
     String patient = null;
@@ -237,8 +236,7 @@ public class ClaimEndpoint {
       RelatedClaimComponent related = getRelatedComponent(claim);
       if (related != null) {
         // This is an update...
-        relatedId = FhirUtils.getIdFromResource(related);
-        // relatedId = related.getIdElement().asStringValue();
+        relatedId = related.getIdElement().asStringValue();
         relatedId = App.getDB().getMostRecentId(relatedId);
         logger.info("ClaimEndpoint::Udpated id to most recent: " + relatedId);
         claimMap.put("related", relatedId);
@@ -260,6 +258,7 @@ public class ClaimEndpoint {
 
       // Store the bundle...
       bundle.setId(id);
+      bundle = FhirUtils.setBundleFullUrls(bundle);
       Map<String, Object> bundleMap = new HashMap<String, Object>();
       bundleMap.put("id", id);
       bundleMap.put("patient", patient);
@@ -569,10 +568,11 @@ public class ClaimEndpoint {
     responseBundle.setType(Bundle.BundleType.COLLECTION);
     BundleEntryComponent responseEntry = responseBundle.addEntry();
     responseEntry.setResource(response);
-    responseEntry.setFullUrl(id);
+    responseEntry.setFullUrl(App.getBaseUrl() + "/Bundle/" + id);
     for (BundleEntryComponent entry : bundle.getEntry()) {
       responseBundle.addEntry(entry);
     }
+    responseBundle = FhirUtils.setBundleFullUrls(responseBundle);
 
     // Store the claim respnose...
     Map<String, Object> responseMap = new HashMap<String, Object>();
