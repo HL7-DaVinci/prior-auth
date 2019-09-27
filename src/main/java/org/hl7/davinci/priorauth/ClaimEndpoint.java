@@ -141,8 +141,6 @@ public class ClaimEndpoint {
             status = HttpStatus.BAD_REQUEST;
             OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, PROCESS_FAILED);
             formattedData = FhirUtils.getFormattedData(error, requestType);
-            // formattedData = requestType == RequestType.JSON ? App.getDB().json(error) :
-            // App.getDB().xml(error);
           } else {
             ClaimResponse response = FhirUtils.getClaimResponseFromBundle(responseBundle);
             id = FhirUtils.getIdFromResource(response);
@@ -150,25 +148,18 @@ public class ClaimEndpoint {
               patient = FhirUtils.getPatientIdFromResource(response);
             }
             formattedData = FhirUtils.getFormattedData(responseBundle, requestType);
-            // formattedData = requestType == RequestType.JSON ?
-            // App.getDB().json(responseBundle)
-            // : App.getDB().xml(responseBundle);
           }
         } else {
           // Claim is required...
           status = HttpStatus.BAD_REQUEST;
           OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
           formattedData = FhirUtils.getFormattedData(error, requestType);
-          // formattedData = requestType == RequestType.JSON ? App.getDB().json(error) :
-          // App.getDB().xml(error);
         }
       } else {
         // Bundle is required...
         status = HttpStatus.BAD_REQUEST;
         OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
         formattedData = FhirUtils.getFormattedData(error, requestType);
-        // formattedData = requestType == RequestType.JSON ? App.getDB().json(error) :
-        // App.getDB().xml(error);
       }
     } catch (Exception e) {
       // The submission failed so spectacularly that we need
@@ -176,8 +167,6 @@ public class ClaimEndpoint {
       status = HttpStatus.BAD_REQUEST;
       OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.FATAL, IssueType.STRUCTURE, e.getMessage());
       formattedData = FhirUtils.getFormattedData(error, requestType);
-      // formattedData = requestType == RequestType.JSON ? App.getDB().json(error) :
-      // App.getDB().xml(error);
     }
     MediaType contentType = requestType == RequestType.JSON ? MediaType.APPLICATION_JSON : MediaType.APPLICATION_XML;
     return ResponseEntity.status(status).contentType(contentType)
