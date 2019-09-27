@@ -423,18 +423,18 @@ public class Database {
     Map<String, Object> readConstraintMap = new HashMap<String, Object>();
     readConstraintMap.put("related", id);
     Claim referencingClaim = (Claim) App.getDB().read(Database.CLAIM, readConstraintMap);
-    String referecingId = id;
+    String referencingId = id;
 
     while (referencingClaim != null) {
       // Update referincing claim to cancelled
-      referecingId = referencingClaim.getIdElement().getIdPart();
+      referencingId = FhirUtils.getIdFromResource(referencingClaim);
 
       // Get the new referencing claim
-      readConstraintMap.replace("related", referecingId);
+      readConstraintMap.replace("related", referencingId);
       referencingClaim = (Claim) App.getDB().read(Database.CLAIM, readConstraintMap);
     }
 
-    return referecingId;
+    return referencingId;
   }
 
   /**

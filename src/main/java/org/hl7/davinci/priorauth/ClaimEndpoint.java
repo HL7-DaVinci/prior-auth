@@ -65,8 +65,6 @@ public class ClaimEndpoint {
   String REQUIRES_BUNDLE = "Prior Authorization Claim/$submit Operation requires a Bundle with a single Claim as the first entry and supporting resources.";
   String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
 
-  private static String uri;
-
   @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> readClaimJson(HttpServletRequest request,
       @RequestParam(name = "identifier", required = false) String id,
@@ -124,7 +122,7 @@ public class ClaimEndpoint {
    */
   private ResponseEntity<String> submitOperation(String body, RequestType requestType, HttpServletRequest request) {
     logger.info("POST /Claim/$submit fhir+" + requestType.name());
-    App.setBaseUrl(FhirUtils.getServiceBaseUrl(request));
+    App.setBaseUrl(Endpoint.getServiceBaseUrl(request));
 
     String id = null;
     String patient = null;
@@ -147,9 +145,7 @@ public class ClaimEndpoint {
             // App.getDB().xml(error);
           } else {
             ClaimResponse response = FhirUtils.getClaimResponseFromBundle(responseBundle);
-            if (response.getIdElement().hasIdPart()) {
-              id = response.getIdElement().getIdPart();
-            }
+            id = FhirUtils.getIdFromResource(response);
             if (response.hasPatient()) {
               patient = FhirUtils.getPatientIdFromResource(response);
             }
@@ -185,7 +181,8 @@ public class ClaimEndpoint {
     }
     MediaType contentType = requestType == RequestType.JSON ? MediaType.APPLICATION_JSON : MediaType.APPLICATION_XML;
     return ResponseEntity.status(status).contentType(contentType)
-        .header(HttpHeaders.LOCATION, uri + "ClaimResponse?identifier=" + id + "&patient.identifier=" + patient)
+        .header(HttpHeaders.LOCATION,
+            App.getBaseUrl() + "ClaimResponse?identifier=" + id + "&patient.identifier=" + patient)
         .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*").body(formattedData);
 
   }
@@ -217,7 +214,6 @@ public class ClaimEndpoint {
     if (status == ClaimStatus.CANCELLED) {
       // Cancel the claim...
       claimId = FhirUtils.getIdFromResource(claim);
-      // claimId = claim.getIdElement().getIdPart();
       if (cancelClaim(claimId, patient)) {
         responseStatus = ClaimResponseStatus.CANCELLED;
         responseDisposition = "Cancelled";
@@ -434,18 +430,18 @@ public class ClaimEndpoint {
     Map<String, Object> readConstraintMap = new HashMap<String, Object>();
     readConstraintMap.put("related", claimId);
     Claim referencingClaim = (Claim) App.getDB().read(Database.CLAIM, readConstraintMap);
-    String referecingId;
+    String referencingId;
 
     while (referencingClaim != null) {
       // Update referencing claim to cancelled
       referencingClaim.setStatus(ClaimStatus.CANCELLED);
-      referecingId = referencingClaim.getIdElement().getIdPart();
-      constraintMap.replace("id", referecingId);
+      referencingId = FhirUtils.getIdFromResource(referencingClaim);
+      constraintMap.replace("id", referencingId);
       dataMap.replace("resource", referencingClaim);
       App.getDB().update(Database.CLAIM, constraintMap, dataMap);
 
       // Get the new referencing claim
-      readConstraintMap.replace("related", referecingId);
+      readConstraintMap.replace("related", referencingId);
       referencingClaim = (Claim) App.getDB().read(Database.CLAIM, readConstraintMap);
     }
 
@@ -539,7 +535,7 @@ public class ClaimEndpoint {
 
     // Generate the claim response...
     ClaimResponse response = new ClaimResponse();
-    String claimId = App.getDB().getMostRecentId(claim.getIdElement().getIdPart());
+    String claimId = App.getDB().getMostRecentId(FhirUtils.getIdFromResource(claim));
     response.setStatus(responseStatus);
     response.setType(claim.getType());
     response.setUse(Use.PREAUTHORIZATION);
@@ -550,8 +546,8 @@ public class ClaimEndpoint {
     } else {
       response.setInsurer(new Reference().setDisplay("Unknown"));
     }
-    response.setRequest(
-        new Reference(uri + "Claim?identifier=" + claim.getIdElement().getIdPart() + "&patient.identifier=" + patient));
+    response.setRequest(new Reference(App.getBaseUrl() + "Claim?identifier=" + FhirUtils.getIdFromResource(claim)
+        + "&patient.identifier=" + patient));
     if (responseDisposition == "Pending") {
       response.setOutcome(RemittanceOutcome.QUEUED);
     } else {
@@ -628,7 +624,7 @@ public class ClaimEndpoint {
             }
           } else if (subscriptionType == SubscriptionChannelType.WEBSOCKET) {
             // Send websocket notification...
-            String subscriptionId = subscription.getIdElement().getIdPart();
+            String subscriptionId = FhirUtils.getIdFromResource(subscription);
             String websocketId = App.getDB().readString(Database.SUBSCRIPTION,
                 Collections.singletonMap("id", subscriptionId), "websocketId");
             if (websocketId != null) {

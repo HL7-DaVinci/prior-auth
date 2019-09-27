@@ -40,7 +40,7 @@ public class Endpoint {
     public static ResponseEntity<String> read(String resourceType, Map<String, Object> constraintMap,
             HttpServletRequest request, RequestType requestType) {
         logger.info("GET /" + resourceType + ":" + constraintMap.toString() + " fhir+" + requestType.name());
-        App.setBaseUrl(FhirUtils.getServiceBaseUrl(request));
+        App.setBaseUrl(Endpoint.getServiceBaseUrl(request));
         if (!constraintMap.containsKey("patient")) {
             logger.warning("Endpoint::read:patient null");
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -124,5 +124,16 @@ public class Endpoint {
         // String formattedData = requestType == RequestType.JSON ?
         // App.getDB().json(outcome) : App.getDB().xml(outcome);
         return new ResponseEntity<>(formattedData, status);
+    }
+
+    /**
+     * Get the base url of the service from the HttpServletRequest
+     * 
+     * @param request - the HttpServletRequest from the controller
+     * @return the base url for the service
+     */
+    public static String getServiceBaseUrl(HttpServletRequest request) {
+        return request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort()
+                + request.getContextPath();
     }
 }

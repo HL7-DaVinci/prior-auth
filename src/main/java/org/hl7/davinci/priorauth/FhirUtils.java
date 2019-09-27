@@ -3,8 +3,6 @@ package org.hl7.davinci.priorauth;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
@@ -76,17 +74,18 @@ public class FhirUtils {
     return patient;
   }
 
+  /**
+   * Set the fullUrl on each entry of a bundle
+   * 
+   * @param bundle - the bundle to modify fullUrls for
+   * @return the same bundle with each fullUrl set appropriately
+   */
   public static Bundle setBundleFullUrls(Bundle bundle) {
     for (BundleEntryComponent entry : bundle.getEntry()) {
       entry.setFullUrl(App.getBaseUrl() + "/" + entry.getResource().getResourceType() + "/"
           + getIdFromResource(entry.getResource()));
     }
     return bundle;
-  }
-
-  public static String getServiceBaseUrl(HttpServletRequest request) {
-    return request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort()
-        + request.getContextPath();
   }
 
   /**
@@ -112,8 +111,9 @@ public class FhirUtils {
    * @return the id of the resource
    */
   public static String getIdFromResource(IBaseResource resource) {
-    return resource.getIdElement().getIdPart();
-    // return resource.getIdElement().asStringValue();
+    if (resource.getIdElement().hasIdPart())
+      return resource.getIdElement().getIdPart();
+    return null;
   }
 
   /**
