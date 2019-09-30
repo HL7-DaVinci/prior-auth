@@ -11,7 +11,7 @@ The Da Vinci Prior Authorization Reference Implementation (RI) is a software pro
 Build, test, and start the Prior Authorization microservice:
 
 ```
-./gradlew install
+./gradlew installBootDist
 ./gradlew clean check
 ./gradlew bootRun
 ```
