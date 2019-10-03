@@ -40,10 +40,12 @@ public class Endpoint {
     public static ResponseEntity<String> read(String resourceType, Map<String, Object> constraintMap,
             HttpServletRequest request, RequestType requestType) {
         logger.info("GET /" + resourceType + ":" + constraintMap.toString() + " fhir+" + requestType.name());
+        MultiValueMap<String, String> headers = new HttpHeaders();
+        headers.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
         App.setBaseUrl(Endpoint.getServiceBaseUrl(request));
         if (!constraintMap.containsKey("patient")) {
             logger.warning("Endpoint::read:patient null");
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(headers, HttpStatus.UNAUTHORIZED);
         }
         String formattedData = null;
         if ((!constraintMap.containsKey("id") || constraintMap.get("id") == null)
@@ -59,7 +61,7 @@ public class Endpoint {
             baseResource = App.getDB().read(resourceType, constraintMap);
 
             if (baseResource == null)
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>(headers, HttpStatus.NOT_FOUND);
 
             // Convert to correct resourceType
             if (resourceType == Database.BUNDLE) {
@@ -73,11 +75,9 @@ public class Endpoint {
                 formattedData = FhirUtils.getFormattedData(bundleResponse, requestType);
             } else {
                 logger.warning("Endpoint::read:invalid resourceType: " + resourceType);
-                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);
             }
         }
-        MultiValueMap<String, String> headers = new HttpHeaders();
-        headers.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
         return new ResponseEntity<String>(formattedData, headers, HttpStatus.OK);
     }
 
