@@ -9,6 +9,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -115,7 +116,8 @@ public class SubscriptionEndpoint {
         }
         MediaType contentType = requestType == RequestType.JSON ? MediaType.APPLICATION_JSON
                 : MediaType.APPLICATION_XML;
-        return ResponseEntity.status(status).contentType(contentType).body(formattedData);
+        return ResponseEntity.status(status).contentType(contentType)
+                .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*").body(formattedData);
     }
 
     private Subscription processSubscription(Subscription subscription) {

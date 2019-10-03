@@ -23,10 +23,10 @@ public class LogEndpoint {
         logger.info("GET /Log");
         try {
             String log = new String(Files.readAllBytes(Paths.get(PALogger.getLogPath())));
-            return new ResponseEntity<>(log, HttpStatus.OK);
+            return new ResponseEntity<>(log, Endpoint.corsHeader(), HttpStatus.OK);
         } catch (IOException e) {
             logger.log(Level.SEVERE, "LogEndpoint::IOException", e);
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(Endpoint.corsHeader(), HttpStatus.BAD_REQUEST);
         }
     }
 }

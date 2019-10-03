@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -96,7 +97,8 @@ public class DebugEndpoint {
     }
 
     logger.info("DebugEndpoint::Prepopulating database complete");
-    return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(responseData);
+    return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON)
+        .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*").body(responseData);
   }
 
   private static Bundle getResource(String fileName) throws FileNotFoundException {
@@ -149,10 +151,10 @@ public class DebugEndpoint {
   private ResponseEntity<String> query(String resource) {
     logger.info("GET /debug/" + resource);
     if (App.debugMode) {
-      return new ResponseEntity<>(App.getDB().generateAndRunQuery(resource), HttpStatus.OK);
+      return new ResponseEntity<>(App.getDB().generateAndRunQuery(resource), Endpoint.corsHeader(), HttpStatus.OK);
     } else {
       logger.warning("DebugEndpoint::query disabled");
-      return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+      return new ResponseEntity<>(Endpoint.corsHeader(), HttpStatus.BAD_REQUEST);
     }
   }
 }
