@@ -111,6 +111,8 @@ public class Endpoint {
             outcome = FhirUtils.buildOutcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
         }
         String formattedData = requestType == RequestType.JSON ? App.getDB().json(outcome) : App.getDB().xml(outcome);
-        return new ResponseEntity<>(formattedData, status);
+        MultiValueMap<String, String> headers = new HttpHeaders();
+        headers.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+        return new ResponseEntity<>(formattedData, headers, status);
     }
 }
