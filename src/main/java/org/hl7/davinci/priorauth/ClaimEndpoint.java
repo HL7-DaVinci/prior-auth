@@ -260,11 +260,14 @@ public class ClaimEndpoint {
       }
 
       // generate random responses since not cancelling
-      switch (getRand(3)) {
+      switch (getRand(6)) {
       case 1:
         responseDisposition = "Granted";
         break;
       case 2:
+      case 3:
+      case 4:
+      case 5:
         responseDisposition = "Pending";
 
         switch (getRand(2)) {
@@ -278,7 +281,7 @@ public class ClaimEndpoint {
 
         delayedUpdate = true;
         break;
-      case 3:
+      case 6:
       default:
         responseDisposition = "Denied";
         break;
