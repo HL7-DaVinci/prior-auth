@@ -73,7 +73,7 @@ public class Database {
   }
 
   /** The base URL of the microservice, for population Bundle.entry.fullUrl. */
-  private String baseUrl;
+  // private String baseUrl;
 
   public Database() {
     this("./");
@@ -211,9 +211,7 @@ public class Database {
         Resource resource = (Resource) App.FHIR_CTX.newJsonParser().parseResource(json);
         resource.setId(id);
         BundleEntryComponent entry = new BundleEntryComponent();
-        entry.setFullUrl(baseUrl + resourceType + "/" + id);
-        // entry.setFullUrl(baseUrl + resourceType + "?identifier=" + id +
-        // "&patient.identifier=" + patientOut);
+        entry.setFullUrl(App.getBaseUrl() + "/Bundle/" + id);
         entry.setResource(resource);
         results.addEntry(entry);
         total += 1;
@@ -425,18 +423,18 @@ public class Database {
     Map<String, Object> readConstraintMap = new HashMap<String, Object>();
     readConstraintMap.put("related", id);
     Claim referencingClaim = (Claim) App.getDB().read(Database.CLAIM, readConstraintMap);
-    String referecingId = id;
+    String referencingId = id;
 
     while (referencingClaim != null) {
       // Update referincing claim to cancelled
-      referecingId = referencingClaim.getIdElement().getIdPart();
+      referencingId = FhirUtils.getIdFromResource(referencingClaim);
 
       // Get the new referencing claim
-      readConstraintMap.replace("related", referecingId);
+      readConstraintMap.replace("related", referencingId);
       referencingClaim = (Claim) App.getDB().read(Database.CLAIM, readConstraintMap);
     }
 
-    return referecingId;
+    return referencingId;
   }
 
   /**
@@ -469,7 +467,7 @@ public class Database {
         if (value instanceof String)
           valueStr = (String) value;
         else if (value instanceof IBaseResource)
-          valueStr = json((IBaseResource) value);
+          valueStr = FhirUtils.json((IBaseResource) value);
         else if (value == null)
           valueStr = "null";
         else
@@ -524,47 +522,6 @@ public class Database {
       }
     }
     return result;
-  }
-
-  /**
-   * Set the base URI for the microservice. This is necessary so
-   * Bundle.entry.fullUrl data is accurately populated.
-   * 
-   * @param base - from @Context UriInfo uri.getBaseUri()
-   */
-  public void setBaseUrl(String base) {
-    this.baseUrl = base;
-  }
-
-  /**
-   * Get the base URL for the microservice
-   * 
-   * @return the the base url
-   */
-  public String getBaseUrl() {
-    return this.baseUrl;
-  }
-
-  /**
-   * Convert a FHIR resource into JSON.
-   * 
-   * @param resource - the resource to convert to JSON.
-   * @return String - the JSON.
-   */
-  public String json(IBaseResource resource) {
-    String json = App.FHIR_CTX.newJsonParser().setPrettyPrint(true).encodeResourceToString(resource);
-    return json;
-  }
-
-  /**
-   * Convert a FHIR resource into XML.
-   * 
-   * @param resource - the resource to convert to XML.
-   * @return String - the XML.
-   */
-  public String xml(IBaseResource resource) {
-    String xml = App.FHIR_CTX.newXmlParser().setPrettyPrint(true).encodeResourceToString(resource);
-    return xml;
   }
 
   /**

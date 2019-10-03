@@ -34,6 +34,8 @@ public class App {
 
   public static boolean debugMode = false;
 
+  private static String baseUrl;
+
   /**
    * Launch the Prior Authorization microservice.
    * 
@@ -71,5 +73,24 @@ public class App {
 
   public static Database getDB() {
     return DB;
+  }
+
+  /**
+   * Set the base URI for the microservice. This is necessary so
+   * Bundle.entry.fullUrl data is accurately populated.
+   * 
+   * @param base - from FhirUtils.setServiceBaseUrl(HttpServletRequest)
+   */
+  public static void setBaseUrl(String base) {
+    baseUrl = base;
+  }
+
+  /**
+   * Get the base URL for the microservice
+   * 
+   * @return the the base url
+   */
+  public static String getBaseUrl() {
+    return baseUrl;
   }
 }

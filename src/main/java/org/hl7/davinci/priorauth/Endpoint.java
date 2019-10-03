@@ -3,6 +3,8 @@ package org.hl7.davinci.priorauth;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
@@ -35,9 +37,10 @@ public class Endpoint {
      * @param requestType   - the RequestType of the request.
      * @return the desired resource if successful and an error message otherwise
      */
-    public static ResponseEntity<String> read(String resourceType, Map<String, Object> constraintMap, String uri,
-            RequestType requestType) {
+    public static ResponseEntity<String> read(String resourceType, Map<String, Object> constraintMap,
+            HttpServletRequest request, RequestType requestType) {
         logger.info("GET /" + resourceType + ":" + constraintMap.toString() + " fhir+" + requestType.name());
+        App.setBaseUrl(Endpoint.getServiceBaseUrl(request));
         if (!constraintMap.containsKey("patient")) {
             logger.warning("Endpoint::read:patient null");
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -46,12 +49,10 @@ public class Endpoint {
         if ((!constraintMap.containsKey("id") || constraintMap.get("id") == null)
                 && (!constraintMap.containsKey("claimId") || constraintMap.get("claimId") == null)) {
             // Search
-            App.getDB().setBaseUrl(uri);
             constraintMap.remove("id");
             Bundle searchBundle;
             searchBundle = App.getDB().search(resourceType, constraintMap);
-            formattedData = requestType == RequestType.JSON ? App.getDB().json(searchBundle)
-                    : App.getDB().xml(searchBundle);
+            formattedData = FhirUtils.getFormattedData(searchBundle, requestType);
         } else {
             // Read
             IBaseResource baseResource;
@@ -63,14 +64,13 @@ public class Endpoint {
             // Convert to correct resourceType
             if (resourceType == Database.BUNDLE) {
                 Bundle bundle = (Bundle) baseResource;
-                formattedData = requestType == RequestType.JSON ? App.getDB().json(bundle) : App.getDB().xml(bundle);
+                formattedData = FhirUtils.getFormattedData(bundle, requestType);
             } else if (resourceType == Database.CLAIM) {
                 Claim claim = (Claim) baseResource;
-                formattedData = requestType == RequestType.JSON ? App.getDB().json(claim) : App.getDB().xml(claim);
+                formattedData = FhirUtils.getFormattedData(claim, requestType);
             } else if (resourceType == Database.CLAIM_RESPONSE) {
                 Bundle bundleResponse = (Bundle) baseResource;
-                formattedData = requestType == RequestType.JSON ? App.getDB().json(bundleResponse)
-                        : App.getDB().xml(bundleResponse);
+                formattedData = FhirUtils.getFormattedData(bundleResponse, requestType);
             } else {
                 logger.warning("Endpoint::read:invalid resourceType: " + resourceType);
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -110,9 +110,20 @@ public class Endpoint {
             App.getDB().delete(resourceType, id, patient);
             outcome = FhirUtils.buildOutcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
         }
-        String formattedData = requestType == RequestType.JSON ? App.getDB().json(outcome) : App.getDB().xml(outcome);
+        String formattedData = FhirUtils.getFormattedData(outcome, requestType);
         MultiValueMap<String, String> headers = new HttpHeaders();
         headers.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
         return new ResponseEntity<>(formattedData, headers, status);
+    }
+
+    /**
+     * Get the base url of the service from the HttpServletRequest
+     * 
+     * @param request - the HttpServletRequest from the controller
+     * @return the base url for the service
+     */
+    public static String getServiceBaseUrl(HttpServletRequest request) {
+        return request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort()
+                + request.getContextPath();
     }
 }
