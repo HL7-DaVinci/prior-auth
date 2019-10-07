@@ -8,10 +8,10 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,6 +22,7 @@ import org.hl7.fhir.r4.model.ClaimResponse;
 
 import ca.uhn.fhir.context.FhirContext;
 
+@CrossOrigin
 @RestController
 @RequestMapping("/debug")
 public class DebugEndpoint {
@@ -97,8 +98,7 @@ public class DebugEndpoint {
     }
 
     logger.info("DebugEndpoint::Prepopulating database complete");
-    return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON)
-        .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*").body(responseData);
+    return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(responseData);
   }
 
   private static Bundle getResource(String fileName) throws FileNotFoundException {
@@ -151,10 +151,10 @@ public class DebugEndpoint {
   private ResponseEntity<String> query(String resource) {
     logger.info("GET /debug/" + resource);
     if (App.debugMode) {
-      return new ResponseEntity<>(App.getDB().generateAndRunQuery(resource), Endpoint.corsHeader(), HttpStatus.OK);
+      return new ResponseEntity<>(App.getDB().generateAndRunQuery(resource), HttpStatus.OK);
     } else {
       logger.warning("DebugEndpoint::query disabled");
-      return new ResponseEntity<>(Endpoint.corsHeader(), HttpStatus.BAD_REQUEST);
+      return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
   }
 }

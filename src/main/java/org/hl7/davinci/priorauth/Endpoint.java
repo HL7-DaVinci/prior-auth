@@ -9,10 +9,8 @@ import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.MultiValueMap;
 
 public class Endpoint {
 
@@ -40,7 +38,7 @@ public class Endpoint {
         logger.info("GET /" + resourceType + ":" + constraintMap.toString() + " fhir+" + requestType.name());
         if (!constraintMap.containsKey("patient")) {
             logger.warning("Endpoint::read:patient null");
-            return new ResponseEntity<>(Endpoint.corsHeader(), HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
         String formattedData = null;
         if ((!constraintMap.containsKey("id") || constraintMap.get("id") == null)
@@ -58,7 +56,7 @@ public class Endpoint {
             baseResource = App.getDB().read(resourceType, constraintMap);
 
             if (baseResource == null)
-                return new ResponseEntity<>(Endpoint.corsHeader(), HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 
             // Convert to correct resourceType
             if (resourceType == Database.BUNDLE) {
@@ -73,10 +71,10 @@ public class Endpoint {
                         : App.getDB().xml(bundleResponse);
             } else {
                 logger.warning("Endpoint::read:invalid resourceType: " + resourceType);
-                return new ResponseEntity<>(Endpoint.corsHeader(), HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
         }
-        return new ResponseEntity<String>(formattedData, Endpoint.corsHeader(), HttpStatus.OK);
+        return new ResponseEntity<String>(formattedData, HttpStatus.OK);
     }
 
     /**
@@ -109,17 +107,7 @@ public class Endpoint {
             outcome = FhirUtils.buildOutcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
         }
         String formattedData = requestType == RequestType.JSON ? App.getDB().json(outcome) : App.getDB().xml(outcome);
-        return new ResponseEntity<>(formattedData, Endpoint.corsHeader(), status);
+        return new ResponseEntity<>(formattedData, status);
     }
 
-    /**
-     * Get the cors headers
-     * 
-     * @return MultiValueMap with Access-Control-Allow-Origins set to *
-     */
-    public static MultiValueMap<String, String> corsHeader() {
-        MultiValueMap<String, String> headers = new HttpHeaders();
-        headers.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-        return headers;
-    }
 }
