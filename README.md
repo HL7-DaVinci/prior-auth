@@ -278,6 +278,15 @@ Run the docker image:
 docker run -p 9000:9000 -it --rm --name davinci-prior-auth hspc/davinci-prior-auth:latest
 ```
 
+If you are building the docker image locally from a MITRE machine you must copy over the BA Certificates to the Docker image. Download the `MITRE BA NPE CA-3` and `MITRE BA ROOT` certs from the [MII](http://www2.mitre.org/tech/mii/pki/). Copy the two files to the root directory of this project.
+
+Build and run using:
+
+```
+docker build -f Dockerfile.mitre -t mitre/davinci-prior-auth .
+docker run -p 9000:9000 -it --rm --name davinci-prior-auth mitre/davinci-prior-auth
+```
+
 ## Questions and Contributions
 
 Questions about the project can be asked in the [DaVinci stream on the FHIR Zulip Chat](https://chat.fhir.org/#narrow/stream/179283-DaVinci).

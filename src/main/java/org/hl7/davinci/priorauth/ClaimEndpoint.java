@@ -18,6 +18,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -56,6 +57,7 @@ import okhttp3.Request;
 /**
  * The Claim endpoint to READ, SEARCH for, and DELETE submitted claims.
  */
+@CrossOrigin
 @RestController
 @RequestMapping("/Claim")
 public class ClaimEndpoint {
@@ -177,7 +179,7 @@ public class ClaimEndpoint {
     MediaType contentType = requestType == RequestType.JSON ? MediaType.APPLICATION_JSON : MediaType.APPLICATION_XML;
     return ResponseEntity.status(status).contentType(contentType)
         .header(HttpHeaders.LOCATION, uri + "ClaimResponse?identifier=" + id + "&patient.identifier=" + patient)
-        .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*").body(formattedData);
+        .body(formattedData);
 
   }
 
@@ -259,12 +261,13 @@ public class ClaimEndpoint {
         processClaimItems(claim, id, relatedId);
       }
 
-      // generate random responses since not cancelling
-      switch (getRand(3)) {
+      // Generate random responses since not cancelling
+      // with a 4 in 6 chance of being pending
+      switch (getRand(6)) {
       case 1:
-        responseDisposition = "Granted";
-        break;
       case 2:
+      case 3:
+      case 4:
         responseDisposition = "Pending";
 
         switch (getRand(2)) {
@@ -278,7 +281,10 @@ public class ClaimEndpoint {
 
         delayedUpdate = true;
         break;
-      case 3:
+      case 5:
+        responseDisposition = "Granted";
+        break;
+      case 6:
       default:
         responseDisposition = "Denied";
         break;

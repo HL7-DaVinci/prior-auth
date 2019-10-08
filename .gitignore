@@ -22,5 +22,8 @@ bin
 database.mv.db
 database.trace.db
 
+# Ignore the certificates
+*.crt
+
 # Ignore Mac OS X
 **/.DS_Store
