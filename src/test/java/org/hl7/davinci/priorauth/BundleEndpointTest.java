@@ -2,18 +2,26 @@ package org.hl7.davinci.priorauth;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.HashMap;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
-
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultMatcher;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import org.springframework.test.web.servlet.setup.DefaultMockMvcBuilder;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -22,9 +30,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import ca.uhn.fhir.validation.ValidationResult;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 
 @RunWith(SpringRunner.class)
 @TestPropertySource(properties = "server.servlet.contextPath=/fhir")
@@ -34,11 +39,15 @@ public class BundleEndpointTest {
   @LocalServerPort
   private int port;
 
-  private static OkHttpClient client;
+  @Autowired
+  private WebApplicationContext wac;
+
+  private static ResultMatcher cors = MockMvcResultMatchers.header().string("Access-Control-Allow-Origin", "*");
+  private static ResultMatcher ok = MockMvcResultMatchers.status().isOk();
+  private static ResultMatcher notFound = MockMvcResultMatchers.status().isNotFound();
 
   @BeforeClass
   public static void setup() throws FileNotFoundException {
-    client = new OkHttpClient();
     App.initializeAppDB();
 
     // Create a single test Bundle
@@ -59,17 +68,19 @@ public class BundleEndpointTest {
   }
 
   @Test
-  public void searchBundles() throws IOException {
-    String base = "http://localhost:" + port + "/fhir";
-
+  public void searchBundles() throws Exception {
     // Test that we can GET /fhir/Bundle.
-    Request request = new Request.Builder().url(base + "/Bundle?patient.identifier=1")
-        .header("Accept", "application/fhir+json").build();
-    Response response = client.newCall(request).execute();
-    Assert.assertEquals(200, response.code());
+    DefaultMockMvcBuilder builder = MockMvcBuilders.webAppContextSetup(wac);
+    MockMvc mockMvc = builder.build();
+    MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.get("/Bundle?patient.identifier=1")
+        .header("Accept", "application/fhir+json").header("Access-Control-Request-Method", "GET")
+        .header("Origin", "http://localhost:" + port);
+
+    // Test the response has CORS headers and returned status 200
+    MvcResult mvcresult = mockMvc.perform(requestBuilder).andExpect(ok).andExpect(cors).andReturn();
 
     // Test the response is a JSON Bundle
-    String body = response.body().string();
+    String body = mvcresult.getResponse().getContentAsString();
     Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
     Assert.assertNotNull(bundle);
 
@@ -79,21 +90,19 @@ public class BundleEndpointTest {
   }
 
   @Test
-  public void searchBundlesXml() throws IOException {
-    String base = "http://localhost:" + port + "/fhir";
-
+  public void searchBundlesXml() throws Exception {
     // Test that we can GET /fhir/Bundle.
-    Request request = new Request.Builder().url(base + "/Bundle?patient.identifier=1")
-        .header("Accept", "application/fhir+xml").build();
-    Response response = client.newCall(request).execute();
-    Assert.assertEquals(200, response.code());
+    DefaultMockMvcBuilder builder = MockMvcBuilders.webAppContextSetup(wac);
+    MockMvc mockMvc = builder.build();
+    MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.get("/Bundle?patient.identifier=1")
+        .header("Accept", "application/fhir+xml").header("Access-Control-Request-Method", "GET")
+        .header("Origin", "http://localhost:" + port);
 
-    // Test the response has CORS headers
-    String cors = response.header("Access-Control-Allow-Origin");
-    Assert.assertEquals("*", cors);
+    // Test the response has CORS headers and returned status 200
+    MvcResult mvcresult = mockMvc.perform(requestBuilder).andExpect(ok).andExpect(cors).andReturn();
 
-    // Test the response is an XML Bundle
-    String body = response.body().string();
+    // Test the response is a XML Bundle
+    String body = mvcresult.getResponse().getContentAsString();
     Bundle bundle = (Bundle) App.FHIR_CTX.newXmlParser().parseResource(body);
     Assert.assertNotNull(bundle);
 
@@ -112,21 +121,19 @@ public class BundleEndpointTest {
   }
 
   @Test
-  public void getBundle() throws IOException {
-    String base = "http://localhost:" + port + "/fhir";
-
+  public void getBundle() throws Exception {
     // Test that we can get fhir/Bundle/minimal
-    Request request = new Request.Builder().url(base + "/Bundle?identifier=minimal&patient.identifier=1")
-        .header("Accept", "application/fhir+json").build();
-    Response response = client.newCall(request).execute();
-    Assert.assertEquals(200, response.code());
+    DefaultMockMvcBuilder builder = MockMvcBuilders.webAppContextSetup(wac);
+    MockMvc mockMvc = builder.build();
+    MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders
+        .get("/Bundle?identifier=minimal&patient.identifier=1").header("Accept", "application/fhir+json")
+        .header("Access-Control-Request-Method", "GET").header("Origin", "http://localhost:" + port);
 
-    // Test the response has CORS headers
-    String cors = response.header("Access-Control-Allow-Origin");
-    Assert.assertEquals("*", cors);
+    // Test the response has CORS headers and returned status 200
+    MvcResult mvcresult = mockMvc.perform(requestBuilder).andExpect(ok).andExpect(cors).andReturn();
 
     // Test the response is a JSON Bundle
-    String body = response.body().string();
+    String body = mvcresult.getResponse().getContentAsString();
     Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
     Assert.assertNotNull(bundle);
 
@@ -136,21 +143,19 @@ public class BundleEndpointTest {
   }
 
   @Test
-  public void getBundleXml() throws IOException {
-    String base = "http://localhost:" + port + "/fhir";
-
+  public void getBundleXml() throws Exception {
     // Test that we can get fhir/Bundle/minimal
-    Request request = new Request.Builder().url(base + "/Bundle?identifier=minimal&patient.identifier=1")
-        .header("Accept", "application/fhir+xml").build();
-    Response response = client.newCall(request).execute();
-    Assert.assertEquals(200, response.code());
+    DefaultMockMvcBuilder builder = MockMvcBuilders.webAppContextSetup(wac);
+    MockMvc mockMvc = builder.build();
+    MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders
+        .get("/Bundle?identifier=minimal&patient.identifier=1").header("Accept", "application/fhir+xml")
+        .header("Access-Control-Request-Method", "GET").header("Origin", "http://localhost:" + port);
 
-    // Test the response has CORS headers
-    String cors = response.header("Access-Control-Allow-Origin");
-    Assert.assertEquals("*", cors);
+    // Test the response has CORS headers and returned status 200
+    MvcResult mvcresult = mockMvc.perform(requestBuilder).andExpect(ok).andExpect(cors).andReturn();
 
-    // Test the response is an XML Bundle
-    String body = response.body().string();
+    // Test the response is a XML Bundle
+    String body = mvcresult.getResponse().getContentAsString();
     Bundle bundle = (Bundle) App.FHIR_CTX.newXmlParser().parseResource(body);
     Assert.assertNotNull(bundle);
 
@@ -160,14 +165,17 @@ public class BundleEndpointTest {
   }
 
   @Test
-  public void getBundleThatDoesNotExist() throws IOException {
-    String base = "http://localhost:" + port + "/fhir";
-
+  public void getBundleThatDoesNotExist() throws Exception {
     // Test that non-existent Bundle returns 404.
-    Request request = new Request.Builder()
-        .url(base + "/Bundle?identifier=BundleThatDoesNotExist&patient.identifier=45").build();
-    Response response = client.newCall(request).execute();
-    Assert.assertEquals(404, response.code());
+    DefaultMockMvcBuilder builder = MockMvcBuilders.webAppContextSetup(wac);
+    MockMvc mockMvc = builder.build();
+    MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders
+        .get("/Bundle?identifier=BundleThatDoesNotExist&patient.identifier=45")
+        .header("Accept", "application/fhir+json").header("Access-Control-Request-Method", "GET")
+        .header("Origin", "http://localhost:" + port);
+
+    // Test the response has CORS headers and returned status 200
+    mockMvc.perform(requestBuilder).andExpect(notFound).andExpect(cors);
   }
 
 }
