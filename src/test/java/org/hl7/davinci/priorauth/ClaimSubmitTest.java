@@ -159,11 +159,6 @@ public class ClaimSubmitTest {
 
   private void checkErrors(String body) throws Exception {
     // Test that we can POST /fhir/Claim/$submit
-    // RequestBody requestBody = RequestBody.create(JSON, body);
-    // Request request = new Request.Builder().url(base +
-    // "/Claim/$submit").post(requestBody).build();
-    // Response response = client.newCall(request).execute();
-
     DefaultMockMvcBuilder builder = MockMvcBuilders.webAppContextSetup(wac);
     MockMvc mockMvc = builder.build();
     MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.post("/Claim/$submit").content(body)
