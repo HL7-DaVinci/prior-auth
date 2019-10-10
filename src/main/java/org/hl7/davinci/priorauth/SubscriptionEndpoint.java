@@ -9,10 +9,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,6 +33,7 @@ import ca.uhn.fhir.parser.IParser;
  * The Subscription endpoint to create new subscriptions or delete outdated
  * ones.
  */
+@CrossOrigin
 @RestController
 @RequestMapping("/Subscription")
 public class SubscriptionEndpoint {
@@ -115,8 +116,7 @@ public class SubscriptionEndpoint {
         MediaType contentType = requestType == RequestType.JSON ? MediaType.APPLICATION_JSON
                 : MediaType.APPLICATION_XML;
 
-        return ResponseEntity.status(status).contentType(contentType)
-                .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*").body(formattedData);
+        return ResponseEntity.status(status).contentType(contentType).body(formattedData);
 
     }
 

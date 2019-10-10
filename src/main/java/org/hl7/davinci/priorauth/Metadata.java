@@ -13,11 +13,10 @@ import org.hl7.fhir.r4.model.CapabilityStatement.RestfulCapabilityMode;
 import org.hl7.fhir.r4.model.CapabilityStatement.TypeRestfulInteraction;
 import org.hl7.fhir.r4.model.Enumerations.FHIRVersion;
 import org.hl7.fhir.r4.model.Enumerations.PublicationStatus;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * The metadata microservice provides a CapabilityStatement.
  */
+@CrossOrigin
 @RestController
 @RequestMapping("/metadata")
 public class Metadata {
@@ -40,9 +40,7 @@ public class Metadata {
       capabilityStatement = buildCapabilityStatement();
     }
     String json = FhirUtils.json(capabilityStatement);
-    MultiValueMap<String, String> headers = new HttpHeaders();
-    headers.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-    return new ResponseEntity<String>(json, headers, HttpStatus.OK);
+    return new ResponseEntity<String>(json, HttpStatus.OK);
   }
 
   @GetMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
@@ -51,9 +49,7 @@ public class Metadata {
       capabilityStatement = buildCapabilityStatement();
     }
     String xml = FhirUtils.xml(capabilityStatement);
-    MultiValueMap<String, String> headers = new HttpHeaders();
-    headers.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-    return new ResponseEntity<String>(xml, headers, HttpStatus.OK);
+    return new ResponseEntity<String>(xml, HttpStatus.OK);
   }
 
   /**

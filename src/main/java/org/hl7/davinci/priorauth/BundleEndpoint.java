@@ -7,6 +7,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,6 +19,7 @@ import org.hl7.davinci.priorauth.Endpoint.RequestType;
 /**
  * The Bundle endpoint to READ, SEARCH for, and DELETE submitted Bundles.
  */
+@CrossOrigin
 @RestController
 @RequestMapping("/Bundle")
 public class BundleEndpoint {

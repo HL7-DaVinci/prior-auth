@@ -11,10 +11,8 @@ import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.MultiValueMap;
 
 public class Endpoint {
 
@@ -40,12 +38,10 @@ public class Endpoint {
     public static ResponseEntity<String> read(String resourceType, Map<String, Object> constraintMap,
             HttpServletRequest request, RequestType requestType) {
         logger.info("GET /" + resourceType + ":" + constraintMap.toString() + " fhir+" + requestType.name());
-        MultiValueMap<String, String> headers = new HttpHeaders();
-        headers.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
         App.setBaseUrl(Endpoint.getServiceBaseUrl(request));
         if (!constraintMap.containsKey("patient")) {
             logger.warning("Endpoint::read:patient null");
-            return new ResponseEntity<>(headers, HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
         String formattedData = null;
         if ((!constraintMap.containsKey("id") || constraintMap.get("id") == null)
@@ -61,7 +57,7 @@ public class Endpoint {
             baseResource = App.getDB().read(resourceType, constraintMap);
 
             if (baseResource == null)
-                return new ResponseEntity<>(headers, HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 
             // Convert to correct resourceType
             if (resourceType == Database.BUNDLE) {
@@ -75,10 +71,10 @@ public class Endpoint {
                 formattedData = FhirUtils.getFormattedData(bundleResponse, requestType);
             } else {
                 logger.warning("Endpoint::read:invalid resourceType: " + resourceType);
-                return new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
         }
-        return new ResponseEntity<String>(formattedData, headers, HttpStatus.OK);
+        return new ResponseEntity<String>(formattedData, HttpStatus.OK);
     }
 
     /**
@@ -111,9 +107,7 @@ public class Endpoint {
             outcome = FhirUtils.buildOutcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
         }
         String formattedData = FhirUtils.getFormattedData(outcome, requestType);
-        MultiValueMap<String, String> headers = new HttpHeaders();
-        headers.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-        return new ResponseEntity<>(formattedData, headers, status);
+        return new ResponseEntity<>(formattedData, status);
     }
 
     /**
@@ -126,4 +120,5 @@ public class Endpoint {
         return request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort()
                 + request.getContextPath();
     }
+
 }

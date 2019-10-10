@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,6 +22,7 @@ import org.hl7.fhir.r4.model.ClaimResponse;
 
 import ca.uhn.fhir.context.FhirContext;
 
+@CrossOrigin
 @RestController
 @RequestMapping("/debug")
 public class DebugEndpoint {

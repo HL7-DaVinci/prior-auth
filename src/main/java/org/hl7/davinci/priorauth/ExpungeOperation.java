@@ -5,11 +5,13 @@ import java.util.logging.Logger;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@CrossOrigin
 @RestController
 @RequestMapping("/$expunge")
 public class ExpungeOperation {
@@ -44,8 +46,7 @@ public class ExpungeOperation {
       return ResponseEntity.ok().body("Expunge success!");
     } else {
       logger.warning("ExpungeOperation::expungeDatabase:query disabled");
-      return ResponseEntity.status(HttpStatus.BAD_REQUEST).header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
-          .body("Expunge operation disabled");
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Expunge operation disabled");
     }
   }
 }
