@@ -59,10 +59,6 @@ public class App {
 
     // Assemble the microservice
     SpringApplication server = new SpringApplication(App.class);
-    Map<String, Object> defaultProperties = new HashMap<String, Object>();
-    defaultProperties.put("server.port", "9000");
-    defaultProperties.put("server.servlet.contextPath", "/fhir");
-    server.setDefaultProperties(defaultProperties);
     server.run();
   }
 
