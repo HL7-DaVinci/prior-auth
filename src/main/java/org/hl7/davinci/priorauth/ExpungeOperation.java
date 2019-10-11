@@ -2,7 +2,6 @@ package org.hl7.davinci.priorauth;
 
 import java.util.logging.Logger;
 
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
