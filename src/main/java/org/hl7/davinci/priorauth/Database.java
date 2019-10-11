@@ -72,9 +72,6 @@ public class Database {
     return connection;
   }
 
-  /** The base URL of the microservice, for population Bundle.entry.fullUrl. */
-  // private String baseUrl;
-
   public Database() {
     this("./");
   }
