@@ -24,28 +24,24 @@ import org.hl7.davinci.priorauth.Endpoint.RequestType;
 @RequestMapping("/Bundle")
 public class BundleEndpoint {
 
-  private static String uri;
-
   @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> readBundle(HttpServletRequest request,
       @RequestParam(name = "identifier", required = false) String id,
       @RequestParam(name = "patient.identifier") String patient) {
-    uri = request.getRequestURL().toString();
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", id);
     constraintMap.put("patient", patient);
-    return Endpoint.read(Database.BUNDLE, constraintMap, uri, RequestType.JSON);
+    return Endpoint.read(Database.BUNDLE, constraintMap, request, RequestType.JSON);
   }
 
   @GetMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
   public ResponseEntity<String> readBundleXml(HttpServletRequest request,
       @RequestParam(name = "identifier", required = false) String id,
       @RequestParam(name = "patient.identifier") String patient) {
-    uri = request.getRequestURL().toString();
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", id);
     constraintMap.put("patient", patient);
-    return Endpoint.read(Database.BUNDLE, constraintMap, uri, RequestType.XML);
+    return Endpoint.read(Database.BUNDLE, constraintMap, request, RequestType.XML);
   }
 
   @DeleteMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })

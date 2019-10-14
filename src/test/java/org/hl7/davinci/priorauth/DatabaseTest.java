@@ -57,7 +57,7 @@ public class DatabaseTest {
     bundle.setType(BundleType.SEARCHSET);
     bundle.setTotal(0);
 
-    String json = App.getDB().json(bundle);
+    String json = FhirUtils.json(bundle);
     Assert.assertNotNull(json);
   }
 
@@ -67,7 +67,7 @@ public class DatabaseTest {
     bundle.setType(BundleType.SEARCHSET);
     bundle.setTotal(0);
 
-    String xml = App.getDB().xml(bundle);
+    String xml = FhirUtils.xml(bundle);
     Assert.assertNotNull(xml);
   }
 }

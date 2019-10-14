@@ -3,6 +3,7 @@ package org.hl7.davinci.priorauth;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
@@ -10,6 +11,8 @@ import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
+import org.hl7.fhir.r4.model.Claim.ClaimStatus;
+import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
 
 public class FhirUtils {
 
@@ -72,6 +75,20 @@ public class FhirUtils {
   }
 
   /**
+   * Set the fullUrl on each entry of a bundle
+   * 
+   * @param bundle - the bundle to modify fullUrls for
+   * @return the same bundle with each fullUrl set appropriately
+   */
+  public static Bundle setBundleFullUrls(Bundle bundle) {
+    for (BundleEntryComponent entry : bundle.getEntry()) {
+      entry.setFullUrl(App.getBaseUrl() + "/" + entry.getResource().getResourceType() + "/"
+          + getIdFromResource(entry.getResource()));
+    }
+    return bundle;
+  }
+
+  /**
    * Find the first instance of a ClaimResponse in a bundle
    * 
    * @param bundle - the bundle search through for the ClaimResponse
@@ -85,6 +102,65 @@ public class FhirUtils {
     }
 
     return claimResponse;
+  }
+
+  /**
+   * Return the id of a resource
+   * 
+   * @param resource - the resource to get the id from
+   * @return the id of the resource
+   */
+  public static String getIdFromResource(IBaseResource resource) {
+    if (resource.getIdElement().hasIdPart())
+      return resource.getIdElement().getIdPart();
+    return null;
+  }
+
+  /**
+   * Convert a FHIR resource into JSON.
+   * 
+   * @param resource - the resource to convert to JSON.
+   * @return String - the JSON.
+   */
+  public static String json(IBaseResource resource) {
+    String json = App.FHIR_CTX.newJsonParser().setPrettyPrint(true).encodeResourceToString(resource);
+    return json;
+  }
+
+  /**
+   * Convert a FHIR resource into XML.
+   * 
+   * @param resource - the resource to convert to XML.
+   * @return String - the XML.
+   */
+  public static String xml(IBaseResource resource) {
+    String xml = App.FHIR_CTX.newXmlParser().setPrettyPrint(true).encodeResourceToString(resource);
+    return xml;
+  }
+
+  /**
+   * Format the resource status in a standard way for the database
+   * 
+   * @param status - the status
+   * @return standard string representation of the status
+   */
+  public static String formatResourceStatus(Object status) {
+    if (status instanceof ClaimStatus)
+      return ((ClaimStatus) status).getDisplay().toLowerCase();
+    else if (status instanceof SubscriptionStatus)
+      return ((SubscriptionStatus) status).getDisplay().toLowerCase();
+    return "error";
+  }
+
+  /**
+   * Format a resource into JSON or XML string
+   * 
+   * @param resource    - the resource to convert
+   * @param requestType - the type to represent it as
+   * @return JSON or XML string representation of the resource
+   */
+  public static String getFormattedData(IBaseResource resource, RequestType requestType) {
+    return requestType == RequestType.JSON ? FhirUtils.json(resource) : FhirUtils.xml(resource);
   }
 
   /**

@@ -110,7 +110,7 @@ public class DebugEndpoint {
 
   private static boolean writeClaim(Bundle claimBundle, String related, String timestamp) {
     Claim claim = (Claim) claimBundle.getEntry().get(0).getResource();
-    String id = claim.getId();
+    String id = FhirUtils.getIdFromResource(claim);
     String patient = FhirUtils.getPatientIdFromResource(claim);
     String status = FhirUtils.getStatusFromResource(claim);
     App.getDB().delete(Database.CLAIM, id, patient);
@@ -132,7 +132,7 @@ public class DebugEndpoint {
 
   private static boolean writeClaimResponse(Bundle claimResponseBundle, String claimId, String timestamp) {
     ClaimResponse claimResponse = (ClaimResponse) claimResponseBundle.getEntry().get(0).getResource();
-    String id = claimResponse.getId();
+    String id = FhirUtils.getIdFromResource(claimResponse);
     String patient = FhirUtils.getPatientIdFromResource(claimResponse);
     String status = FhirUtils.getStatusFromResource(claimResponse);
     App.getDB().delete(Database.CLAIM_RESPONSE, id, patient);

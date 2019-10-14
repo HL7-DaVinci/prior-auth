@@ -25,15 +25,12 @@ import org.hl7.davinci.priorauth.Endpoint.RequestType;
 @RequestMapping("/ClaimResponse")
 public class ClaimResponseEndpoint {
 
-  private static String uri;
-
   @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> readClaimResponseJson(HttpServletRequest request,
       @RequestParam(name = "identifier", required = false) String id,
       @RequestParam(name = "patient.identifier") String patient,
       @RequestParam(name = "status", required = false) String status) {
-    uri = request.getRequestURL().toString();
-    return readClaimResponse(id, patient, status, RequestType.JSON);
+    return readClaimResponse(id, patient, status, request, RequestType.JSON);
   }
 
   @GetMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
@@ -41,11 +38,11 @@ public class ClaimResponseEndpoint {
       @RequestParam(name = "identifier", required = false) String id,
       @RequestParam(name = "patient.identifier") String patient,
       @RequestParam(name = "status", required = false) String status) {
-    uri = request.getRequestURL().toString();
-    return readClaimResponse(id, patient, status, RequestType.XML);
+    return readClaimResponse(id, patient, status, request, RequestType.XML);
   }
 
-  public ResponseEntity<String> readClaimResponse(String id, String patient, String status, RequestType requestType) {
+  public ResponseEntity<String> readClaimResponse(String id, String patient, String status, HttpServletRequest request,
+      RequestType requestType) {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
 
     // get the claim id from the claim response id
@@ -69,7 +66,7 @@ public class ClaimResponseEndpoint {
     constraintMap.put("patient", patient);
     if (status != null)
       constraintMap.put("status", status);
-    return Endpoint.read(Database.CLAIM_RESPONSE, constraintMap, uri, requestType);
+    return Endpoint.read(Database.CLAIM_RESPONSE, constraintMap, request, requestType);
   }
 
   @DeleteMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })

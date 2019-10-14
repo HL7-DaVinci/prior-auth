@@ -5,8 +5,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import ca.uhn.fhir.context.FhirContext;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Timer;
 
 /**
@@ -34,6 +32,8 @@ public class App {
 
   public static boolean debugMode = false;
 
+  private static String baseUrl;
+
   /**
    * Launch the Prior Authorization microservice.
    * 
@@ -57,10 +57,6 @@ public class App {
 
     // Assemble the microservice
     SpringApplication server = new SpringApplication(App.class);
-    Map<String, Object> defaultProperties = new HashMap<String, Object>();
-    defaultProperties.put("server.port", "9000");
-    defaultProperties.put("server.servlet.contextPath", "/fhir");
-    server.setDefaultProperties(defaultProperties);
     server.run();
   }
 
@@ -71,5 +67,24 @@ public class App {
 
   public static Database getDB() {
     return DB;
+  }
+
+  /**
+   * Set the base URI for the microservice. This is necessary so
+   * Bundle.entry.fullUrl data is accurately populated.
+   * 
+   * @param base - from FhirUtils.setServiceBaseUrl(HttpServletRequest)
+   */
+  public static void setBaseUrl(String base) {
+    baseUrl = base;
+  }
+
+  /**
+   * Get the base URL for the microservice
+   * 
+   * @return the the base url
+   */
+  public static String getBaseUrl() {
+    return baseUrl;
   }
 }

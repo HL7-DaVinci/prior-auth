@@ -7,4 +7,4 @@ RUN keytool -import -alias mitre_ba_npe_ca3 -file "/prior-auth/MITRE BA NPE CA-3
     -keystore "$JAVA_HOME/lib/security/cacerts" -storepass changeit -noprompt -trustcacerts
 WORKDIR /prior-auth/
 RUN gradle installBootDist
-CMD ["gradle", "bootRun"]
+CMD ["gradle", "bootRun", "--args='debug'"]

@@ -39,7 +39,7 @@ public class Metadata {
     if (capabilityStatement == null) {
       capabilityStatement = buildCapabilityStatement();
     }
-    String json = App.getDB().json(capabilityStatement);
+    String json = FhirUtils.json(capabilityStatement);
     return new ResponseEntity<String>(json, HttpStatus.OK);
   }
 
@@ -48,7 +48,7 @@ public class Metadata {
     if (capabilityStatement == null) {
       capabilityStatement = buildCapabilityStatement();
     }
-    String xml = App.getDB().xml(capabilityStatement);
+    String xml = FhirUtils.xml(capabilityStatement);
     return new ResponseEntity<String>(xml, HttpStatus.OK);
   }
 
@@ -73,7 +73,7 @@ public class Metadata {
     metadata.setSoftware(software);
     CapabilityStatementImplementationComponent implementation = new CapabilityStatementImplementationComponent();
     implementation.setDescription(metadata.getTitle());
-    implementation.setUrl(App.getDB().getBaseUrl() + "metadata");
+    implementation.setUrl(App.getBaseUrl() + "metadata");
     metadata.setImplementation(implementation);
     metadata.setFhirVersion(FHIRVersion._4_0_0);
     metadata.addFormat("json");
