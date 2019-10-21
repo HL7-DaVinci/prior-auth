@@ -30,6 +30,7 @@ BEGIN TRANSACTION;
     CREATE TABLE IF NOT EXISTS ClaimItem (
         "id" varchar,
         "sequence" varchar,
+        "outcome" varchar DEFAULT NULL,
         "status" varchar,
         "timestamp" datetime DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT pk_claimitems PRIMARY KEY ("id", "sequence"),

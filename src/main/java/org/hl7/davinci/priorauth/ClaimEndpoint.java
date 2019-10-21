@@ -1,6 +1,7 @@
 package org.hl7.davinci.priorauth;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -32,8 +33,10 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.Claim.RelatedClaimComponent;
 import org.hl7.fhir.r4.model.ClaimResponse;
+import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Extension;
+import org.hl7.fhir.r4.model.ClaimResponse.AdjudicationComponent;
 import org.hl7.fhir.r4.model.ClaimResponse.ClaimResponseStatus;
 import org.hl7.fhir.r4.model.ClaimResponse.RemittanceOutcome;
 import org.hl7.fhir.r4.model.ClaimResponse.Use;
@@ -44,6 +47,7 @@ import org.hl7.fhir.r4.model.Subscription.SubscriptionChannelType;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ResourceType;
+import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Subscription;
 import org.hl7.fhir.r4.model.Type;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
@@ -66,6 +70,7 @@ public class ClaimEndpoint {
 
   String REQUIRES_BUNDLE = "Prior Authorization Claim/$submit Operation requires a Bundle with a single Claim as the first entry and supporting resources.";
   String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
+  String REVIEW_ACTION_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction";
 
   @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> readClaimJson(HttpServletRequest request,
@@ -194,18 +199,18 @@ public class ClaimEndpoint {
     String patient = FhirUtils.getPatientIdFromResource(claim);
 
     String claimId = id;
-    String responseDisposition = "Unknown";
+    Disposition responseDisposition = Disposition.UNKNOWN;
     ClaimResponseStatus responseStatus = ClaimResponseStatus.ACTIVE;
     ClaimStatus status = claim.getStatus();
     boolean delayedUpdate = false;
-    String delayedDisposition = "";
+    Disposition delayedDisposition = Disposition.UNKNOWN;
 
     if (status == ClaimStatus.CANCELLED) {
       // Cancel the claim...
       claimId = FhirUtils.getIdFromResource(claim);
       if (cancelClaim(claimId, patient)) {
         responseStatus = ClaimResponseStatus.CANCELLED;
-        responseDisposition = "Cancelled";
+        responseDisposition = Disposition.CANCELLED;
       } else
         return null;
     } else {
@@ -261,26 +266,33 @@ public class ClaimEndpoint {
       case 1:
       case 2:
       case 3:
-      case 4:
-        responseDisposition = "Pending";
+        responseDisposition = Disposition.PENDING;
 
         switch (getRand(2)) {
         case 1:
-          delayedDisposition = "Granted";
+          delayedDisposition = Disposition.GRANTED;
           break;
         case 2:
-          delayedDisposition = "Denied";
+          delayedDisposition = Disposition.DENIED;
           break;
         }
 
         delayedUpdate = true;
         break;
+      case 4:
+        // We can only have partial disposition when there are
+        // more than 2 items in the Claim
+        if (claim.hasItem() && claim.getItem().size() >= 2)
+          responseDisposition = Disposition.PARTIAL;
+        else
+          responseDisposition = Disposition.GRANTED;
+        break;
       case 5:
-        responseDisposition = "Granted";
+        responseDisposition = Disposition.GRANTED;
         break;
       case 6:
       default:
-        responseDisposition = "Denied";
+        responseDisposition = Disposition.DENIED;
         break;
       }
     }
@@ -465,8 +477,9 @@ public class ClaimEndpoint {
    * @param patient     - the Patient ID.
    * @param disposition - the new disposition of the updated Claim.
    */
-  private Bundle updateClaim(Bundle bundle, String claimId, String patient, String disposition) {
-    logger.info("ClaimEndpoint::updateClaim(" + claimId + "/" + patient + ", disposition: " + disposition + ")");
+  private Bundle updateClaim(Bundle bundle, String claimId, String patient, Disposition disposition) {
+    logger
+        .info("ClaimEndpoint::updateClaim(" + claimId + "/" + patient + ", disposition: " + disposition.value() + ")");
 
     // Generate a new id...
     String id = UUID.randomUUID().toString();
@@ -477,7 +490,7 @@ public class ClaimEndpoint {
     claimConstraintMap.put("patient", patient);
     Claim claim = (Claim) App.getDB().read(Database.CLAIM, claimConstraintMap);
     if (claim != null)
-      return generateAndStoreClaimResponse(bundle, claim, id, "Granted", ClaimResponseStatus.ACTIVE, patient);
+      return generateAndStoreClaimResponse(bundle, claim, id, Disposition.GRANTED, ClaimResponseStatus.ACTIVE, patient);
     else
       return null;
   }
@@ -521,7 +534,7 @@ public class ClaimEndpoint {
    *                            is referring to.
    * @return ClaimResponse that has been generated and stored in the Database.
    */
-  private Bundle generateAndStoreClaimResponse(Bundle bundle, Claim claim, String id, String responseDisposition,
+  private Bundle generateAndStoreClaimResponse(Bundle bundle, Claim claim, String id, Disposition responseDisposition,
       ClaimResponseStatus responseStatus, String patient) {
     logger.info("ClaimEndpoint::generateAndStoreClaimResponse(" + id + "/" + patient + ", disposition: "
         + responseDisposition + ", status: " + responseStatus + ")");
@@ -541,12 +554,15 @@ public class ClaimEndpoint {
     }
     response.setRequest(new Reference(App.getBaseUrl() + "Claim?identifier=" + FhirUtils.getIdFromResource(claim)
         + "&patient.identifier=" + patient));
-    if (responseDisposition == "Pending") {
+    if (responseDisposition == Disposition.PENDING) {
       response.setOutcome(RemittanceOutcome.QUEUED);
+    } else if (responseDisposition == Disposition.PARTIAL) {
+      response.setOutcome(RemittanceOutcome.PARTIAL);
     } else {
       response.setOutcome(RemittanceOutcome.COMPLETE);
     }
-    response.setDisposition(responseDisposition);
+    response.setItem(setClaimResponseItems(claim, responseDisposition));
+    response.setDisposition(responseDisposition.value());
     response.setPreAuthRef(id);
     // TODO response.setPreAuthPeriod(period)?
     response.setId(id);
@@ -575,6 +591,112 @@ public class ClaimEndpoint {
     return responseBundle;
   }
 
+  private enum Disposition {
+    GRANTED("Granted"), DENIED("Denied"), PARTIAL("Partial"), PENDING("Pending"), CANCELLED("Cancelled"),
+    UNKNOWN("Unknown");
+
+    private final String value;
+
+    Disposition(String value) {
+      this.value = value;
+    }
+
+    public String value() {
+      return this.value;
+    }
+  }
+
+  private enum ReviewAction {
+    APPROVED("A1: Certified in Total"), DENIED("A3: Not Certified"), PENDED("A4: Pended");
+
+    private final String value;
+
+    ReviewAction(String value) {
+      this.value = value;
+    }
+
+    public StringType value() {
+      return new StringType(this.value);
+    }
+  }
+
+  /**
+   * Set the Items on the ClaimResponse indicating the adjudication of each one
+   * 
+   * @param claim               - the initial Claim which contains the items
+   * @param responseDisposition - the overall disposition
+   * @return a list of ItemComponents to be added to the ClaimResponse.items field
+   */
+  private List<ClaimResponse.ItemComponent> setClaimResponseItems(Claim claim, Disposition responseDisposition) {
+    List<ClaimResponse.ItemComponent> items = new ArrayList<ClaimResponse.ItemComponent>();
+    ReviewAction reviewAction = ReviewAction.DENIED;
+    boolean hasDeniedAtLeastOne = false;
+    boolean hasApprovedAtLeastOne = false;
+
+    // Set the Items on the ClaimResponse based on the initial Claim and the
+    // Response disposition
+    for (ItemComponent item : claim.getItem()) {
+      ClaimResponse.ItemComponent itemComponent = new ClaimResponse.ItemComponent();
+      itemComponent.setItemSequence(item.getSequence());
+
+      Coding adjudicationCoding = new Coding();
+      adjudicationCoding.setCode("eligpercent");
+      adjudicationCoding.setDisplay("Eligible %");
+      adjudicationCoding.setSystem("http://terminology.hl7.org/CodeSystem/adjudication");
+      CodeableConcept category = new CodeableConcept(adjudicationCoding);
+      AdjudicationComponent adjudication = new AdjudicationComponent(category);
+      Double adjudicationValue = 0.0;
+
+      if (responseDisposition == Disposition.GRANTED) {
+        reviewAction = ReviewAction.APPROVED;
+        adjudicationValue = 1.0;
+      } else if (responseDisposition == Disposition.DENIED) {
+        reviewAction = ReviewAction.DENIED;
+        adjudicationValue = 0.0;
+      } else if (responseDisposition == Disposition.PENDING) {
+        reviewAction = ReviewAction.PENDED;
+        adjudicationValue = 0.0;
+      } else if (responseDisposition == Disposition.PARTIAL) {
+        // Deny some and approve some
+        if (!hasDeniedAtLeastOne) {
+          reviewAction = ReviewAction.DENIED;
+          adjudicationValue = 0.0;
+          hasDeniedAtLeastOne = true;
+        } else if (!hasApprovedAtLeastOne) {
+          reviewAction = ReviewAction.APPROVED;
+          adjudicationValue = 1.0;
+          hasApprovedAtLeastOne = true;
+        } else {
+          switch (getRand(2)) {
+          case 1:
+            reviewAction = ReviewAction.DENIED;
+            adjudicationValue = 0.0;
+            break;
+          case 2:
+          default:
+            reviewAction = ReviewAction.APPROVED;
+            adjudicationValue = 1.0;
+            break;
+          }
+        }
+      }
+      adjudication.setValue(adjudicationValue);
+      itemComponent.addAdjudication(adjudication);
+      Extension reviewActionExtension = new Extension(REVIEW_ACTION_EXTENSION_URL);
+      reviewActionExtension.setValue(reviewAction.value());
+      itemComponent.addExtension(reviewActionExtension);
+
+      items.add(itemComponent);
+
+      // Update the ClaimItem database
+      Map<String, Object> constraintMap = new HashMap<String, Object>();
+      constraintMap.put("id", FhirUtils.getIdFromResource(claim));
+      constraintMap.put("sequence", item.getSequence());
+      App.getDB().update(Database.CLAIM_ITEM, constraintMap, Collections.singletonMap("outcome", reviewAction.value()));
+    }
+    return items;
+  }
+
   /**
    * A TimerTask for updating claims.
    */
@@ -582,9 +704,9 @@ public class ClaimEndpoint {
     public Bundle bundle;
     public String claimId;
     public String patient;
-    public String disposition;
+    public Disposition disposition;
 
-    UpdateClaimTask(Bundle bundle, String claimId, String patient, String disposition) {
+    UpdateClaimTask(Bundle bundle, String claimId, String patient, Disposition disposition) {
       this.bundle = bundle;
       this.claimId = claimId;
       this.patient = patient;
@@ -644,7 +766,7 @@ public class ClaimEndpoint {
    * @param patient     - the Patient ID.
    * @param disposition - the new disposition of the updated Claim.
    */
-  private void scheduleClaimUpdate(Bundle bundle, String id, String patient, String disposition) {
+  private void scheduleClaimUpdate(Bundle bundle, String id, String patient, Disposition disposition) {
     App.timer.schedule(new UpdateClaimTask(bundle, id, patient, disposition), 30000); // 30s
   }
 
