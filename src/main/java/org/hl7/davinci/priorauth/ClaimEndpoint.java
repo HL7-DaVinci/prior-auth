@@ -72,6 +72,45 @@ public class ClaimEndpoint {
   String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
   String REVIEW_ACTION_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction";
 
+  /**
+   * Enum for the ClaimResponse Disposition field Values are Granted, Denied,
+   * Partial, Pending, and Cancelled
+   */
+  private enum Disposition {
+    GRANTED("Granted"), DENIED("Denied"), PARTIAL("Partial"), PENDING("Pending"), CANCELLED("Cancelled"),
+    UNKNOWN("Unknown");
+
+    private final String value;
+
+    Disposition(String value) {
+      this.value = value;
+    }
+
+    public String value() {
+      return this.value;
+    }
+  }
+
+  /**
+   * Enum for the ClaimResponse.item reviewAction extensions used for X12 HCR01
+   * Responde Code. Codes taken from X12 and CMS
+   * http://www.x12.org/x12org/subcommittees/X12N/N0210_4010MultProcedures.pdf
+   * https://www.cms.gov/Research-Statistics-Data-and-Systems/Computer-Data-and-Systems/ESMD/Downloads/esMD_X12_278_09_2016Companion_Guide.pdf
+   */
+  private enum ReviewAction {
+    APPROVED("A1"), PARTIAL("A2"), DENIED("A3"), PENDED("A4"), CANCELLED("A6");
+
+    private final String value;
+
+    ReviewAction(String value) {
+      this.value = value;
+    }
+
+    public StringType value() {
+      return new StringType(this.value);
+    }
+  }
+
   @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> readClaimJson(HttpServletRequest request,
       @RequestParam(name = "identifier", required = false) String id,
@@ -567,6 +606,10 @@ public class ClaimEndpoint {
     // TODO response.setPreAuthPeriod(period)?
     response.setId(id);
 
+    Extension reviewActionExtension = new Extension(REVIEW_ACTION_EXTENSION_URL);
+    reviewActionExtension.setValue(DispositionToReviewAction(responseDisposition).value());
+    response.addExtension(reviewActionExtension);
+
     // Create the responseBundle
     Bundle responseBundle = new Bundle();
     responseBundle.setId(id);
@@ -585,39 +628,32 @@ public class ClaimEndpoint {
     responseMap.put("claimId", claimId);
     responseMap.put("patient", patient);
     responseMap.put("status", FhirUtils.getStatusFromResource(response));
+    responseMap.put("outcome", DispositionToReviewAction(responseDisposition).value());
     responseMap.put("resource", responseBundle);
     App.getDB().write(Database.CLAIM_RESPONSE, responseMap);
 
     return responseBundle;
   }
 
-  private enum Disposition {
-    GRANTED("Granted"), DENIED("Denied"), PARTIAL("Partial"), PENDING("Pending"), CANCELLED("Cancelled"),
-    UNKNOWN("Unknown");
-
-    private final String value;
-
-    Disposition(String value) {
-      this.value = value;
-    }
-
-    public String value() {
-      return this.value;
-    }
-  }
-
-  private enum ReviewAction {
-    APPROVED("A1: Certified in Total"), DENIED("A3: Not Certified"), PENDED("A4: Pended");
-
-    private final String value;
-
-    ReviewAction(String value) {
-      this.value = value;
-    }
-
-    public StringType value() {
-      return new StringType(this.value);
-    }
+  /**
+   * Convert the response disposition into a review action
+   * 
+   * @param disposition - the response disposition
+   * @return corresponding ReviewAction for the Disposition
+   */
+  public ReviewAction DispositionToReviewAction(Disposition disposition) {
+    if (disposition == Disposition.DENIED)
+      return ReviewAction.DENIED;
+    else if (disposition == Disposition.GRANTED)
+      return ReviewAction.APPROVED;
+    else if (disposition == Disposition.PARTIAL)
+      return ReviewAction.PARTIAL;
+    else if (disposition == Disposition.PENDING)
+      return ReviewAction.PENDED;
+    else if (disposition == Disposition.CANCELLED)
+      return ReviewAction.CANCELLED;
+    else
+      return null;
   }
 
   /**

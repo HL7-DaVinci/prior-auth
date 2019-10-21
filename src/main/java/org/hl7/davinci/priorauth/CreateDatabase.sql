@@ -22,6 +22,7 @@ BEGIN TRANSACTION;
         "claimId" varchar,
         "patient" varchar,
         "status" varchar,
+        "outcome" varchar,
         "timestamp" datetime DEFAULT CURRENT_TIMESTAMP,
         "resource" clob,
         FOREIGN KEY ("claimId") REFERENCES Claim("id") ON DELETE CASCADE
