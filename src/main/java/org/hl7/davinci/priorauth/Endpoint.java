@@ -25,6 +25,7 @@ public class Endpoint {
     static String REQUIRES_ID = "Instance ID is required: DELETE {resourceType}?identifier=";
     static String REQUIRES_PATIENT = "Patient Identifier is required: DELETE {resourceType}?patient.identifier=";
     static String DELETED_MSG = "Deleted resource and all related and referenced resources.";
+    static String SQL_ERROR = "Unable to perform operation. SQL error while processing. Check logs for more details.";
 
     /**
      * Read a resource from an endpoint in either JSON or XML
@@ -103,8 +104,10 @@ public class Endpoint {
             outcome = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_PATIENT);
         } else {
             // Delete the specified resource..
-            App.getDB().delete(resourceType, id, patient);
-            outcome = FhirUtils.buildOutcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
+            if (App.getDB().delete(resourceType, id, patient))
+                outcome = FhirUtils.buildOutcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
+            else
+                outcome = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INCOMPLETE, SQL_ERROR);
         }
         String formattedData = FhirUtils.getFormattedData(outcome, requestType);
         return new ResponseEntity<>(formattedData, status);
