@@ -28,6 +28,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
+import org.hl7.davinci.priorauth.FhirUtils.Disposition;
+import org.hl7.davinci.priorauth.FhirUtils.ReviewAction;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
@@ -74,45 +76,6 @@ public class ClaimEndpoint {
   String ITEM_REFERENCE_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemReference";
   String REVIEW_ACTION_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction";
   String REVIEW_ACTION_REASON_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewActionReason";
-
-  /**
-   * Enum for the ClaimResponse Disposition field Values are Granted, Denied,
-   * Partial, Pending, and Cancelled
-   */
-  public enum Disposition {
-    GRANTED("Granted"), DENIED("Denied"), PARTIAL("Partial"), PENDING("Pending"), CANCELLED("Cancelled"),
-    UNKNOWN("Unknown");
-
-    private final String value;
-
-    Disposition(String value) {
-      this.value = value;
-    }
-
-    public String value() {
-      return this.value;
-    }
-  }
-
-  /**
-   * Enum for the ClaimResponse.item reviewAction extensions used for X12 HCR01
-   * Responde Code. Codes taken from X12 and CMS
-   * http://www.x12.org/x12org/subcommittees/X12N/N0210_4010MultProcedures.pdf
-   * https://www.cms.gov/Research-Statistics-Data-and-Systems/Computer-Data-and-Systems/ESMD/Downloads/esMD_X12_278_09_2016Companion_Guide.pdf
-   */
-  public enum ReviewAction {
-    APPROVED("A1"), PARTIAL("A2"), DENIED("A3"), PENDED("A4"), CANCELLED("A6");
-
-    private final String value;
-
-    ReviewAction(String value) {
-      this.value = value;
-    }
-
-    public StringType value() {
-      return new StringType(this.value);
-    }
-  }
 
   @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> readClaimJson(HttpServletRequest request,

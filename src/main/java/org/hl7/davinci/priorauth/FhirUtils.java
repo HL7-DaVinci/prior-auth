@@ -3,8 +3,6 @@ package org.hl7.davinci.priorauth;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.hl7.davinci.priorauth.ClaimEndpoint.Disposition;
-import org.hl7.davinci.priorauth.ClaimEndpoint.ReviewAction;
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
@@ -12,6 +10,7 @@ import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.ResourceType;
+import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
@@ -19,6 +18,45 @@ import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
 public class FhirUtils {
 
   static final Logger logger = PALogger.getLogger();
+
+  /**
+   * Enum for the ClaimResponse Disposition field Values are Granted, Denied,
+   * Partial, Pending, and Cancelled
+   */
+  public enum Disposition {
+    GRANTED("Granted"), DENIED("Denied"), PARTIAL("Partial"), PENDING("Pending"), CANCELLED("Cancelled"),
+    UNKNOWN("Unknown");
+
+    private final String value;
+
+    Disposition(String value) {
+      this.value = value;
+    }
+
+    public String value() {
+      return this.value;
+    }
+  }
+
+  /**
+   * Enum for the ClaimResponse.item reviewAction extensions used for X12 HCR01
+   * Responde Code. Codes taken from X12 and CMS
+   * http://www.x12.org/x12org/subcommittees/X12N/N0210_4010MultProcedures.pdf
+   * https://www.cms.gov/Research-Statistics-Data-and-Systems/Computer-Data-and-Systems/ESMD/Downloads/esMD_X12_278_09_2016Companion_Guide.pdf
+   */
+  public enum ReviewAction {
+    APPROVED("A1"), PARTIAL("A2"), DENIED("A3"), PENDED("A4"), CANCELLED("A6");
+
+    private final String value;
+
+    ReviewAction(String value) {
+      this.value = value;
+    }
+
+    public StringType value() {
+      return new StringType(this.value);
+    }
+  }
 
   /**
    * Internal function to get the correct status from a resource depending on the
