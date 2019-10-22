@@ -36,6 +36,7 @@ import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Extension;
+import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.ClaimResponse.AdjudicationComponent;
 import org.hl7.fhir.r4.model.ClaimResponse.ClaimResponseStatus;
 import org.hl7.fhir.r4.model.ClaimResponse.RemittanceOutcome;
@@ -70,13 +71,15 @@ public class ClaimEndpoint {
 
   String REQUIRES_BUNDLE = "Prior Authorization Claim/$submit Operation requires a Bundle with a single Claim as the first entry and supporting resources.";
   String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
+  String ITEM_REFERENCE_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemReference";
   String REVIEW_ACTION_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction";
+  String REVIEW_ACTION_REASON_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewActionReason";
 
   /**
    * Enum for the ClaimResponse Disposition field Values are Granted, Denied,
    * Partial, Pending, and Cancelled
    */
-  private enum Disposition {
+  public enum Disposition {
     GRANTED("Granted"), DENIED("Denied"), PARTIAL("Partial"), PENDING("Pending"), CANCELLED("Cancelled"),
     UNKNOWN("Unknown");
 
@@ -97,7 +100,7 @@ public class ClaimEndpoint {
    * http://www.x12.org/x12org/subcommittees/X12N/N0210_4010MultProcedures.pdf
    * https://www.cms.gov/Research-Statistics-Data-and-Systems/Computer-Data-and-Systems/ESMD/Downloads/esMD_X12_278_09_2016Companion_Guide.pdf
    */
-  private enum ReviewAction {
+  public enum ReviewAction {
     APPROVED("A1"), PARTIAL("A2"), DENIED("A3"), PENDED("A4"), CANCELLED("A6");
 
     private final String value;
@@ -606,9 +609,17 @@ public class ClaimEndpoint {
     // TODO response.setPreAuthPeriod(period)?
     response.setId(id);
 
-    Extension reviewActionExtension = new Extension(REVIEW_ACTION_EXTENSION_URL);
-    reviewActionExtension.setValue(DispositionToReviewAction(responseDisposition).value());
-    response.addExtension(reviewActionExtension);
+    response.addExtension(REVIEW_ACTION_EXTENSION_URL,
+        FhirUtils.dispositionToReviewAction(responseDisposition).value());
+
+    if (responseDisposition == Disposition.GRANTED || responseDisposition == Disposition.PARTIAL) {
+      Identifier identifier = new Identifier();
+      identifier.setSystem(App.getBaseUrl());
+      identifier.setValue(id);
+      response.addIdentifier(identifier);
+    } else if (responseDisposition == Disposition.DENIED || responseDisposition == Disposition.PENDING) {
+      response.addExtension(REVIEW_ACTION_REASON_EXTENSION_URL, new StringType("X"));
+    }
 
     // Create the responseBundle
     Bundle responseBundle = new Bundle();
@@ -628,7 +639,7 @@ public class ClaimEndpoint {
     responseMap.put("claimId", claimId);
     responseMap.put("patient", patient);
     responseMap.put("status", FhirUtils.getStatusFromResource(response));
-    responseMap.put("outcome", DispositionToReviewAction(responseDisposition).value());
+    responseMap.put("outcome", FhirUtils.dispositionToReviewAction(responseDisposition).value());
     responseMap.put("resource", responseBundle);
     App.getDB().write(Database.CLAIM_RESPONSE, responseMap);
 
@@ -636,24 +647,43 @@ public class ClaimEndpoint {
   }
 
   /**
-   * Convert the response disposition into a review action
+   * Set the item for a ClaimResponse ItemComponent based on the submitted item
+   * and the outcome
    * 
-   * @param disposition - the response disposition
-   * @return corresponding ReviewAction for the Disposition
+   * @param item   - the ItemComponent from the Claim
+   * @param action - ReviewAction representing the outcome of the claim item
+   * @param id     - the ClaimResponse ID (used to set the identifier system)
+   * @return ClaimResponse ItemComponent with appropriate elements set
    */
-  public ReviewAction DispositionToReviewAction(Disposition disposition) {
-    if (disposition == Disposition.DENIED)
-      return ReviewAction.DENIED;
-    else if (disposition == Disposition.GRANTED)
-      return ReviewAction.APPROVED;
-    else if (disposition == Disposition.PARTIAL)
-      return ReviewAction.PARTIAL;
-    else if (disposition == Disposition.PENDING)
-      return ReviewAction.PENDED;
-    else if (disposition == Disposition.CANCELLED)
-      return ReviewAction.CANCELLED;
-    else
-      return null;
+  private ClaimResponse.ItemComponent createItemComponent(ItemComponent item, ReviewAction action, String id) {
+    ClaimResponse.ItemComponent itemComponent = new ClaimResponse.ItemComponent();
+    itemComponent.setItemSequence(item.getSequence());
+
+    // Add the adjudication
+    Coding adjudicationCoding = new Coding();
+    adjudicationCoding.setCode("eligpercent");
+    adjudicationCoding.setDisplay("Eligible %");
+    adjudicationCoding.setSystem("http://terminology.hl7.org/CodeSystem/adjudication");
+    CodeableConcept category = new CodeableConcept(adjudicationCoding);
+    AdjudicationComponent adjudication = new AdjudicationComponent(category);
+    Double adjudicationValue = action == ReviewAction.APPROVED ? 1.0 : 0.0;
+    adjudication.setValue(adjudicationValue);
+    itemComponent.addAdjudication(adjudication);
+
+    if (action == ReviewAction.APPROVED) {
+      // Add identifier for X12 mapping
+      Identifier itemIdentifier = new Identifier();
+      itemIdentifier.setSystem(App.getBaseUrl() + "/ClaimResponse/" + id);
+      itemIdentifier.setValue(Integer.toString(item.getSequence()));
+      itemComponent.addExtension(ITEM_REFERENCE_EXTENSION_URL, itemIdentifier);
+    } else if (action == ReviewAction.DENIED || action == ReviewAction.PENDED)
+      itemComponent.addExtension(REVIEW_ACTION_REASON_EXTENSION_URL, new StringType("X"));
+
+    Extension reviewActionExtension = new Extension(REVIEW_ACTION_EXTENSION_URL);
+    reviewActionExtension.setValue(action.value());
+    itemComponent.addExtension(reviewActionExtension);
+
+    return itemComponent;
   }
 
   /**
@@ -665,63 +695,43 @@ public class ClaimEndpoint {
    */
   private List<ClaimResponse.ItemComponent> setClaimResponseItems(Claim claim, Disposition responseDisposition) {
     List<ClaimResponse.ItemComponent> items = new ArrayList<ClaimResponse.ItemComponent>();
-    ReviewAction reviewAction = ReviewAction.DENIED;
+    // ReviewAction reviewAction = ReviewAction.DENIED;
+    ReviewAction reviewAction = null;
     boolean hasDeniedAtLeastOne = false;
     boolean hasApprovedAtLeastOne = false;
 
     // Set the Items on the ClaimResponse based on the initial Claim and the
     // Response disposition
     for (ItemComponent item : claim.getItem()) {
-      ClaimResponse.ItemComponent itemComponent = new ClaimResponse.ItemComponent();
-      itemComponent.setItemSequence(item.getSequence());
-
-      Coding adjudicationCoding = new Coding();
-      adjudicationCoding.setCode("eligpercent");
-      adjudicationCoding.setDisplay("Eligible %");
-      adjudicationCoding.setSystem("http://terminology.hl7.org/CodeSystem/adjudication");
-      CodeableConcept category = new CodeableConcept(adjudicationCoding);
-      AdjudicationComponent adjudication = new AdjudicationComponent(category);
-      Double adjudicationValue = 0.0;
-
       if (responseDisposition == Disposition.GRANTED) {
         reviewAction = ReviewAction.APPROVED;
-        adjudicationValue = 1.0;
       } else if (responseDisposition == Disposition.DENIED) {
         reviewAction = ReviewAction.DENIED;
-        adjudicationValue = 0.0;
       } else if (responseDisposition == Disposition.PENDING) {
         reviewAction = ReviewAction.PENDED;
-        adjudicationValue = 0.0;
       } else if (responseDisposition == Disposition.PARTIAL) {
         // Deny some and approve some
         if (!hasDeniedAtLeastOne) {
           reviewAction = ReviewAction.DENIED;
-          adjudicationValue = 0.0;
           hasDeniedAtLeastOne = true;
         } else if (!hasApprovedAtLeastOne) {
           reviewAction = ReviewAction.APPROVED;
-          adjudicationValue = 1.0;
           hasApprovedAtLeastOne = true;
         } else {
           switch (getRand(2)) {
           case 1:
             reviewAction = ReviewAction.DENIED;
-            adjudicationValue = 0.0;
             break;
           case 2:
           default:
             reviewAction = ReviewAction.APPROVED;
-            adjudicationValue = 1.0;
             break;
           }
         }
       }
-      adjudication.setValue(adjudicationValue);
-      itemComponent.addAdjudication(adjudication);
-      Extension reviewActionExtension = new Extension(REVIEW_ACTION_EXTENSION_URL);
-      reviewActionExtension.setValue(reviewAction.value());
-      itemComponent.addExtension(reviewActionExtension);
 
+      ClaimResponse.ItemComponent itemComponent = createItemComponent(item, reviewAction,
+          FhirUtils.getIdFromResource(claim));
       items.add(itemComponent);
 
       // Update the ClaimItem database

@@ -3,6 +3,8 @@ package org.hl7.davinci.priorauth;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.hl7.davinci.priorauth.ClaimEndpoint.Disposition;
+import org.hl7.davinci.priorauth.ClaimEndpoint.ReviewAction;
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
@@ -72,6 +74,27 @@ public class FhirUtils {
       logger.log(Level.SEVERE, "FhirUtils::getPatientIdFromResource(error processing patient)", e);
     }
     return patient;
+  }
+
+  /**
+   * Convert the response disposition into a review action
+   * 
+   * @param disposition - the response disposition
+   * @return corresponding ReviewAction for the Disposition
+   */
+  public static ReviewAction dispositionToReviewAction(Disposition disposition) {
+    if (disposition == Disposition.DENIED)
+      return ReviewAction.DENIED;
+    else if (disposition == Disposition.GRANTED)
+      return ReviewAction.APPROVED;
+    else if (disposition == Disposition.PARTIAL)
+      return ReviewAction.PARTIAL;
+    else if (disposition == Disposition.PENDING)
+      return ReviewAction.PENDED;
+    else if (disposition == Disposition.CANCELLED)
+      return ReviewAction.CANCELLED;
+    else
+      return null;
   }
 
   /**
