@@ -22,6 +22,7 @@ BEGIN TRANSACTION;
         "claimId" varchar,
         "patient" varchar,
         "status" varchar,
+        "outcome" varchar,
         "timestamp" datetime DEFAULT CURRENT_TIMESTAMP,
         "resource" clob,
         FOREIGN KEY ("claimId") REFERENCES Claim("id") ON DELETE CASCADE
@@ -30,6 +31,7 @@ BEGIN TRANSACTION;
     CREATE TABLE IF NOT EXISTS ClaimItem (
         "id" varchar,
         "sequence" varchar,
+        "outcome" varchar DEFAULT NULL,
         "status" varchar,
         "timestamp" datetime DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT pk_claimitems PRIMARY KEY ("id", "sequence"),
