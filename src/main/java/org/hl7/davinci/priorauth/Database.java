@@ -381,10 +381,9 @@ public class Database {
   /**
    * Update a single column in a row to a new value
    * 
-   * @param resourceType - the resource type.
-   * @param id           - the resource id.
-   * @param column       - the name of the column to update.
-   * @param value        - the new value.
+   * @param resourceType     - the resource type.
+   * @param constraintParams - map of column to value for the SQL WHERE clause
+   * @param data             - map of column to value for the SQL SET clause
    * @return boolean - whether or not the update was successful
    */
   public boolean update(String resourceType, Map<String, Object> constraintParams, Map<String, Object> data) {
