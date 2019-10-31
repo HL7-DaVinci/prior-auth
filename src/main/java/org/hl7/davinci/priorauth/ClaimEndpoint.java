@@ -243,7 +243,6 @@ public class ClaimEndpoint {
 
       // Store the bundle...
       bundle.setId(id);
-      bundle = FhirUtils.setBundleFullUrls(bundle);
       Map<String, Object> bundleMap = new HashMap<String, Object>();
       bundleMap.put("id", id);
       bundleMap.put("patient", patient);
@@ -557,11 +556,10 @@ public class ClaimEndpoint {
     responseBundle.setType(Bundle.BundleType.COLLECTION);
     BundleEntryComponent responseEntry = responseBundle.addEntry();
     responseEntry.setResource(response);
-    responseEntry.setFullUrl(App.getBaseUrl() + "/Bundle/" + id);
+    responseEntry.setFullUrl(App.getBaseUrl() + "/ClaimResponse/" + id);
     for (BundleEntryComponent entry : bundle.getEntry()) {
       responseBundle.addEntry(entry);
     }
-    responseBundle = FhirUtils.setBundleFullUrls(responseBundle);
 
     // Store the claim respnose...
     Map<String, Object> responseMap = new HashMap<String, Object>();
