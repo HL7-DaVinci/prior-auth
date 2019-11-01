@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleType;
 import org.junit.AfterClass;
@@ -30,19 +31,19 @@ public class DatabaseTest {
     bundleMap.put("id", "minimal");
     bundleMap.put("patient", "1");
     bundleMap.put("resource", bundle);
-    App.getDB().write(Database.BUNDLE, bundleMap);
+    App.getDB().write(Table.BUNDLE, bundleMap);
   }
 
   @AfterClass
   public static void cleanup() {
-    App.getDB().delete(Database.BUNDLE, "minimal", "1");
+    App.getDB().delete(Table.BUNDLE, "minimal", "1");
   }
 
   @Test
   public void testSearch() {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("patient", "pat013");
-    Bundle results = App.getDB().search(Database.BUNDLE, constraintMap);
+    Bundle results = App.getDB().search(Table.BUNDLE, constraintMap);
     Assert.assertNotNull(results);
     Assert.assertEquals(BundleType.SEARCHSET, results.getType());
 

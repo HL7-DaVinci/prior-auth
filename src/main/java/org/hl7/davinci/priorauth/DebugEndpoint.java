@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
+import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
@@ -31,27 +31,27 @@ public class DebugEndpoint {
 
   @GetMapping("/Bundle")
   public ResponseEntity<String> getBundles() {
-    return query(Database.BUNDLE);
+    return query(Table.BUNDLE);
   }
 
   @GetMapping("/Claim")
   public ResponseEntity<String> getClaims() {
-    return query(Database.CLAIM);
+    return query(Table.CLAIM);
   }
 
   @GetMapping("/ClaimResponse")
   public ResponseEntity<String> getClaimResponses() {
-    return query(Database.CLAIM_RESPONSE);
+    return query(Table.CLAIM_RESPONSE);
   }
 
   @GetMapping("/ClaimItem")
   public ResponseEntity<String> getClaimItems() {
-    return query(Database.CLAIM_ITEM);
+    return query(Table.CLAIM_ITEM);
   }
 
   @GetMapping("/Subscription")
   public ResponseEntity<String> getSubscription() {
-    return query(Database.SUBSCRIPTION);
+    return query(Table.SUBSCRIPTION);
   }
 
   @GetMapping("/PopulateDatabaseTestData")
@@ -88,9 +88,9 @@ public class DebugEndpoint {
       dataMap.put("sequence", "1");
       dataMap.put("status", "active");
       dataMap.put("timestamp", "2200-09-10 08:43:32.9");
-      App.getDB().write(Database.CLAIM_ITEM, dataMap);
+      App.getDB().write(Table.CLAIM_ITEM, dataMap);
       dataMap.replace("sequence", "2");
-      App.getDB().write(Database.CLAIM_ITEM, dataMap);
+      App.getDB().write(Table.CLAIM_ITEM, dataMap);
     } catch (FileNotFoundException e) {
       status = HttpStatus.BAD_REQUEST;
       responseData = "ERROR: Unable to read all resources to populate database";
@@ -113,21 +113,21 @@ public class DebugEndpoint {
     String id = FhirUtils.getIdFromResource(claim);
     String patient = FhirUtils.getPatientIdFromResource(claim);
     String status = FhirUtils.getStatusFromResource(claim);
-    App.getDB().delete(Database.CLAIM, id, patient);
-    App.getDB().delete(Database.BUNDLE, id, patient);
+    App.getDB().delete(Table.CLAIM, id, patient);
+    App.getDB().delete(Table.BUNDLE, id, patient);
     Map<String, Object> dataMap = new HashMap<String, Object>();
     dataMap.put("id", id);
     dataMap.put("patient", patient);
     dataMap.put("resource", claimBundle);
     dataMap.put("timestamp", timestamp);
 
-    App.getDB().write(Database.BUNDLE, dataMap);
+    App.getDB().write(Table.BUNDLE, dataMap);
 
     dataMap.put("status", status);
     if (related != null)
       dataMap.put("related", related);
 
-    return App.getDB().write(Database.CLAIM, dataMap);
+    return App.getDB().write(Table.CLAIM, dataMap);
   }
 
   private static boolean writeClaimResponse(Bundle claimResponseBundle, String claimId, String timestamp) {
@@ -135,7 +135,7 @@ public class DebugEndpoint {
     String id = FhirUtils.getIdFromResource(claimResponse);
     String patient = FhirUtils.getPatientIdFromResource(claimResponse);
     String status = FhirUtils.getStatusFromResource(claimResponse);
-    App.getDB().delete(Database.CLAIM_RESPONSE, id, patient);
+    App.getDB().delete(Table.CLAIM_RESPONSE, id, patient);
 
     Map<String, Object> dataMap = new HashMap<String, Object>();
     dataMap.put("id", id);
@@ -145,13 +145,13 @@ public class DebugEndpoint {
     dataMap.put("timestamp", timestamp);
     dataMap.put("resource", claimResponseBundle);
 
-    return App.getDB().write(Database.CLAIM_RESPONSE, dataMap);
+    return App.getDB().write(Table.CLAIM_RESPONSE, dataMap);
   }
 
-  private ResponseEntity<String> query(String resource) {
-    logger.info("GET /debug/" + resource);
+  private ResponseEntity<String> query(Table table) {
+    logger.info("GET /debug/" + table.value());
     if (App.debugMode) {
-      return new ResponseEntity<>(App.getDB().generateAndRunQuery(resource), HttpStatus.OK);
+      return new ResponseEntity<>(App.getDB().generateAndRunQuery(table), HttpStatus.OK);
     } else {
       logger.warning("DebugEndpoint::query disabled");
       return new ResponseEntity<>(HttpStatus.BAD_REQUEST);

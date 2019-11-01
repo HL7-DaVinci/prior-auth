@@ -27,16 +27,20 @@ public class Database {
 
   static final Logger logger = PALogger.getLogger();
 
-  /** Bundle Resource */
-  public static final String BUNDLE = "Bundle";
-  /** Claim Resource */
-  public static final String CLAIM = "Claim";
-  /** Claim Item */
-  public static final String CLAIM_ITEM = "ClaimItem";
-  /** ClaimResponse Resource */
-  public static final String CLAIM_RESPONSE = "ClaimResponse";
-  /** Subscription Resource */
-  public static final String SUBSCRIPTION = "Subscription";
+  public enum Table {
+    BUNDLE("Bundle"), CLAIM("Claim"), CLAIM_ITEM("ClaimItem"), CLAIM_RESPONSE("ClaimResponse"),
+    SUBSCRIPTION("Subscription");
+
+    private final String value;
+
+    Table(String value) {
+      this.value = value;
+    }
+
+    public String value() {
+      return this.value;
+    }
+  }
 
   private static final String CREATE_SQL_FILE = "src/main/java/org/hl7/davinci/priorauth/CreateDatabase.sql";
   private String SQL_FILE;
@@ -94,8 +98,8 @@ public class Database {
     }
   }
 
-  public String generateAndRunQuery(String table) {
-    String sql = "SELECT * FROM " + table + " ORDER BY TIMESTAMP DESC";
+  public String generateAndRunQuery(Table table) {
+    String sql = "SELECT * FROM " + table.value() + " ORDER BY TIMESTAMP DESC";
     return runQuery(sql, true, true);
   }
 
@@ -182,17 +186,17 @@ public class Database {
   /**
    * Search the database for the given resourceType.
    * 
-   * @param resourceType - the FHIR resourceType to search.
-   * @param status       - the status to search.
+   * @param table  - the Table to search in.
+   * @param status - the status to search.
    * @return Bundle - the search result Bundle.
    */
-  public Bundle search(String resourceType, Map<String, Object> constraintMap) {
-    logger.info("Database::search(" + resourceType + ", " + constraintMap.toString() + ")");
+  public Bundle search(Table table, Map<String, Object> constraintMap) {
+    logger.info("Database::search(" + table.value() + ", " + constraintMap.toString() + ")");
     Bundle results = new Bundle();
     results.setType(BundleType.SEARCHSET);
     results.setTimestamp(new Date());
     try (Connection connection = getConnection()) {
-      String sql = "SELECT id, patient, resource FROM " + resourceType + " WHERE "
+      String sql = "SELECT id, patient, resource FROM " + table.value() + " WHERE "
           + generateClause(constraintMap, WHERE_CONCAT) + ";";
       Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
       maps.add(constraintMap);
@@ -208,7 +212,7 @@ public class Database {
         Resource resource = (Resource) App.FHIR_CTX.newJsonParser().parseResource(json);
         resource.setId(id);
         BundleEntryComponent entry = new BundleEntryComponent();
-        entry.setFullUrl(App.getBaseUrl() + "/Bundle/" + id);
+        entry.setFullUrl(App.getBaseUrl() + "/" + table.value() + "/" + id);
         entry.setResource(resource);
         results.addEntry(entry);
         total += 1;
@@ -223,16 +227,16 @@ public class Database {
   /**
    * Read a specific resource from the database.
    * 
-   * @param resourceType     - the FHIR resourceType to read.
+   * @param table            - the Table to read from.
    * @param constraintParams - the search constraints for the SQL query.
    * @return IBaseResource - if the resource exists, otherwise null.
    */
-  public IBaseResource read(String resourceType, Map<String, Object> constraintParams) {
-    logger.info("Database::read(" + resourceType + ", " + constraintParams.toString() + ")");
+  public IBaseResource read(Table table, Map<String, Object> constraintParams) {
+    logger.info("Database::read(" + table.value() + ", " + constraintParams.toString() + ")");
     IBaseResource result = null;
-    if (resourceType != null && constraintParams != null) {
+    if (table != null && constraintParams != null) {
       try (Connection connection = getConnection()) {
-        String sql = "SELECT TOP 1 id, patient, resource FROM " + resourceType + " WHERE "
+        String sql = "SELECT TOP 1 id, patient, resource FROM " + table.value() + " WHERE "
             + generateClause(constraintParams, WHERE_CONCAT) + " ORDER BY timestamp DESC;";
         Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
         maps.add(constraintParams);
@@ -257,17 +261,17 @@ public class Database {
   /**
    * Read a specific resource from the database.
    * 
-   * @param resourceType     - the FHIR resourceType to read.
+   * @param table            - the Table to read from.
    * @param constraintParams - the search constraints for the SQL query.
    * @return List of IBaseResource for all resources matching the constraints.
    *         Empty list if none
    */
-  public List<IBaseResource> readAll(String resourceType, Map<String, Object> constraintParams) {
-    logger.info("Database::readAll(" + resourceType + ", " + constraintParams.toString() + ")");
+  public List<IBaseResource> readAll(Table table, Map<String, Object> constraintParams) {
+    logger.info("Database::readAll(" + table.value() + ", " + constraintParams.toString() + ")");
     List<IBaseResource> results = new ArrayList<IBaseResource>();
-    if (resourceType != null && constraintParams != null) {
+    if (table != null && constraintParams != null) {
       try (Connection connection = getConnection()) {
-        String sql = "SELECT id, patient, resource FROM " + resourceType + " WHERE "
+        String sql = "SELECT id, patient, resource FROM " + table.value() + " WHERE "
             + generateClause(constraintParams, WHERE_CONCAT) + " ORDER BY timestamp DESC;";
         Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
         maps.add(constraintParams);
@@ -292,39 +296,40 @@ public class Database {
   /**
    * Read the related field from the database
    * 
-   * @param resourceType     - the FHIR resourceType to read.
+   * @param table            - the Table to read from.
    * @param constraintParams - the search constraints for the SQL query.
    * @return the related field of the database
    */
-  public String readRelated(String resourceType, Map<String, Object> constraintParams) {
-    return readString(resourceType, constraintParams, "related");
+  public String readRelated(Table table, Map<String, Object> constraintParams) {
+    return readString(table, constraintParams, "related");
   }
 
   /**
    * Get the status of an item in the database
    *
-   * @param resourceType - the FHIR resource type to read.
-   * @param id           - the id of the resource.
+   * @param table - the Table to read from.
+   * @param id    - the id of the resource.
    * @return - the string value of the status in the database of the first
    *         matching entry with the provided id.
    */
-  public String readStatus(String resourceType, Map<String, Object> constraintParams) {
-    return readString(resourceType, constraintParams, "status");
+  public String readStatus(Table table, Map<String, Object> constraintParams) {
+    return readString(table, constraintParams, "status");
   }
 
   /**
    * Read the specified column from the database
    *
-   * @param resourceType     - the FHIR resourceType to read.
+   * @param table            - the Table to read from.
    * @param constraintParams - the search constraints for the SQL query.
    * @param column           - the column to read.
    * @return the specified column of the database
    */
-  public String readString(String resourceType, Map<String, Object> constraintParams, String column) {
-    logger.info("Database::read(" + resourceType + ", " + constraintParams.toString() + ", " + column + ")");
-    if (resourceType != null && constraintParams != null && column != null) {
+  public String readString(Table table, Map<String, Object> constraintParams, String column) {
+    logger.info("Database::read(" + table.value() + ", " + constraintParams.toString() + ", " + column + ")");
+    if (table != null && constraintParams != null && column != null) {
       try (Connection connection = getConnection()) {
-        String sql = "SELECT TOP 1 " + column + " FROM " + resourceType + " WHERE "
+        // TODO: fix this so it does not insert a string (column) into the SQL
+        String sql = "SELECT TOP 1 " + column + " FROM " + table.value() + " WHERE "
             + generateClause(constraintParams, WHERE_CONCAT) + " ORDER BY timestamp DESC;";
         Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
         maps.add(constraintParams);
@@ -345,12 +350,12 @@ public class Database {
   /**
    * Insert a resource into database.
    * 
-   * @param resourceType - the tpye of the resource.
-   * @param data         - map of columns (keys) and values.
+   * @param table - the Table to write to.
+   * @param data  - map of columns (keys) and values.
    * @return boolean - whether or not the resource was written.
    */
-  public boolean write(String resourceType, Map<String, Object> data) {
-    logger.info("Database::write(" + resourceType + ", " + data.toString() + ")");
+  public boolean write(Table table, Map<String, Object> data) {
+    logger.info("Database::write(" + table.value() + ", " + data.toString() + ")");
     boolean result = false;
     if (data != null) {
       try (Connection connection = getConnection()) {
@@ -359,7 +364,7 @@ public class Database {
           valueClause += "?,";
         valueClause += "?";
 
-        String sql = "INSERT INTO " + resourceType + " (" + setColumns(data.keySet()) + ") VALUES (" + valueClause
+        String sql = "INSERT INTO " + table.value() + " (" + setColumns(data.keySet()) + ") VALUES (" + valueClause
             + ");";
         Collection<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
         maps.add(data);
@@ -381,18 +386,18 @@ public class Database {
   /**
    * Update a single column in a row to a new value
    * 
-   * @param resourceType     - the resource type.
+   * @param table            - the Table to update.
    * @param constraintParams - map of column to value for the SQL WHERE clause
    * @param data             - map of column to value for the SQL SET clause
    * @return boolean - whether or not the update was successful
    */
-  public boolean update(String resourceType, Map<String, Object> constraintParams, Map<String, Object> data) {
-    logger.info("Database::update(" + resourceType + ", WHERE " + constraintParams.toString() + ", SET"
+  public boolean update(Table table, Map<String, Object> constraintParams, Map<String, Object> data) {
+    logger.info("Database::update(" + table.value() + ", WHERE " + constraintParams.toString() + ", SET"
         + data.toString() + ")");
     boolean result = false;
-    if (resourceType != null && constraintParams != null && data != null) {
+    if (table != null && constraintParams != null && data != null) {
       try (Connection connection = getConnection()) {
-        String sql = "UPDATE " + resourceType + " SET " + generateClause(data, SET_CONCAT)
+        String sql = "UPDATE " + table.value() + " SET " + generateClause(data, SET_CONCAT)
             + ", timestamp = CURRENT_TIMESTAMP WHERE " + generateClause(constraintParams, WHERE_CONCAT) + ";";
         Collection<Map<String, Object>> maps = new ArrayList<Map<String, Object>>();
         maps.add(data);
@@ -418,7 +423,7 @@ public class Database {
   public String getMostRecentId(String id) {
     Map<String, Object> readConstraintMap = new HashMap<String, Object>();
     readConstraintMap.put("related", id);
-    Claim referencingClaim = (Claim) App.getDB().read(Database.CLAIM, readConstraintMap);
+    Claim referencingClaim = (Claim) App.getDB().read(Table.CLAIM, readConstraintMap);
     String referencingId = id;
 
     while (referencingClaim != null) {
@@ -427,7 +432,7 @@ public class Database {
 
       // Get the new referencing claim
       readConstraintMap.replace("related", referencingId);
-      referencingClaim = (Claim) App.getDB().read(Database.CLAIM, readConstraintMap);
+      referencingClaim = (Claim) App.getDB().read(Table.CLAIM, readConstraintMap);
     }
 
     return referencingId;
@@ -479,17 +484,17 @@ public class Database {
   /**
    * Delete a particular resource with a given id.
    * 
-   * @param resourceType - the resource type to delete.
-   * @param id           - the id of the resource to delete.
+   * @param table - the Table to delete from.
+   * @param id    - the id of the resource to delete.
    * @return boolean - whether or not the resource was deleted.
    */
-  public boolean delete(String resourceType, String id, String patient) {
-    logger.info("Database::delete(" + resourceType + ", " + id + ", " + patient + ")");
+  public boolean delete(Table table, String id, String patient) {
+    logger.info("Database::delete(" + table.value() + ", " + id + ", " + patient + ")");
     boolean result = false;
-    if (resourceType != null && id != null) {
+    if (table != null && id != null) {
       try (Connection connection = getConnection()) {
         PreparedStatement stmt = connection
-            .prepareStatement("DELETE FROM " + resourceType + " WHERE id = ? AND patient = ?;");
+            .prepareStatement("DELETE FROM " + table.value() + " WHERE id = ? AND patient = ?;");
         stmt.setString(1, id);
         stmt.setString(2, patient);
         result = stmt.execute();
@@ -503,15 +508,15 @@ public class Database {
   /**
    * Delete all resources of a particular type.
    * 
-   * @param resourceType - the resource type to delete.
+   * @param table - the Table to delete from.
    * @return boolean - whether or not the resources were deleted.
    */
-  public boolean delete(String resourceType) {
-    logger.info("Database::delete(" + resourceType + ")");
+  public boolean delete(Table table) {
+    logger.info("Database::delete(" + table.value() + ")");
     boolean result = false;
-    if (resourceType != null) {
+    if (table != null) {
       try (Connection connection = getConnection()) {
-        PreparedStatement stmt = connection.prepareStatement("DELETE FROM " + resourceType + ";");
+        PreparedStatement stmt = connection.prepareStatement("DELETE FROM " + table.value() + ";");
         result = stmt.execute();
       } catch (SQLException e) {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
