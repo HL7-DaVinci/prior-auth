@@ -29,6 +29,7 @@ dependencies {
     compile 'org.webjars:bootstrap:3.3.7'
     compile 'org.webjars:jquery:3.1.0'
     compile 'com.squareup.okhttp3:okhttp:3.14.1'
+    compile 'com.googlecode.json-simple:json-simple:1.1.1'
 
     implementation 'com.google.guava:guava:27.0.1-jre'
     implementation 'ca.uhn.hapi.fhir:hapi-fhir-base:3.7.0'

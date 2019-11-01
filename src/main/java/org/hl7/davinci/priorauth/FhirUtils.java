@@ -136,20 +136,6 @@ public class FhirUtils {
   }
 
   /**
-   * Set the fullUrl on each entry of a bundle
-   * 
-   * @param bundle - the bundle to modify fullUrls for
-   * @return the same bundle with each fullUrl set appropriately
-   */
-  public static Bundle setBundleFullUrls(Bundle bundle) {
-    for (BundleEntryComponent entry : bundle.getEntry()) {
-      entry.setFullUrl(App.getBaseUrl() + "/" + entry.getResource().getResourceType() + "/"
-          + getIdFromResource(entry.getResource()));
-    }
-    return bundle;
-  }
-
-  /**
    * Find the first instance of a ClaimResponse in a bundle
    * 
    * @param bundle - the bundle search through for the ClaimResponse
@@ -163,6 +149,23 @@ public class FhirUtils {
     }
 
     return claimResponse;
+  }
+
+  /**
+   * Find the BundleEntryComponent in a Bundle where the resource has the desired
+   * id
+   * 
+   * @param bundle - the bundle to search through
+   * @param id     - the resource id to match
+   * @return BundleEntryComponent in Bundle with resource matching id
+   */
+  public static BundleEntryComponent getEntryComponentFromBundle(Bundle bundle, String id) {
+    for (BundleEntryComponent entry : bundle.getEntry()) {
+      if (entry.getResource().getId().equals(id)) {
+        return entry;
+      }
+    }
+    return null;
   }
 
   /**
