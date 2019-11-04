@@ -1,0 +1,9 @@
+{
+  "resourceType": "Subscription",
+  "status": "active",
+  "reason": "subscribe to updates for a pended ClaimResponse (priorauthorization)",
+  "criteria": "identifier=123456789&patient.identifier=pat013&status=active",
+  "channel": {
+    "type": "websocket"
+  }
+}

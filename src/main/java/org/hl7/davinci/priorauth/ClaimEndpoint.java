@@ -154,11 +154,9 @@ public class ClaimEndpoint {
             OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, PROCESS_FAILED);
             formattedData = FhirUtils.getFormattedData(error, requestType);
           } else {
-            ClaimResponse response = FhirUtils.getClaimResponseFromBundle(responseBundle);
+            ClaimResponse response = FhirUtils.getClaimResponseFromResponseBundle(responseBundle);
             id = FhirUtils.getIdFromResource(response);
-            if (response.hasPatient()) {
-              patient = FhirUtils.getPatientIdFromResource(response);
-            }
+            patient = FhirUtils.getPatientIdentifierFromBundle(responseBundle);
             formattedData = FhirUtils.getFormattedData(responseBundle, requestType);
           }
         } else {
@@ -200,8 +198,9 @@ public class ClaimEndpoint {
     String id = UUID.randomUUID().toString();
 
     // get the patient
-    Claim claim = (Claim) bundle.getEntryFirstRep().getResource();
-    String patient = FhirUtils.getPatientIdFromResource(claim);
+    Claim claim = FhirUtils.getClaimFromRequestBundle(bundle);
+    // Claim claim = (Claim) bundle.getEntryFirstRep().getResource();
+    String patient = FhirUtils.getPatientIdentifierFromBundle(bundle);
 
     String claimId = id;
     Disposition responseDisposition = Disposition.UNKNOWN;

@@ -1,6 +1,5 @@
 package org.hl7.davinci.priorauth;
 
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
@@ -9,6 +8,8 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.OperationOutcome;
+import org.hl7.fhir.r4.model.Patient;
+import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
@@ -66,6 +67,7 @@ public class FhirUtils {
    * @return - the status of the resource.
    */
   public static String getStatusFromResource(IBaseResource resource) {
+    // TODO: make this generic using JSON for else clause
     String status;
     if (resource instanceof Claim) {
       Claim claim = (Claim) resource;
@@ -73,8 +75,6 @@ public class FhirUtils {
     } else if (resource instanceof ClaimResponse) {
       ClaimResponse claimResponse = (ClaimResponse) resource;
       status = claimResponse.getStatus().getDisplay();
-    } else if (resource instanceof Bundle) {
-      status = "valid";
     } else {
       status = "unkown";
     }
@@ -88,30 +88,44 @@ public class FhirUtils {
    * @param resource - the resource.
    * @return String - the Patient ID.
    */
-  public static String getPatientIdFromResource(IBaseResource resource) {
-    String patient = "";
-    try {
-      String patientReference = null;
-      if (resource instanceof Claim) {
-        Claim claim = (Claim) resource;
-        patientReference = claim.getPatient().getReference();
-      } else if (resource instanceof ClaimResponse) {
-        ClaimResponse claimResponse = (ClaimResponse) resource;
-        patientReference = claimResponse.getPatient().getReference();
-      } else if (resource instanceof Bundle) {
-        Bundle bundle = (Bundle) resource;
-        Claim claim = (Claim) bundle.getEntryFirstRep().getResource();
-        patient = FhirUtils.getPatientIdFromResource(claim);
-      } else {
-        return patient;
+  public static String getPatientIdentifierFromBundle(Bundle bundle) {
+    Reference patientReference = null;
+
+    // If Response Bundle get the ClaimResponse
+    ClaimResponse claimResponse = getClaimResponseFromResponseBundle(bundle);
+    if (claimResponse != null)
+      patientReference = claimResponse.getPatient();
+
+    // If Request Bundle get the Claim
+    Claim claim = getClaimFromRequestBundle(bundle);
+    if (claim != null)
+      patientReference = claim.getPatient();
+
+    // Obtain the identifier based on how the reference is defined
+    if (patientReference.hasReference()) {
+      // Get the patient through the reference
+      String reference = patientReference.getReference();
+      String[] referenceParts = reference.split("/");
+      String patientId = referenceParts[referenceParts.length - 1];
+
+      // Get the patient resource with the matching id
+      BundleEntryComponent bec = getEntryComponentFromBundle(bundle, patientId);
+      if (bec != null) {
+        Patient patient = (Patient) bec.getResource();
+        if (patient.hasIdentifier())
+          return patient.getIdentifierFirstRep().getValue();
+
+        logger.info("FhirUtils::getPatientIdentifierFromBundle:Patient found but has no identifier");
       }
-      String[] patientParts = patientReference.split("/");
-      patient = patientParts[patientParts.length - 1];
-      logger.info("FhirUtils::getPatientIdFromResource(patient: " + patientParts[patientParts.length - 1] + ")");
-    } catch (Exception e) {
-      logger.log(Level.SEVERE, "FhirUtils::getPatientIdFromResource(error processing patient)", e);
-    }
-    return patient;
+      logger.severe("FhirUtils::getPatientIdentifierFromBundle:Patient with given id not found in Bundle");
+
+      // If could not find the resource locally or has no identifier set null
+      return null;
+    } else if (patientReference.hasIdentifier())
+      return patientReference.getIdentifier().getValue();
+    else
+      return null;
+
   }
 
   /**
@@ -136,19 +150,31 @@ public class FhirUtils {
   }
 
   /**
-   * Find the first instance of a ClaimResponse in a bundle
+   * Get the ClaimResponse from a PAS ClaimResponse Bundle. ClaimResponse is the
+   * first entry
    * 
-   * @param bundle - the bundle search through for the ClaimResponse
-   * @return ClaimResponse in the bundle or null if not found
+   * @param bundle - PAS Claim Response Bundle
+   * @return ClaimResponse resource for the response
    */
-  public static ClaimResponse getClaimResponseFromBundle(Bundle bundle) {
-    ClaimResponse claimResponse = null;
-    for (BundleEntryComponent bec : bundle.getEntry()) {
-      if (bec.getResource().getResourceType() == ResourceType.ClaimResponse)
-        return (ClaimResponse) bec.getResource();
-    }
+  public static ClaimResponse getClaimResponseFromResponseBundle(Bundle bundle) {
+    if (bundle.getEntryFirstRep().getResource().getResourceType() == ResourceType.ClaimResponse)
+      return (ClaimResponse) bundle.getEntryFirstRep().getResource();
+    else
+      return null;
 
-    return claimResponse;
+  }
+
+  /**
+   * Get the Claim from a PAS Claim Bundle. Claim is the first entry
+   * 
+   * @param bundle - PAS Claim Request Bundle
+   * @return Claim resource for the request
+   */
+  public static Claim getClaimFromRequestBundle(Bundle bundle) {
+    if (bundle.getEntryFirstRep().getResource().getResourceType() == ResourceType.Claim)
+      return (Claim) bundle.getEntryFirstRep().getResource();
+    else
+      return null;
   }
 
   /**
