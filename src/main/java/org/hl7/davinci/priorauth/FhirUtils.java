@@ -70,7 +70,6 @@ public class FhirUtils {
    *
    * @param resource - the resource.
    * @return - the status of the resource.
-   * @throws ParseException
    */
   public static String getStatusFromResource(IBaseResource resource) {
     String status = "unknown";

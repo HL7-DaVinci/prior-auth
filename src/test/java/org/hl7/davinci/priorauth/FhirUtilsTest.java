@@ -12,7 +12,6 @@ import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.Coverage;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.ResourceType;
-import org.hl7.fhir.r4.model.Subscription;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Bundle.BundleType;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
@@ -48,20 +47,6 @@ public class FhirUtilsTest {
         fixture = modulesFolder.resolve("bundle-response.json");
         fixtureStr = new String(Files.readAllBytes(fixture));
         bundleResponse = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(fixtureStr);
-
-        // fixture = modulesFolder.resolve("subscription-websocket.json");
-        // fixtureStr = new String(Files.readAllBytes(fixture));
-        // subscriptionWebsocket = (Subscription)
-        // App.FHIR_CTX.newJsonParser().parseResource(fixtureStr);
-
-        // fixture = modulesFolder.resolve("subscription-resthook.json");
-        // fixtureStr = new String(Files.readAllBytes(fixture));
-        // subscriptionResthook = (Subscription)
-        // App.FHIR_CTX.newJsonParser().parseResource(fixtureStr);
-    }
-
-    @AfterClass
-    public static void cleanup() {
     }
 
     @Test
