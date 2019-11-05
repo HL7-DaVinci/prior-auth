@@ -136,7 +136,8 @@ public class ClaimSubmitTest {
     for (BundleEntryComponent responseEntry : bundleResponse.getEntry()) {
       if (responseEntry.getResource().getResourceType() != ResourceType.ClaimResponse) {
         String id = responseEntry.getResource().getId();
-        BundleEntryComponent claimEntry = FhirUtils.getEntryComponentFromBundle(claimBundle, id);
+        BundleEntryComponent claimEntry = FhirUtils.getEntryComponentFromBundle(claimBundle,
+            responseEntry.getResource().getResourceType(), id);
         if (claimEntry != null) {
           Assert.assertTrue(responseEntry.getFullUrl().equals(claimEntry.getFullUrl()));
 

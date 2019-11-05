@@ -9,12 +9,14 @@ import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
-import org.hl7.fhir.r4.model.DeviceRequest;
+import org.hl7.fhir.r4.model.Coverage;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.Subscription;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Bundle.BundleType;
+import org.hl7.fhir.r4.model.Claim.ClaimStatus;
+import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -26,8 +28,6 @@ public class FhirUtilsTest {
     private static ClaimResponse claimResponse;
     private static Bundle bundleRequest;
     private static Bundle bundleResponse;
-    private static Subscription subscriptionWebsocket;
-    private static Subscription subscriptionResthook;
 
     @BeforeClass
     public static void setup() throws IOException {
@@ -49,13 +49,15 @@ public class FhirUtilsTest {
         fixtureStr = new String(Files.readAllBytes(fixture));
         bundleResponse = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(fixtureStr);
 
-        fixture = modulesFolder.resolve("subscription-websocket.json");
-        fixtureStr = new String(Files.readAllBytes(fixture));
-        subscriptionWebsocket = (Subscription) App.FHIR_CTX.newJsonParser().parseResource(fixtureStr);
+        // fixture = modulesFolder.resolve("subscription-websocket.json");
+        // fixtureStr = new String(Files.readAllBytes(fixture));
+        // subscriptionWebsocket = (Subscription)
+        // App.FHIR_CTX.newJsonParser().parseResource(fixtureStr);
 
-        fixture = modulesFolder.resolve("subscription-resthook.json");
-        fixtureStr = new String(Files.readAllBytes(fixture));
-        subscriptionResthook = (Subscription) App.FHIR_CTX.newJsonParser().parseResource(fixtureStr);
+        // fixture = modulesFolder.resolve("subscription-resthook.json");
+        // fixtureStr = new String(Files.readAllBytes(fixture));
+        // subscriptionResthook = (Subscription)
+        // App.FHIR_CTX.newJsonParser().parseResource(fixtureStr);
     }
 
     @AfterClass
@@ -69,8 +71,8 @@ public class FhirUtilsTest {
         Assert.assertEquals("active", FhirUtils.getStatusFromResource(claimResponse));
 
         // Validate other resource type status is correct
-        DeviceRequest deviceRequest = (DeviceRequest) bundleRequest.getEntry().get(1).getResource();
-        Assert.assertEquals("draft", FhirUtils.getStatusFromResource(deviceRequest));
+        Coverage coverage = (Coverage) bundleRequest.getEntry().get(4).getResource();
+        Assert.assertEquals("active", FhirUtils.getStatusFromResource(coverage));
 
         // Validate resource without status is correct
         Assert.assertEquals("unknown", FhirUtils.getStatusFromResource(bundleRequest));
@@ -87,27 +89,27 @@ public class FhirUtilsTest {
         // Validate ClaimResponse found in bundle
         ClaimResponse foundResponse = FhirUtils.getClaimResponseFromResponseBundle(bundleResponse);
         Assert.assertNotNull(foundResponse);
-        Assert.assertEquals("1", foundResponse.getId());
+        Assert.assertEquals("1", FhirUtils.getIdFromResource(foundResponse));
     }
 
     @Test
-    public void testGetClaimFromResponseBundle() {
+    public void testGetClaimFromRequestBundle() {
         // Validate Claim found in bundle
         Claim foundClaim = FhirUtils.getClaimFromRequestBundle(bundleRequest);
         Assert.assertNotNull(foundClaim);
-        Assert.assertEquals("1", foundClaim.getId());
+        Assert.assertEquals("1", FhirUtils.getIdFromResource(foundClaim));
     }
 
     @Test
     public void testGetEntryComponentFromBundle() {
         // Validate BundleEntryComponent found is the Claim with id "1"
-        BundleEntryComponent bec = FhirUtils.getEntryComponentFromBundle(bundleRequest, "1");
+        BundleEntryComponent bec = FhirUtils.getEntryComponentFromBundle(bundleRequest, ResourceType.Claim, "1");
         Assert.assertNotNull(bec);
         Assert.assertNotNull(bec.getResource());
         Assert.assertEquals(ResourceType.Claim, bec.getResource().getResourceType());
 
         // Validate BundleEntryComponent is null for id which does not exist
-        bec = FhirUtils.getEntryComponentFromBundle(bundleRequest, "id-does-not-exist");
+        bec = FhirUtils.getEntryComponentFromBundle(bundleRequest, ResourceType.Organization, "id-does-not-exist");
         Assert.assertNull(bec);
     }
 
@@ -143,9 +145,15 @@ public class FhirUtilsTest {
     @Test
     public void testFormatResourceStatus() {
         // Validate the status from resources are correct
-        Assert.assertEquals("active", FhirUtils.getStatusFromResource(claim));
-        Assert.assertEquals("active", FhirUtils.getStatusFromResource(subscriptionResthook));
-        Assert.assertEquals("active", FhirUtils.getStatusFromResource(subscriptionWebsocket));
+        Assert.assertEquals("active", FhirUtils.formatResourceStatus(ClaimStatus.ACTIVE));
+        Assert.assertEquals("draft", FhirUtils.formatResourceStatus(ClaimStatus.DRAFT));
+        Assert.assertEquals("cancelled", FhirUtils.formatResourceStatus(ClaimStatus.CANCELLED));
+        Assert.assertEquals("entered in error", FhirUtils.formatResourceStatus(ClaimStatus.ENTEREDINERROR));
+
+        Assert.assertEquals("active", FhirUtils.formatResourceStatus(SubscriptionStatus.ACTIVE));
+        Assert.assertEquals("error", FhirUtils.formatResourceStatus(SubscriptionStatus.ERROR));
+        Assert.assertEquals("off", FhirUtils.formatResourceStatus(SubscriptionStatus.OFF));
+        Assert.assertEquals("requested", FhirUtils.formatResourceStatus(SubscriptionStatus.REQUESTED));
     }
 
     @Test

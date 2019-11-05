@@ -1,5 +1,6 @@
 package org.hl7.davinci.priorauth;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
@@ -10,11 +11,15 @@ import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 public class FhirUtils {
 
@@ -65,28 +70,27 @@ public class FhirUtils {
    *
    * @param resource - the resource.
    * @return - the status of the resource.
+   * @throws ParseException
    */
   public static String getStatusFromResource(IBaseResource resource) {
-    // TODO: make this generic using JSON for else clause
-    String status;
-    if (resource instanceof Claim) {
-      Claim claim = (Claim) resource;
-      status = claim.getStatus().getDisplay();
-    } else if (resource instanceof ClaimResponse) {
-      ClaimResponse claimResponse = (ClaimResponse) resource;
-      status = claimResponse.getStatus().getDisplay();
-    } else {
-      status = "unkown";
+    String status = "unknown";
+    String resourceString = FhirUtils.json(resource);
+    try {
+      JSONObject resourceJSON = (JSONObject) new JSONParser().parse(resourceString);
+      if (resourceJSON.containsKey("status"))
+        status = (String) resourceJSON.get("status");
+    } catch (ParseException e) {
+      logger.log(Level.SEVERE, "FhirUtils::getStatusFromResource:Unable to parse JSON", e);
     }
-    status = status.toLowerCase();
-    return status;
+
+    return status.toLowerCase();
   }
 
   /**
-   * Internal function to get the Patient ID from the Patient Reference.
+   * Internal function to get the Patient identifier from the Patient Reference.
    *
    * @param resource - the resource.
-   * @return String - the Patient ID.
+   * @return String - the Patient identifier, the ID if it does not exist or null
    */
   public static String getPatientIdentifierFromBundle(Bundle bundle) {
     Reference patientReference = null;
@@ -105,17 +109,23 @@ public class FhirUtils {
     if (patientReference.hasReference()) {
       // Get the patient through the reference
       String reference = patientReference.getReference();
+      logger.info("FhirUtils::getPatientIdentifier:patientReference:" + reference);
       String[] referenceParts = reference.split("/");
       String patientId = referenceParts[referenceParts.length - 1];
+      logger.info("FhirUtils::getPatientIdentifier:patientId:" + patientId);
 
       // Get the patient resource with the matching id
-      BundleEntryComponent bec = getEntryComponentFromBundle(bundle, patientId);
+      BundleEntryComponent bec = getEntryComponentFromBundle(bundle, ResourceType.Patient, patientId);
       if (bec != null) {
         Patient patient = (Patient) bec.getResource();
+        logger.info("FhirUtils::getPatientIdentifier:foundPatient:" + FhirUtils.getIdFromResource(patient));
         if (patient.hasIdentifier())
           return patient.getIdentifierFirstRep().getValue();
 
-        logger.info("FhirUtils::getPatientIdentifierFromBundle:Patient found but has no identifier");
+        logger.info("FhirUtils::getPatientIdentifierFromBundle:Patient found but has no identifier. Using ID instead");
+        // TODO: This is a temporary fix so the result is not null. The IG should be
+        // updated to explain what to do here
+        return patientId;
       }
       logger.severe("FhirUtils::getPatientIdentifierFromBundle:Patient with given id not found in Bundle");
 
@@ -181,13 +191,16 @@ public class FhirUtils {
    * Find the BundleEntryComponent in a Bundle where the resource has the desired
    * id
    * 
-   * @param bundle - the bundle to search through
-   * @param id     - the resource id to match
+   * @param bundle       - the bundle to search through
+   * @param resourceType - the resource type to look for (since ids are not
+   *                     unique)
+   * @param id           - the resource id to match
    * @return BundleEntryComponent in Bundle with resource matching id
    */
-  public static BundleEntryComponent getEntryComponentFromBundle(Bundle bundle, String id) {
+  public static BundleEntryComponent getEntryComponentFromBundle(Bundle bundle, ResourceType resourceType, String id) {
     for (BundleEntryComponent entry : bundle.getEntry()) {
-      if (entry.getResource().getId().equals(id)) {
+      Resource resource = entry.getResource();
+      if (resource.getResourceType() == resourceType && FhirUtils.getIdFromResource(resource).equals(id)) {
         return entry;
       }
     }

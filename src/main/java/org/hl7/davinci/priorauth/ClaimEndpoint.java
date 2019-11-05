@@ -199,8 +199,11 @@ public class ClaimEndpoint {
 
     // get the patient
     Claim claim = FhirUtils.getClaimFromRequestBundle(bundle);
-    // Claim claim = (Claim) bundle.getEntryFirstRep().getResource();
     String patient = FhirUtils.getPatientIdentifierFromBundle(bundle);
+    if (patient == null) {
+      logger.severe("ClaimEndpoint::processBundle:Patient was null");
+      return null;
+    }
 
     String claimId = id;
     Disposition responseDisposition = Disposition.UNKNOWN;
