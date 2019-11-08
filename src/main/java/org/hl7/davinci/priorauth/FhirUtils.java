@@ -9,11 +9,17 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.OperationOutcome;
+import org.hl7.fhir.r4.model.Patient;
+import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 public class FhirUtils {
 
@@ -66,52 +72,69 @@ public class FhirUtils {
    * @return - the status of the resource.
    */
   public static String getStatusFromResource(IBaseResource resource) {
-    String status;
-    if (resource instanceof Claim) {
-      Claim claim = (Claim) resource;
-      status = claim.getStatus().getDisplay();
-    } else if (resource instanceof ClaimResponse) {
-      ClaimResponse claimResponse = (ClaimResponse) resource;
-      status = claimResponse.getStatus().getDisplay();
-    } else if (resource instanceof Bundle) {
-      status = "valid";
-    } else {
-      status = "unkown";
+    String status = "unknown";
+    String resourceString = FhirUtils.json(resource);
+    try {
+      JSONObject resourceJSON = (JSONObject) new JSONParser().parse(resourceString);
+      if (resourceJSON.containsKey("status"))
+        status = (String) resourceJSON.get("status");
+    } catch (ParseException e) {
+      logger.log(Level.SEVERE, "FhirUtils::getStatusFromResource:Unable to parse JSON", e);
     }
-    status = status.toLowerCase();
-    return status;
+
+    return status.toLowerCase();
   }
 
   /**
-   * Internal function to get the Patient ID from the Patient Reference.
+   * Internal function to get the Patient identifier from the Patient Reference.
    *
    * @param resource - the resource.
-   * @return String - the Patient ID.
+   * @return String - the Patient identifier, the ID if it does not exist or null
    */
-  public static String getPatientIdFromResource(IBaseResource resource) {
-    String patient = "";
-    try {
-      String patientReference = null;
-      if (resource instanceof Claim) {
-        Claim claim = (Claim) resource;
-        patientReference = claim.getPatient().getReference();
-      } else if (resource instanceof ClaimResponse) {
-        ClaimResponse claimResponse = (ClaimResponse) resource;
-        patientReference = claimResponse.getPatient().getReference();
-      } else if (resource instanceof Bundle) {
-        Bundle bundle = (Bundle) resource;
-        Claim claim = (Claim) bundle.getEntryFirstRep().getResource();
-        patient = FhirUtils.getPatientIdFromResource(claim);
-      } else {
-        return patient;
+  public static String getPatientIdentifierFromBundle(Bundle bundle) {
+    Reference patientReference = null;
+
+    // If Response Bundle get the ClaimResponse
+    ClaimResponse claimResponse = getClaimResponseFromResponseBundle(bundle);
+    if (claimResponse != null)
+      patientReference = claimResponse.getPatient();
+
+    // If Request Bundle get the Claim
+    Claim claim = getClaimFromRequestBundle(bundle);
+    if (claim != null)
+      patientReference = claim.getPatient();
+
+    // Obtain the identifier based on how the reference is defined
+    if (patientReference.hasReference()) {
+      // Get the patient through the reference
+      String reference = patientReference.getReference();
+      logger.info("FhirUtils::getPatientIdentifier:patientReference:" + reference);
+      String[] referenceParts = reference.split("/");
+      String patientId = referenceParts[referenceParts.length - 1];
+      logger.info("FhirUtils::getPatientIdentifier:patientId:" + patientId);
+
+      // Get the patient resource with the matching id
+      BundleEntryComponent bec = getEntryComponentFromBundle(bundle, ResourceType.Patient, patientId);
+      if (bec != null) {
+        Patient patient = (Patient) bec.getResource();
+        logger.info("FhirUtils::getPatientIdentifier:foundPatient:" + FhirUtils.getIdFromResource(patient));
+        if (patient.hasIdentifier())
+          return patient.getIdentifierFirstRep().getValue();
+
+        logger.info("FhirUtils::getPatientIdentifierFromBundle:Patient found but has no identifier. Using ID instead");
+        // TODO: This is a temporary fix so the result is not null. The IG should be
+        // updated to explain what to do here
+        return patientId;
       }
-      String[] patientParts = patientReference.split("/");
-      patient = patientParts[patientParts.length - 1];
-      logger.info("FhirUtils::getPatientIdFromResource(patient: " + patientParts[patientParts.length - 1] + ")");
-    } catch (Exception e) {
-      logger.log(Level.SEVERE, "FhirUtils::getPatientIdFromResource(error processing patient)", e);
-    }
-    return patient;
+      logger.severe("FhirUtils::getPatientIdentifierFromBundle:Patient with given id not found in Bundle");
+
+      // If could not find the resource locally or has no identifier set null
+      return null;
+    } else if (patientReference.hasIdentifier())
+      return patientReference.getIdentifier().getValue();
+    else
+      return null;
+
   }
 
   /**
@@ -136,33 +159,51 @@ public class FhirUtils {
   }
 
   /**
-   * Set the fullUrl on each entry of a bundle
+   * Get the ClaimResponse from a PAS ClaimResponse Bundle. ClaimResponse is the
+   * first entry
    * 
-   * @param bundle - the bundle to modify fullUrls for
-   * @return the same bundle with each fullUrl set appropriately
+   * @param bundle - PAS Claim Response Bundle
+   * @return ClaimResponse resource for the response
    */
-  public static Bundle setBundleFullUrls(Bundle bundle) {
-    for (BundleEntryComponent entry : bundle.getEntry()) {
-      entry.setFullUrl(App.getBaseUrl() + "/" + entry.getResource().getResourceType() + "/"
-          + getIdFromResource(entry.getResource()));
-    }
-    return bundle;
+  public static ClaimResponse getClaimResponseFromResponseBundle(Bundle bundle) {
+    if (bundle.getEntryFirstRep().getResource().getResourceType() == ResourceType.ClaimResponse)
+      return (ClaimResponse) bundle.getEntryFirstRep().getResource();
+    else
+      return null;
+
   }
 
   /**
-   * Find the first instance of a ClaimResponse in a bundle
+   * Get the Claim from a PAS Claim Bundle. Claim is the first entry
    * 
-   * @param bundle - the bundle search through for the ClaimResponse
-   * @return ClaimResponse in the bundle or null if not found
+   * @param bundle - PAS Claim Request Bundle
+   * @return Claim resource for the request
    */
-  public static ClaimResponse getClaimResponseFromBundle(Bundle bundle) {
-    ClaimResponse claimResponse = null;
-    for (BundleEntryComponent bec : bundle.getEntry()) {
-      if (bec.getResource().getResourceType() == ResourceType.ClaimResponse)
-        return (ClaimResponse) bec.getResource();
-    }
+  public static Claim getClaimFromRequestBundle(Bundle bundle) {
+    if (bundle.getEntryFirstRep().getResource().getResourceType() == ResourceType.Claim)
+      return (Claim) bundle.getEntryFirstRep().getResource();
+    else
+      return null;
+  }
 
-    return claimResponse;
+  /**
+   * Find the BundleEntryComponent in a Bundle where the resource has the desired
+   * id
+   * 
+   * @param bundle       - the bundle to search through
+   * @param resourceType - the resource type to look for (since ids are not
+   *                     unique)
+   * @param id           - the resource id to match
+   * @return BundleEntryComponent in Bundle with resource matching id
+   */
+  public static BundleEntryComponent getEntryComponentFromBundle(Bundle bundle, ResourceType resourceType, String id) {
+    for (BundleEntryComponent entry : bundle.getEntry()) {
+      Resource resource = entry.getResource();
+      if (resource.getResourceType() == resourceType && FhirUtils.getIdFromResource(resource).equals(id)) {
+        return entry;
+      }
+    }
+    return null;
   }
 
   /**

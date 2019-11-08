@@ -27,6 +27,11 @@ import org.springframework.web.context.WebApplicationContext;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.OperationOutcome;
+import org.hl7.fhir.r4.model.ResourceType;
+import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -124,6 +129,34 @@ public class ClaimSubmitTest {
     String responseBody = mvcresult.getResponse().getContentAsString();
     Bundle bundleResponse = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(responseBody);
     Assert.assertNotNull(bundleResponse);
+
+    // Make sure all fullUrls and identifiers on the bundleResponse are the same as
+    // the submitted Claim
+    Bundle claimBundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(completeClaim);
+    for (BundleEntryComponent responseEntry : bundleResponse.getEntry()) {
+      if (responseEntry.getResource().getResourceType() != ResourceType.ClaimResponse) {
+        String id = responseEntry.getResource().getId();
+        BundleEntryComponent claimEntry = FhirUtils.getEntryComponentFromBundle(claimBundle,
+            responseEntry.getResource().getResourceType(), id);
+        if (claimEntry != null) {
+          Assert.assertTrue(responseEntry.getFullUrl().equals(claimEntry.getFullUrl()));
+
+          // Make sure the identifiers present in the request are still present in the
+          // response
+          String claimResource = FhirUtils.json(claimEntry.getResource());
+          String responseResource = FhirUtils.json(responseEntry.getResource());
+          JSONObject responseJSON = (JSONObject) new JSONParser().parse(responseResource);
+          JSONObject claimJSON = (JSONObject) new JSONParser().parse(claimResource);
+          if (claimJSON.get("identifier") != null) {
+            JSONArray claimIdentifiers = (JSONArray) claimJSON.get("identifier");
+            JSONArray responseIdentifiers = (JSONArray) responseJSON.get("identifier");
+            for (int i = 0; i < claimIdentifiers.size(); i++) {
+              Assert.assertTrue(responseIdentifiers.contains(claimIdentifiers.get(i)));
+            }
+          }
+        }
+      }
+    }
 
     // Make sure we clean up afterwards...
     String id = FhirUtils.getIdFromResource(bundleResponse);

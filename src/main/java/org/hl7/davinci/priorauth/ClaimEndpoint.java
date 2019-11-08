@@ -154,11 +154,9 @@ public class ClaimEndpoint {
             OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, PROCESS_FAILED);
             formattedData = FhirUtils.getFormattedData(error, requestType);
           } else {
-            ClaimResponse response = FhirUtils.getClaimResponseFromBundle(responseBundle);
+            ClaimResponse response = FhirUtils.getClaimResponseFromResponseBundle(responseBundle);
             id = FhirUtils.getIdFromResource(response);
-            if (response.hasPatient()) {
-              patient = FhirUtils.getPatientIdFromResource(response);
-            }
+            patient = FhirUtils.getPatientIdentifierFromBundle(responseBundle);
             formattedData = FhirUtils.getFormattedData(responseBundle, requestType);
           }
         } else {
@@ -200,8 +198,12 @@ public class ClaimEndpoint {
     String id = UUID.randomUUID().toString();
 
     // get the patient
-    Claim claim = (Claim) bundle.getEntryFirstRep().getResource();
-    String patient = FhirUtils.getPatientIdFromResource(claim);
+    Claim claim = FhirUtils.getClaimFromRequestBundle(bundle);
+    String patient = FhirUtils.getPatientIdentifierFromBundle(bundle);
+    if (patient == null) {
+      logger.severe("ClaimEndpoint::processBundle:Patient was null");
+      return null;
+    }
 
     String claimId = id;
     Disposition responseDisposition = Disposition.UNKNOWN;
@@ -253,7 +255,6 @@ public class ClaimEndpoint {
 
       // Store the bundle...
       bundle.setId(id);
-      bundle = FhirUtils.setBundleFullUrls(bundle);
       Map<String, Object> bundleMap = new HashMap<String, Object>();
       bundleMap.put("id", id);
       bundleMap.put("patient", patient);
@@ -590,11 +591,10 @@ public class ClaimEndpoint {
     responseBundle.setType(Bundle.BundleType.COLLECTION);
     BundleEntryComponent responseEntry = responseBundle.addEntry();
     responseEntry.setResource(response);
-    responseEntry.setFullUrl(App.getBaseUrl() + "/Bundle/" + id);
+    responseEntry.setFullUrl(App.getBaseUrl() + "/ClaimResponse/" + id);
     for (BundleEntryComponent entry : bundle.getEntry()) {
       responseBundle.addEntry(entry);
     }
-    responseBundle = FhirUtils.setBundleFullUrls(responseBundle);
 
     // Store the claim respnose...
     Map<String, Object> responseMap = new HashMap<String, Object>();
