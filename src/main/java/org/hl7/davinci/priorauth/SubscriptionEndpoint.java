@@ -1,5 +1,6 @@
 package org.hl7.davinci.priorauth;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.OperationOutcome;
+import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Subscription;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
@@ -156,6 +158,13 @@ public class SubscriptionEndpoint {
             if (variableName.equals(statusVarName))
                 status = criteriaMap.get(variableName);
         }
+
+        // Check the desired ClaimResponse is pended
+        String outcome = App.getDB().readString(Database.CLAIM_RESPONSE,
+                Collections.singletonMap("id", claimResponseId), "outcome");
+        logger.info("SubscriptionEndpoint::Outcome for desired resource is: " + outcome);
+        if (!outcome.equals(FhirUtils.ReviewAction.PENDED.value().asStringValue()))
+            return null;
 
         // Add to db
         String id = UUID.randomUUID().toString();
