@@ -32,6 +32,8 @@ import org.springframework.test.web.servlet.setup.DefaultMockMvcBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import org.hl7.davinci.priorauth.Database.Table;
+
 import ca.uhn.fhir.validation.ValidationResult;
 
 @RunWith(SpringRunner.class)
@@ -74,7 +76,7 @@ public class SubscriptionEndpointTest {
         claimMap.put("patient", "pat013");
         claimMap.put("status", "active");
         claimMap.put("resource", claim);
-        App.getDB().write(Database.CLAIM, claimMap);
+        App.getDB().write(Table.CLAIM, claimMap);
 
         // Add Claim to the Database so a ClaimResponse can be added
         fixture = modulesFolder.resolve("claim-minimal.json");
@@ -84,7 +86,7 @@ public class SubscriptionEndpointTest {
         claimMap.put("patient", "pat013");
         claimMap.put("status", "active");
         claimMap.put("resource", claim);
-        App.getDB().write(Database.CLAIM, claimMap);
+        App.getDB().write(Table.CLAIM, claimMap);
 
         // Add a granted ClaimResponse to the Database so a Subscription can be added
         fixture = modulesFolder.resolve("claimresponse-pended.json");
@@ -96,7 +98,7 @@ public class SubscriptionEndpointTest {
         claimResponseMap.put("status", "active");
         claimResponseMap.put("outcome", "A1");
         claimResponseMap.put("resource", claimResponse);
-        App.getDB().write(Database.CLAIM_RESPONSE, claimResponseMap);
+        App.getDB().write(Table.CLAIM_RESPONSE, claimResponseMap);
 
         // Add a pended ClaimResponse to the Database so a Subscription can be added
         fixture = modulesFolder.resolve("claimresponse-pended.json");
@@ -108,7 +110,7 @@ public class SubscriptionEndpointTest {
         claimResponseMap.put("status", "active");
         claimResponseMap.put("outcome", "A4");
         claimResponseMap.put("resource", claimResponse);
-        App.getDB().write(Database.CLAIM_RESPONSE, claimResponseMap);
+        App.getDB().write(Table.CLAIM_RESPONSE, claimResponseMap);
 
         // Add a resthook subscription to the Database
         Map<String, Object> subscriptionMap = new HashMap<String, Object>();
@@ -117,14 +119,14 @@ public class SubscriptionEndpointTest {
         subscriptionMap.put("patient", "pat013");
         subscriptionMap.put("status", "active");
         subscriptionMap.put("resource", subscriptionPended);
-        App.getDB().write(Database.SUBSCRIPTION, subscriptionMap);
+        App.getDB().write(Table.SUBSCRIPTION, subscriptionMap);
     }
 
     @AfterClass
     public static void cleanup() {
-        App.getDB().delete(Database.CLAIM);
-        App.getDB().delete(Database.CLAIM_RESPONSE);
-        App.getDB().delete(Database.SUBSCRIPTION);
+        App.getDB().delete(Table.CLAIM);
+        App.getDB().delete(Table.CLAIM_RESPONSE);
+        App.getDB().delete(Table.SUBSCRIPTION);
     }
 
     @Test
@@ -148,7 +150,7 @@ public class SubscriptionEndpointTest {
         Map<String, Object> constraintMap = new HashMap<String, Object>();
         constraintMap.put("claimResponseId", "pended");
         constraintMap.put("patient", "pat013");
-        Assert.assertNotNull(App.getDB().read(Database.SUBSCRIPTION, constraintMap));
+        Assert.assertNotNull(App.getDB().read(Table.SUBSCRIPTION, constraintMap));
 
         // Validate the response
         ValidationResult result = ValidationHelper.validate(subscriptionResponse);

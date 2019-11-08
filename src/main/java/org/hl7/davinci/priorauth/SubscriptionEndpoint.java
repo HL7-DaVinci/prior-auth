@@ -159,8 +159,8 @@ public class SubscriptionEndpoint {
         }
 
         // Check the desired ClaimResponse is pended
-        String outcome = App.getDB().readString(Database.CLAIM_RESPONSE,
-                Collections.singletonMap("id", claimResponseId), "outcome");
+        String outcome = App.getDB().readString(Table.CLAIM_RESPONSE, Collections.singletonMap("id", claimResponseId),
+                "outcome");
         logger.info("SubscriptionEndpoint::Outcome for desired resource is: " + outcome);
         if (!outcome.equals(FhirUtils.ReviewAction.PENDED.value().asStringValue()))
             return null;
