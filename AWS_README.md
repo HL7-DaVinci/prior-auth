@@ -37,38 +37,15 @@ $ ssh -i "PAS_Team.pem" ubuntu@ec2-54-152-51-3.compute-1.amazonaws.com
 
 ## Running PAS
 
-Once the VM is up and running (this may take a few minutes), you deploy the Prior Authorization service. To get PAS up and running on AWS do the following:
-
-1.  Download the setup script `pas_setup.sh` from []. The contents of `pas_setup.sh` are:
-
-```bash
-apt update -y
-apt install -y apt-transport-https ca-certificates curl software-properties-common
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
-apt update -y
-apt-cache policy docker-ce
-apt install -y docker-ce
-git clone https://github.com/HL7-DaVinci/prior-auth.git
-cd prior-auth
-docker build -t hspc/davinci-prior-auth:latest .
-docker run -p 8080:9000 -e debug='true' -it --rm --name davinci-prior-auth hspc/davinci-prior-auth:latest
-```
-
-3.  Copy the file over to the VM
-
-```bash
-$ scp -i "PAS_Team.pem" pas_setup.sh ubuntu@{Public DNS IPv4}:~/.
-```
-
-4.  SSH into the VM and run the setup script as root user
+Once the VM is up and running (this may take a few minutes), you deploy the Prior Authorization service. To get PAS up and running on SSH into the VM, download the setup script, and then execute as root user.
 
 ```bash
 $ ssh -i “PAS_Team.pem” ubuntu@{Public DNS (IPv4)}
+$ wget https://raw.githubusercontent.com/HL7-DaVinci/prior-auth/aws-docs/pas_setup.sh
 $ sudo ./pas_setup.sh
 ```
 
-The service will now be running on `{Public DNS IPv4}:8080` in debug mode.
+The setup script will install Docker and run the service in a new container. By default PAS runs on port 9000, however the AWS sandbox does not expose this port by default. The service will now be running on `{Public DNS IPv4}:8080` in debug mode.
 
 ### Running Without Docker
 
@@ -97,4 +74,20 @@ $ chmod 777 pas_setup.sh
 
 ```bash
 $ docker run -p 8080:9000 -it --rm --name davinci-prior-auth hspc/davinci-prior-auth:latest
+```
+
+3. Unable to download the setup script. Create a file called `pas_setup.sh` and add the following:
+
+```bash
+apt update -y
+apt install -y apt-transport-https ca-certificates curl software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
+apt update -y
+apt-cache policy docker-ce
+apt install -y docker-ce
+git clone https://github.com/HL7-DaVinci/prior-auth.git
+cd prior-auth
+docker build -t hspc/davinci-prior-auth:latest .
+docker run -p 8080:9000 -e debug='true' -it --rm --name davinci-prior-auth hspc/davinci-prior-auth:latest
 ```
