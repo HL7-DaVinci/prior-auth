@@ -73,7 +73,7 @@ $ chmod 777 pas_setup.sh
 2. By default the setup script runs the service in debug mode. To prevent this either change the last line of the script or run directly from command line:
 
 ```bash
-$ docker run -p 8080:9000 -it --rm --name davinci-prior-auth hspc/davinci-prior-auth:latest
+$ docker run -d -p 8080:9000 -it --rm --name davinci-prior-auth hspc/davinci-prior-auth:latest
 ```
 
 3. Unable to download the setup script. Create a file called `pas_setup.sh` and add the following:
