@@ -268,6 +268,7 @@ public class Database {
    */
   public List<IBaseResource> readAll(Table table, Map<String, Object> constraintParams) {
     logger.info("Database::readAll(" + table.value() + ", " + constraintParams.toString() + ")");
+    logger.info(this.generateAndRunQuery(table));
     List<IBaseResource> results = new ArrayList<IBaseResource>();
     if (table != null && constraintParams != null) {
       try (Connection connection = getConnection()) {
@@ -317,7 +318,7 @@ public class Database {
   }
 
   /**
-   * Read the specified column from the database
+   * Read the most recent data for specified column from the database
    *
    * @param table            - the Table to read from.
    * @param constraintParams - the search constraints for the SQL query.
@@ -427,7 +428,7 @@ public class Database {
     String referencingId = id;
 
     while (referencingClaim != null) {
-      // Update referincing claim to cancelled
+      // Update the referencingId to be the most recent referencingClaim
       referencingId = FhirUtils.getIdFromResource(referencingClaim);
 
       // Get the new referencing claim
@@ -497,7 +498,8 @@ public class Database {
             .prepareStatement("DELETE FROM " + table.value() + " WHERE id = ? AND patient = ?;");
         stmt.setString(1, id);
         stmt.setString(2, patient);
-        result = stmt.execute();
+        stmt.execute();
+        result = stmt.getUpdateCount() > 0 ? true : false;
       } catch (SQLException e) {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
@@ -517,7 +519,8 @@ public class Database {
     if (table != null) {
       try (Connection connection = getConnection()) {
         PreparedStatement stmt = connection.prepareStatement("DELETE FROM " + table.value() + ";");
-        result = stmt.execute();
+        stmt.execute();
+        result = stmt.getUpdateCount() > 0 ? true : false;
       } catch (SQLException e) {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
