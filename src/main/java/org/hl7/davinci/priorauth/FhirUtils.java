@@ -17,6 +17,7 @@ import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
+import org.hl7.fhir.r4.model.Extension;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -135,6 +136,22 @@ public class FhirUtils {
     else
       return null;
 
+  }
+
+  /**
+   * Get the review action extension value from a ClaimResponse
+   * 
+   * @param claimResponse - the ClaimResponse resource
+   * @return the X12 review action value if it exsits, otherwise null
+   */
+  public static String getReviewActionFromClaimResponse(ClaimResponse claimResponse) {
+    String reviewActionUrl = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction";
+    for (Extension ext : claimResponse.getExtension()) {
+      if (ext.getUrl().equals(reviewActionUrl)) {
+        return ext.getValue().primitiveValue();
+      }
+    }
+    return null;
   }
 
   /**
