@@ -268,7 +268,6 @@ public class Database {
    */
   public List<IBaseResource> readAll(Table table, Map<String, Object> constraintParams) {
     logger.info("Database::readAll(" + table.value() + ", " + constraintParams.toString() + ")");
-    logger.info(this.generateAndRunQuery(table));
     List<IBaseResource> results = new ArrayList<IBaseResource>();
     if (table != null && constraintParams != null) {
       try (Connection connection = getConnection()) {
