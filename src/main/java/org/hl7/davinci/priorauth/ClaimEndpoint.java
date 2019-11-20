@@ -735,6 +735,7 @@ public class ClaimEndpoint {
         // Send notification to each subscriber
         subscriptions.stream().forEach(resource -> {
           Subscription subscription = (Subscription) resource;
+          String subscriptionId = FhirUtils.getIdFromResource(subscription);
           SubscriptionChannelType subscriptionType = subscription.getChannel().getType();
           if (subscriptionType == SubscriptionChannelType.RESTHOOK) {
             // Send rest-hook notification...
@@ -747,10 +748,11 @@ public class ClaimEndpoint {
               logger.fine("SubscriptionHandler::Response " + response.code());
             } catch (IOException e) {
               logger.log(Level.SEVERE, "SubscriptionHandler::IOException in request", e);
+              App.getDB().update(Table.SUBSCRIPTION, Collections.singletonMap("id", subscriptionId),
+                  Collections.singletonMap("status", SubscriptionStatus.ERROR.getDisplay().toLowerCase()));
             }
           } else if (subscriptionType == SubscriptionChannelType.WEBSOCKET) {
             // Send websocket notification...
-            String subscriptionId = FhirUtils.getIdFromResource(subscription);
             String websocketId = App.getDB().readString(Table.SUBSCRIPTION,
                 Collections.singletonMap("id", subscriptionId), "websocketId");
             if (websocketId != null) {
