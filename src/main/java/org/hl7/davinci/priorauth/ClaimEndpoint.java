@@ -60,6 +60,7 @@ import org.hl7.fhir.r4.model.Claim.ItemComponent;
 import ca.uhn.fhir.parser.IParser;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 
 /**
  * The Claim endpoint to READ, SEARCH for, and DELETE submitted claims.
@@ -739,7 +740,8 @@ public class ClaimEndpoint {
             logger.info("SubscriptionHandler::Sending rest-hook notification to " + endpoint);
             try {
               OkHttpClient client = new OkHttpClient();
-              okhttp3.Response response = client.newCall(new Request.Builder().url(endpoint).build()).execute();
+              okhttp3.Response response = client
+                  .newCall(new Request.Builder().post(RequestBody.create(null, "")).url(endpoint).build()).execute();
               logger.fine("SubscriptionHandler::Response " + response.code());
             } catch (IOException e) {
               logger.log(Level.SEVERE, "SubscriptionHandler::IOException in request", e);
