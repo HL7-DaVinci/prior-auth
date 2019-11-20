@@ -27,6 +27,7 @@ import org.hl7.fhir.r4.model.Subscription;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionChannelType;
+import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
 
 import ca.uhn.fhir.parser.IParser;
 
@@ -168,6 +169,7 @@ public class SubscriptionEndpoint {
         // Add to db
         String id = UUID.randomUUID().toString();
         subscription.setId(id);
+        subscription.setStatus(SubscriptionStatus.ACTIVE);
         logger.fine("SubscriptionEndpoint::Subscription given uuid " + id);
         Map<String, Object> dataMap = new HashMap<String, Object>();
         dataMap.put("id", id);

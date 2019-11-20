@@ -11,6 +11,7 @@ import org.hl7.fhir.dstu3.model.codesystems.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Subscription;
 import org.hl7.fhir.r4.model.OperationOutcome.OperationOutcomeIssueComponent;
+import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -145,6 +146,10 @@ public class SubscriptionEndpointTest {
         String responseBody = mvcresult.getResponse().getContentAsString();
         Subscription subscriptionResponse = (Subscription) App.FHIR_CTX.newJsonParser().parseResource(responseBody);
         Assert.assertNotNull(subscriptionResponse);
+
+        // Test the Subscription has an ID and the status is active
+        Assert.assertNotNull(FhirUtils.getIdFromResource(subscriptionResponse));
+        Assert.assertEquals(SubscriptionStatus.ACTIVE, subscriptionResponse.getStatus());
 
         // Test that the database contains the proper entries
         Map<String, Object> constraintMap = new HashMap<String, Object>();
