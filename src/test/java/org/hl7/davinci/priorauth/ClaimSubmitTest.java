@@ -24,7 +24,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.DefaultMockMvcBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
-
+import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.ResourceType;
@@ -90,9 +90,9 @@ public class ClaimSubmitTest {
   public static void cleanup() {
     for (String id : resourceIds) {
       System.out.println("Deleting Resources with ID = " + id);
-      App.getDB().delete(Database.BUNDLE, id, "pat013");
-      App.getDB().delete(Database.CLAIM, id, "pat013");
-      App.getDB().delete(Database.CLAIM_RESPONSE, id, "pat013");
+      App.getDB().delete(Table.BUNDLE, id, "pat013");
+      App.getDB().delete(Table.CLAIM, id, "pat013");
+      App.getDB().delete(Table.CLAIM_RESPONSE, id, "pat013");
     }
   }
 
@@ -136,7 +136,8 @@ public class ClaimSubmitTest {
     for (BundleEntryComponent responseEntry : bundleResponse.getEntry()) {
       if (responseEntry.getResource().getResourceType() != ResourceType.ClaimResponse) {
         String id = responseEntry.getResource().getId();
-        BundleEntryComponent claimEntry = FhirUtils.getEntryComponentFromBundle(claimBundle, id);
+        BundleEntryComponent claimEntry = FhirUtils.getEntryComponentFromBundle(claimBundle,
+            responseEntry.getResource().getResourceType(), id);
         if (claimEntry != null) {
           Assert.assertTrue(responseEntry.getFullUrl().equals(claimEntry.getFullUrl()));
 
@@ -165,9 +166,9 @@ public class ClaimSubmitTest {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", id);
     constraintMap.put("patient", "pat013");
-    Assert.assertNotNull(App.getDB().read(Database.BUNDLE, constraintMap));
-    Assert.assertNotNull(App.getDB().read(Database.CLAIM, constraintMap));
-    Assert.assertNotNull(App.getDB().read(Database.CLAIM_RESPONSE, constraintMap));
+    Assert.assertNotNull(App.getDB().read(Table.BUNDLE, constraintMap));
+    Assert.assertNotNull(App.getDB().read(Table.CLAIM, constraintMap));
+    Assert.assertNotNull(App.getDB().read(Table.CLAIM_RESPONSE, constraintMap));
 
     // Validate the response.
     ValidationResult result = ValidationHelper.validate(bundleResponse);

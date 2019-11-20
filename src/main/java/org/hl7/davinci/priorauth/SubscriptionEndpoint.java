@@ -1,5 +1,6 @@
 package org.hl7.davinci.priorauth;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -18,7 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
+import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.OperationOutcome;
@@ -58,13 +59,13 @@ public class SubscriptionEndpoint {
     @DeleteMapping(value = "", consumes = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
     public ResponseEntity<String> deleteSubscriptionJSON(@RequestParam("identifier") String id,
             @RequestParam("patient.identifier") String patient) {
-        return Endpoint.delete(id, patient, Database.SUBSCRIPTION, RequestType.JSON);
+        return Endpoint.delete(id, patient, Table.SUBSCRIPTION, RequestType.JSON);
     }
 
     @DeleteMapping(value = "", consumes = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
     public ResponseEntity<String> deleteSubscriptionXML(@RequestParam("identifier") String id,
             @RequestParam("patient.identifier") String patient) {
-        return Endpoint.delete(id, patient, Database.SUBSCRIPTION, RequestType.XML);
+        return Endpoint.delete(id, patient, Table.SUBSCRIPTION, RequestType.XML);
     }
 
     private ResponseEntity<String> addSubscription(String body, RequestType requestType) {
@@ -157,6 +158,13 @@ public class SubscriptionEndpoint {
                 status = criteriaMap.get(variableName);
         }
 
+        // Check the desired ClaimResponse is pended
+        String outcome = App.getDB().readString(Table.CLAIM_RESPONSE, Collections.singletonMap("id", claimResponseId),
+                "outcome");
+        logger.info("SubscriptionEndpoint::Outcome for desired resource is: " + outcome);
+        if (!outcome.equals(FhirUtils.ReviewAction.PENDED.value().asStringValue()))
+            return null;
+
         // Add to db
         String id = UUID.randomUUID().toString();
         subscription.setId(id);
@@ -167,7 +175,7 @@ public class SubscriptionEndpoint {
         dataMap.put("patient", patient);
         dataMap.put("status", status);
         dataMap.put("resource", subscription);
-        if (App.getDB().write(Database.SUBSCRIPTION, dataMap))
+        if (App.getDB().write(Table.SUBSCRIPTION, dataMap))
             return subscription;
         else
             return null;

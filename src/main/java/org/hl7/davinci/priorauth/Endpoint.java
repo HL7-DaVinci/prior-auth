@@ -5,6 +5,7 @@ import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
@@ -30,15 +31,15 @@ public class Endpoint {
     /**
      * Read a resource from an endpoint in either JSON or XML
      * 
-     * @param resourceType  - the FHIR resourceType to read.
+     * @param table         - the Table to read from.
      * @param constraintMap - map of the column names and values for the SQL query.
      * @param uri           - the base URI for the microservice.
      * @param requestType   - the RequestType of the request.
      * @return the desired resource if successful and an error message otherwise
      */
-    public static ResponseEntity<String> read(String resourceType, Map<String, Object> constraintMap,
+    public static ResponseEntity<String> read(Table table, Map<String, Object> constraintMap,
             HttpServletRequest request, RequestType requestType) {
-        logger.info("GET /" + resourceType + ":" + constraintMap.toString() + " fhir+" + requestType.name());
+        logger.info("GET /" + table.value() + ":" + constraintMap.toString() + " fhir+" + requestType.name());
         App.setBaseUrl(Endpoint.getServiceBaseUrl(request));
         if (!constraintMap.containsKey("patient")) {
             logger.warning("Endpoint::read:patient null");
@@ -50,28 +51,28 @@ public class Endpoint {
             // Search
             constraintMap.remove("id");
             Bundle searchBundle;
-            searchBundle = App.getDB().search(resourceType, constraintMap);
+            searchBundle = App.getDB().search(table, constraintMap);
             formattedData = FhirUtils.getFormattedData(searchBundle, requestType);
         } else {
             // Read
             IBaseResource baseResource;
-            baseResource = App.getDB().read(resourceType, constraintMap);
+            baseResource = App.getDB().read(table, constraintMap);
 
             if (baseResource == null)
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 
             // Convert to correct resourceType
-            if (resourceType == Database.BUNDLE) {
+            if (table == Table.BUNDLE) {
                 Bundle bundle = (Bundle) baseResource;
                 formattedData = FhirUtils.getFormattedData(bundle, requestType);
-            } else if (resourceType == Database.CLAIM) {
+            } else if (table == Table.CLAIM) {
                 Claim claim = (Claim) baseResource;
                 formattedData = FhirUtils.getFormattedData(claim, requestType);
-            } else if (resourceType == Database.CLAIM_RESPONSE) {
+            } else if (table == Table.CLAIM_RESPONSE) {
                 Bundle bundleResponse = (Bundle) baseResource;
                 formattedData = FhirUtils.getFormattedData(bundleResponse, requestType);
             } else {
-                logger.warning("Endpoint::read:invalid resourceType: " + resourceType);
+                logger.warning("Endpoint::read:invalid table: " + table.value());
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
         }
@@ -81,15 +82,14 @@ public class Endpoint {
     /**
      * Read a resource from an endpoint in either JSON or XML
      * 
-     * @param id           - the ID of the resource.
-     * @param patient      - the patient ID.
-     * @param resourceType - the FHIR resourceType to read.
-     * @param requestType  - the RequestType of the request.
+     * @param id          - the ID of the resource.
+     * @param patient     - the patient ID.
+     * @param table       - the Table to delete from.
+     * @param requestType - the RequestType of the request.
      * @return status of the deleted resource
      */
-    public static ResponseEntity<String> delete(String id, String patient, String resourceType,
-            RequestType requestType) {
-        logger.info("DELETE /" + resourceType + ":" + id + "/" + patient + " fhir+" + requestType.name());
+    public static ResponseEntity<String> delete(String id, String patient, Table table, RequestType requestType) {
+        logger.info("DELETE /" + table.value() + ":" + id + "/" + patient + " fhir+" + requestType.name());
         HttpStatus status = HttpStatus.OK;
         OperationOutcome outcome = null;
         if (id == null) {
@@ -104,7 +104,7 @@ public class Endpoint {
             outcome = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_PATIENT);
         } else {
             // Delete the specified resource..
-            if (App.getDB().delete(resourceType, id, patient))
+            if (App.getDB().delete(table, id, patient))
                 outcome = FhirUtils.buildOutcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
             else
                 outcome = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INCOMPLETE, SQL_ERROR);

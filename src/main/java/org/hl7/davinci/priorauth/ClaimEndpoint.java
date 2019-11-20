@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
+import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
 import org.hl7.davinci.priorauth.FhirUtils.ReviewAction;
@@ -88,7 +88,7 @@ public class ClaimEndpoint {
     constraintMap.put("patient", patient);
     if (status != null)
       constraintMap.put("status", status);
-    return Endpoint.read(Database.CLAIM, constraintMap, request, RequestType.JSON);
+    return Endpoint.read(Table.CLAIM, constraintMap, request, RequestType.JSON);
   }
 
   @GetMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
@@ -101,19 +101,19 @@ public class ClaimEndpoint {
     constraintMap.put("patient", patient);
     if (status != null)
       constraintMap.put("status", status);
-    return Endpoint.read(Database.CLAIM, constraintMap, request, RequestType.XML);
+    return Endpoint.read(Table.CLAIM, constraintMap, request, RequestType.XML);
   }
 
   @DeleteMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> deleteClaimJson(@RequestParam(name = "identifier") String id,
       @RequestParam(name = "patient.identifier") String patient) {
-    return Endpoint.delete(id, patient, Database.CLAIM, RequestType.JSON);
+    return Endpoint.delete(id, patient, Table.CLAIM, RequestType.JSON);
   }
 
   @DeleteMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
   public ResponseEntity<String> deleteClaimXml(@RequestParam(name = "identifier") String id,
       @RequestParam(name = "patient.identifier") String patient) {
-    return Endpoint.delete(id, patient, Database.CLAIM, RequestType.XML);
+    return Endpoint.delete(id, patient, Table.CLAIM, RequestType.XML);
   }
 
   @PostMapping(value = "/$submit", consumes = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
@@ -155,11 +155,9 @@ public class ClaimEndpoint {
             OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, PROCESS_FAILED);
             formattedData = FhirUtils.getFormattedData(error, requestType);
           } else {
-            ClaimResponse response = FhirUtils.getClaimResponseFromBundle(responseBundle);
+            ClaimResponse response = FhirUtils.getClaimResponseFromResponseBundle(responseBundle);
             id = FhirUtils.getIdFromResource(response);
-            if (response.hasPatient()) {
-              patient = FhirUtils.getPatientIdFromResource(response);
-            }
+            patient = FhirUtils.getPatientIdentifierFromBundle(responseBundle);
             formattedData = FhirUtils.getFormattedData(responseBundle, requestType);
           }
         } else {
@@ -201,8 +199,12 @@ public class ClaimEndpoint {
     String id = UUID.randomUUID().toString();
 
     // get the patient
-    Claim claim = (Claim) bundle.getEntryFirstRep().getResource();
-    String patient = FhirUtils.getPatientIdFromResource(claim);
+    Claim claim = FhirUtils.getClaimFromRequestBundle(bundle);
+    String patient = FhirUtils.getPatientIdentifierFromBundle(bundle);
+    if (patient == null) {
+      logger.severe("ClaimEndpoint::processBundle:Patient was null");
+      return null;
+    }
 
     String claimId = id;
     Disposition responseDisposition = Disposition.UNKNOWN;
@@ -240,7 +242,7 @@ public class ClaimEndpoint {
         // Check if related is cancelled in the DB
         Map<String, Object> constraintMap = new HashMap<String, Object>();
         constraintMap.put("id", relatedId);
-        String relatedStatusStr = App.getDB().readStatus(Database.CLAIM, constraintMap);
+        String relatedStatusStr = App.getDB().readStatus(Table.CLAIM, constraintMap);
         ClaimStatus relatedStatus = ClaimStatus.fromCode(relatedStatusStr);
         if (relatedStatus == Claim.ClaimStatus.CANCELLED) {
           logger.warning(
@@ -249,7 +251,7 @@ public class ClaimEndpoint {
         }
       }
 
-      if (!App.getDB().write(Database.CLAIM, claimMap))
+      if (!App.getDB().write(Table.CLAIM, claimMap))
         return null;
 
       // Store the bundle...
@@ -258,7 +260,7 @@ public class ClaimEndpoint {
       bundleMap.put("id", id);
       bundleMap.put("patient", patient);
       bundleMap.put("resource", bundle);
-      App.getDB().write(Database.BUNDLE, bundleMap);
+      App.getDB().write(Table.BUNDLE, bundleMap);
 
       // Store the claim items...
       if (claim.hasItem()) {
@@ -353,10 +355,10 @@ public class ClaimEndpoint {
         dataMap.put("status", itemIsCancelled ? ClaimStatus.CANCELLED.getDisplay().toLowerCase() : claimStatusStr);
 
         // Update if item exists otherwise add to database
-        if (App.getDB().readStatus(Database.CLAIM_ITEM, constraintMap) == null) {
-          App.getDB().write(Database.CLAIM_ITEM, dataMap);
+        if (App.getDB().readStatus(Table.CLAIM_ITEM, constraintMap) == null) {
+          App.getDB().write(Table.CLAIM_ITEM, dataMap);
         } else {
-          if (!App.getDB().update(Database.CLAIM_ITEM, constraintMap, dataMap))
+          if (!App.getDB().update(Table.CLAIM_ITEM, constraintMap, dataMap))
             ret = false;
         }
       }
@@ -367,7 +369,7 @@ public class ClaimEndpoint {
         itemMap.put("id", id);
         itemMap.put("sequence", item.getSequence());
         itemMap.put("status", claimStatusStr);
-        if (!App.getDB().write(Database.CLAIM_ITEM, itemMap))
+        if (!App.getDB().write(Table.CLAIM_ITEM, itemMap))
           ret = false;
       }
     }
@@ -387,7 +389,7 @@ public class ClaimEndpoint {
     Map<String, Object> claimConstraintMap = new HashMap<String, Object>();
     claimConstraintMap.put("id", claimId);
     claimConstraintMap.put("patient", patient);
-    Claim initialClaim = (Claim) App.getDB().read(Database.CLAIM, claimConstraintMap);
+    Claim initialClaim = (Claim) App.getDB().read(Table.CLAIM, claimConstraintMap);
     if (initialClaim != null) {
       if (initialClaim.getStatus() != ClaimStatus.CANCELLED) {
         // Cancel the claim...
@@ -397,7 +399,7 @@ public class ClaimEndpoint {
         constraintMap.put("id", claimId);
         dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
         dataMap.put("resource", initialClaim);
-        App.getDB().update(Database.CLAIM, constraintMap, dataMap);
+        App.getDB().update(Table.CLAIM, constraintMap, dataMap);
 
         cascadeCancel(claimId);
 
@@ -406,7 +408,7 @@ public class ClaimEndpoint {
         constraintMap = new HashMap<String, Object>();
         constraintMap.put("id", App.getDB().getMostRecentId(claimId));
         dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
-        App.getDB().update(Database.CLAIM_ITEM, constraintMap, dataMap);
+        App.getDB().update(Table.CLAIM_ITEM, constraintMap, dataMap);
 
         result = true;
       } else {
@@ -439,7 +441,7 @@ public class ClaimEndpoint {
     // Cascade up to all the Claims submitted after this which reference this Claim
     Map<String, Object> readConstraintMap = new HashMap<String, Object>();
     readConstraintMap.put("related", claimId);
-    Claim referencingClaim = (Claim) App.getDB().read(Database.CLAIM, readConstraintMap);
+    Claim referencingClaim = (Claim) App.getDB().read(Table.CLAIM, readConstraintMap);
     String referencingId;
 
     while (referencingClaim != null) {
@@ -448,29 +450,29 @@ public class ClaimEndpoint {
       referencingId = FhirUtils.getIdFromResource(referencingClaim);
       constraintMap.replace("id", referencingId);
       dataMap.replace("resource", referencingClaim);
-      App.getDB().update(Database.CLAIM, constraintMap, dataMap);
+      App.getDB().update(Table.CLAIM, constraintMap, dataMap);
 
       // Get the new referencing claim
       readConstraintMap.replace("related", referencingId);
-      referencingClaim = (Claim) App.getDB().read(Database.CLAIM, readConstraintMap);
+      referencingClaim = (Claim) App.getDB().read(Table.CLAIM, readConstraintMap);
     }
 
     // Cascade the cancel to all related Claims...
     // Follow each related until it is NULL
     constraintMap.replace("id", claimId);
-    String relatedId = App.getDB().readRelated(Database.CLAIM, constraintMap);
+    String relatedId = App.getDB().readRelated(Table.CLAIM, constraintMap);
     Claim relatedClaim;
 
     while (relatedId != null) {
       // Update related claim to cancelled
       constraintMap.replace("id", relatedId);
-      relatedClaim = (Claim) App.getDB().read(Database.CLAIM, constraintMap);
+      relatedClaim = (Claim) App.getDB().read(Table.CLAIM, constraintMap);
       relatedClaim.setStatus(ClaimStatus.CANCELLED);
       dataMap.replace("resource", relatedClaim);
-      App.getDB().update(Database.CLAIM, constraintMap, dataMap);
+      App.getDB().update(Table.CLAIM, constraintMap, dataMap);
 
       // Get the new related id from the db
-      relatedId = App.getDB().readRelated(Database.CLAIM, constraintMap);
+      relatedId = App.getDB().readRelated(Table.CLAIM, constraintMap);
     }
   }
 
@@ -493,7 +495,7 @@ public class ClaimEndpoint {
     Map<String, Object> claimConstraintMap = new HashMap<String, Object>();
     claimConstraintMap.put("id", claimId);
     claimConstraintMap.put("patient", patient);
-    Claim claim = (Claim) App.getDB().read(Database.CLAIM, claimConstraintMap);
+    Claim claim = (Claim) App.getDB().read(Table.CLAIM, claimConstraintMap);
     if (claim != null)
       return generateAndStoreClaimResponse(bundle, claim, id, Disposition.GRANTED, ClaimResponseStatus.ACTIVE, patient);
     else
@@ -603,7 +605,7 @@ public class ClaimEndpoint {
     responseMap.put("status", FhirUtils.getStatusFromResource(response));
     responseMap.put("outcome", FhirUtils.dispositionToReviewAction(responseDisposition).value());
     responseMap.put("resource", responseBundle);
-    App.getDB().write(Database.CLAIM_RESPONSE, responseMap);
+    App.getDB().write(Table.CLAIM_RESPONSE, responseMap);
 
     return responseBundle;
   }
@@ -700,7 +702,7 @@ public class ClaimEndpoint {
       Map<String, Object> constraintMap = new HashMap<String, Object>();
       constraintMap.put("id", FhirUtils.getIdFromResource(claim));
       constraintMap.put("sequence", item.getSequence());
-      App.getDB().update(Database.CLAIM_ITEM, constraintMap, Collections.singletonMap("outcome", reviewAction.value()));
+      App.getDB().update(Table.CLAIM_ITEM, constraintMap, Collections.singletonMap("outcome", reviewAction.value()));
     }
     return items;
   }
@@ -728,7 +730,7 @@ public class ClaimEndpoint {
         Map<String, Object> constraintMap = new HashMap<String, Object>();
         constraintMap.put("claimResponseId", claimId);
         constraintMap.put("patient", patient);
-        List<IBaseResource> subscriptions = App.getDB().readAll(Database.SUBSCRIPTION, constraintMap);
+        List<IBaseResource> subscriptions = App.getDB().readAll(Table.SUBSCRIPTION, constraintMap);
 
         // Send notification to each subscriber
         subscriptions.stream().forEach(resource -> {
@@ -749,7 +751,7 @@ public class ClaimEndpoint {
           } else if (subscriptionType == SubscriptionChannelType.WEBSOCKET) {
             // Send websocket notification...
             String subscriptionId = FhirUtils.getIdFromResource(subscription);
-            String websocketId = App.getDB().readString(Database.SUBSCRIPTION,
+            String websocketId = App.getDB().readString(Table.SUBSCRIPTION,
                 Collections.singletonMap("id", subscriptionId), "websocketId");
             if (websocketId != null) {
               logger.info("SubscriptionHandler::Sending web-socket notification to " + websocketId);
@@ -758,7 +760,7 @@ public class ClaimEndpoint {
             } else {
               logger.severe("SubscriptionHandler::Unable to send web-socket notification for subscription "
                   + subscriptionId + " because web-socket id is null. Client did not bind a websocket to id");
-              App.getDB().update(Database.SUBSCRIPTION, Collections.singletonMap("id", subscriptionId),
+              App.getDB().update(Table.SUBSCRIPTION, Collections.singletonMap("id", subscriptionId),
                   Collections.singletonMap("status", SubscriptionStatus.ERROR.getDisplay().toLowerCase()));
             }
           }
