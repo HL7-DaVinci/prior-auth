@@ -135,6 +135,7 @@ public class DebugEndpoint {
     String id = FhirUtils.getIdFromResource(claimResponse);
     String patient = FhirUtils.getPatientIdFromResource(claimResponse);
     String status = FhirUtils.getStatusFromResource(claimResponse);
+    String outcome = FhirUtils.getReviewActionFromClaimResponse(claimResponse);
     App.getDB().delete(Database.CLAIM_RESPONSE, id, patient);
 
     Map<String, Object> dataMap = new HashMap<String, Object>();
@@ -142,6 +143,7 @@ public class DebugEndpoint {
     dataMap.put("patient", patient);
     dataMap.put("claimId", claimId);
     dataMap.put("status", status);
+    dataMap.put("outcome", outcome);
     dataMap.put("timestamp", timestamp);
     dataMap.put("resource", claimResponseBundle);
 

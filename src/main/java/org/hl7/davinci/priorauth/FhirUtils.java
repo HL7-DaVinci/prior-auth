@@ -14,6 +14,7 @@ import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
+import org.hl7.fhir.r4.model.Extension;
 
 public class FhirUtils {
 
@@ -112,6 +113,22 @@ public class FhirUtils {
       logger.log(Level.SEVERE, "FhirUtils::getPatientIdFromResource(error processing patient)", e);
     }
     return patient;
+  }
+
+  /**
+   * Get the review action extension value from a ClaimResponse
+   * 
+   * @param claimResponse - the ClaimResponse resource
+   * @return the X12 review action value if it exsits, otherwise null
+   */
+  public static String getReviewActionFromClaimResponse(ClaimResponse claimResponse) {
+    String reviewActionUrl = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction";
+    for (Extension ext : claimResponse.getExtension()) {
+      if (ext.getUrl().equals(reviewActionUrl)) {
+        return ext.getValue().primitiveValue();
+      }
+    }
+    return null;
   }
 
   /**
