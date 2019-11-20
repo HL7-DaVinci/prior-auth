@@ -18,6 +18,16 @@
             }
           ]
         },
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction",
+            "valueString": "A4"
+          },
+          {
+            "url": "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewActionReason",
+            "valueString": "X"
+          }
+        ],
         "use": "preauthorization",
         "patient": {
           "reference": "Patient/pat013"
