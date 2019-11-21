@@ -1,0 +1,406 @@
+{
+  "resourceType": "Bundle",
+  "id": "pa-request-example-referral",
+  "identifier": {
+    "system": "http://example.org/SUBMITTER_TRANSACTION_IDENTIFIER",
+    "value": "A12345"
+  },
+  "type": "collection",
+  "timestamp": "2005-05-02T11:01:00+05:00",
+  "entry": [
+    {
+      "fullUrl": "http://example.org/fhir/Claim/1",
+      "resource": {
+        "resourceType": "Claim",
+        "id": "1",
+        "text": {
+          "status": "generated",
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative with Details</b></p><p><b>id</b>: 1</p><p><b>identifier</b>: 111099</p><p><b>status</b>: active</p><p><b>type</b>: Specialty Care Review <span style=\"background: LightGoldenRodYellow\">(Details : {http://example.org/UM_REQUEST_CATEGORY_CODE code 'SC' = 'SC', given as 'Specialty Care Review'})</span></p><p><b>use</b>: preauthorization</p><p><b>patient</b>: <a href=\"Patient/1\">Patient/1</a></p><p><b>created</b>: Jul 20, 2019, 12:00:00 AM</p><p><b>insurer</b>: <a href=\"Organization/1\">Organization/1</a></p><p><b>provider</b>: <a href=\"PractitionerRole/1\">PractitionerRole/1</a></p><p><b>priority</b>: Normal <span style=\"background: LightGoldenRodYellow\">(Details : {http://terminology/hl7.org/CodeSystem/processpriority code 'normal' = 'normal', given as 'Normal'})</span></p><p><b>prescription</b>: see requested service extension</p><p><b>facility</b>: <a href=\"Location/1\">Location/1</a></p><h3>Diagnoses</h3><table class=\"grid\"><tr><td>-</td><td><b>Sequence</b></td><td><b>Diagnosis[x]</b></td></tr><tr><td>*</td><td>1</td><td><a href=\"Condition/1\">Condition/1</a></td></tr></table><h3>Insurances</h3><table class=\"grid\"><tr><td>-</td><td><b>Sequence</b></td><td><b>Focal</b></td><td><b>Coverage</b></td></tr><tr><td>*</td><td>1</td><td>true</td><td><a href=\"Coverage/1\">Coverage/1</a></td></tr></table></div>"
+        },
+        "identifier": [
+          {
+            "system": "http://example.org/PATIENT_EVENT_TRACE_NUMBER",
+            "value": "111099",
+            "assigner": {
+              "reference": "Organization/3"
+            }
+          }
+        ],
+        "status": "active",
+        "type": {
+          "coding": [
+            {
+              "system": "http://example.org/UM_REQUEST_CATEGORY_CODE",
+              "code": "SC",
+              "display": "Specialty Care Review"
+            }
+          ]
+        },
+        "use": "preauthorization",
+        "_use": {
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-certificationType",
+              "valueCode": "I"
+            }
+          ]
+        },
+        "patient": {
+          "reference": "Patient/1"
+        },
+        "created": "2019-07-20",
+        "insurer": {
+          "reference": "Organization/1"
+        },
+        "provider": {
+          "reference": "PractitionerRole/1"
+        },
+        "priority": {
+          "coding": [
+            {
+              "system": "http://terminology/hl7.org/CodeSystem/processpriority",
+              "code": "normal",
+              "display": "Normal"
+            }
+          ]
+        },
+        "prescription": {
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-requestedService",
+              "valueReference": {
+                "reference": "ServiceRequest/1"
+              }
+            }
+          ],
+          "display": "see requested service extension"
+        },
+        "facility": {
+          "reference": "Location/1"
+        },
+        "diagnosis": [
+          {
+            "sequence": 1,
+            "diagnosisReference": {
+              "reference": "Condition/1"
+            }
+          }
+        ],
+        "insurance": [
+          {
+            "sequence": 1,
+            "focal": true,
+            "coverage": {
+              "reference": "Coverage/1"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "http://example.org/fhir/Organization/1",
+      "resource": {
+        "resourceType": "Organization",
+        "id": "1",
+        "text": {
+          "status": "generated",
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative with Details</b></p><p><b>id</b>: 1</p><p><b>identifier</b>: ETIN = 789312</p><p><b>type</b>: Utilization Management Organization <span style=\"background: LightGoldenRodYellow\">(Details : {http://example.org/ENTITY_IDENTIFIER_CODE code 'X3' = 'X3', given as 'Utilization Management Organization'})</span></p><p><b>name</b>: MARYLAND CAPITAL INSURANCE COMPANY</p></div>"
+        },
+        "identifier": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://example.org/IDENTIFICATION_CODE_QUALIFIER",
+                  "code": "46",
+                  "display": "ETIN"
+                }
+              ]
+            },
+            "system": "http://example.org/ETIN",
+            "value": "789312"
+          }
+        ],
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "http://example.org/ENTITY_IDENTIFIER_CODE",
+                "code": "X3",
+                "display": "Utilization Management Organization"
+              }
+            ]
+          }
+        ],
+        "name": "MARYLAND CAPITAL INSURANCE COMPANY"
+      }
+    },
+    {
+      "fullUrl": "http://example.org/fhir/PractitionerRole/1",
+      "resource": {
+        "resourceType": "PractitionerRole",
+        "id": "1",
+        "text": {
+          "status": "generated",
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative with Details</b></p><p><b>id</b>: 1</p><p><b>practitioner</b>: <a href=\"Practitioner/1\">Practitioner/1</a></p><p><b>code</b>: Provider <span style=\"background: LightGoldenRodYellow\">(Details : {http://example.org/ENTITY_IDENTIFIER_CODE code '1P' = '1P', given as 'Provider'})</span></p></div>"
+        },
+        "practitioner": {
+          "reference": "Practitioner/1"
+        },
+        "code": [
+          {
+            "coding": [
+              {
+                "system": "http://example.org/ENTITY_IDENTIFIER_CODE",
+                "code": "1P",
+                "display": "Provider"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "http://example.org/fhir/Practitioner/1",
+      "resource": {
+        "resourceType": "Practitioner",
+        "id": "1",
+        "text": {
+          "status": "generated",
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative with Details</b></p><p><b>id</b>: 1</p><p><b>identifier</b>: ETIN = 8189991234</p><p><b>name</b>: JAMES GARDENER </p></div>"
+        },
+        "identifier": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://example.org/IDENTIFICATION_CODE_QUALIFIER",
+                  "code": "46",
+                  "display": "ETIN"
+                }
+              ]
+            },
+            "system": "http://example.org/ETIN",
+            "value": "8189991234"
+          }
+        ],
+        "name": [
+          {
+            "family": "GARDENER",
+            "given": ["JAMES"]
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "http://example.org/fhir/Coverage/1",
+      "resource": {
+        "resourceType": "Coverage",
+        "id": "1",
+        "text": {
+          "status": "generated",
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative with Details</b></p><p><b>id</b>: 1</p><p><b>status</b>: active</p><p><b>beneficiary</b>: <a href=\"Patient/1\">Patient/1</a></p><p><b>payor</b>: <a href=\"Organization/1\">Organization/1</a></p></div>"
+        },
+        "status": "active",
+        "beneficiary": {
+          "reference": "Patient/1"
+        },
+        "payor": [
+          {
+            "reference": "Organization/1"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "http://example.org/fhir/Patient/1",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "1",
+        "text": {
+          "status": "generated",
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative with Details</b></p><p><b>id</b>: 1</p><p><b>identifier</b>: Member Identification Number = 12345678901</p><p><b>name</b>: JOE SMITH </p></div>"
+        },
+        "identifier": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://example.org/IDENTIFICATION_CODE_QUALIFIER",
+                  "code": "MI",
+                  "display": "Member Identification Number"
+                }
+              ]
+            },
+            "system": "http://example.org/MIN",
+            "value": "12345678901"
+          }
+        ],
+        "name": [
+          {
+            "family": "SMITH",
+            "given": ["JOE"]
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "http://example.org/fhir/Organization/3",
+      "resource": {
+        "resourceType": "Organization",
+        "id": "3",
+        "text": {
+          "status": "generated",
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative with Details</b></p><p><b>id</b>: 3</p><p><b>identifier</b>: 9012345678</p></div>"
+        },
+        "identifier": [
+          {
+            "system": "http://example.org/USER_ASSIGNED",
+            "value": "9012345678"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "http://example.org/fhir/ServiceRequest/1",
+      "resource": {
+        "resourceType": "ServiceRequest",
+        "id": "1",
+        "text": {
+          "status": "generated",
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative with Details</b></p><p><b>id</b>: 1</p><p><b>status</b>: active</p><p><b>intent</b>: plan</p><p><b>code</b>: Consultation <span style=\"background: LightGoldenRodYellow\">(Details : {http://example.org/SERVICE_TYPE_CODE code '3' = '3', given as 'Consultation'})</span></p><p><b>quantity</b>: 1 VS</p><p><b>subject</b>: <a href=\"Patient/1\">Patient/1</a></p><p><b>performer</b>: <a href=\"PractitionerRole/2\">PractitionerRole/2</a></p></div>"
+        },
+        "status": "active",
+        "intent": "plan",
+        "code": {
+          "coding": [
+            {
+              "system": "http://example.org/SERVICE_TYPE_CODE",
+              "code": "3",
+              "display": "Consultation"
+            }
+          ]
+        },
+        "quantityQuantity": {
+          "value": 1,
+          "unit": "VS"
+        },
+        "subject": {
+          "reference": "Patient/1"
+        },
+        "performer": [
+          {
+            "reference": "PractitionerRole/2"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "http://example.org/fhir/Location/1",
+      "resource": {
+        "resourceType": "Location",
+        "id": "1",
+        "text": {
+          "status": "generated",
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative with Details</b></p><p><b>id</b>: 1</p><p><b>type</b>: 11 <span style=\"background: LightGoldenRodYellow\">(Details : {http://example.org/Place-of-Service-Codes code '11' = '11)</span></p></div>"
+        },
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "http://example.org/Place-of-Service-Codes",
+                "code": "11"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "http://example.org/fhir/Condition/1",
+      "resource": {
+        "resourceType": "Condition",
+        "id": "1",
+        "text": {
+          "status": "generated",
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative with Details</b></p><p><b>id</b>: 1</p><p><b>code</b>: 410.90 <span style=\"background: LightGoldenRodYellow\">(Details : {http://hl7.org/fhir/sid/icd-9-cm code '410.90' = '410.90)</span></p><p><b>subject</b>: <a href=\"Patient/1\">Patient/1</a></p><p><b>recordedDate</b>: Apr 30, 2005, 12:00:00 AM</p></div>"
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://hl7.org/fhir/sid/icd-9-cm",
+              "code": "410.90"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/1"
+        },
+        "recordedDate": "2005-04-30"
+      }
+    },
+    {
+      "fullUrl": "http://example.org/fhir/PractitionerRole/2",
+      "resource": {
+        "resourceType": "PractitionerRole",
+        "id": "2",
+        "text": {
+          "status": "generated",
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative with Details</b></p><p><b>id</b>: 2</p><p><b>practitioner</b>: <a href=\"Practitioner/2\">Practitioner/2</a></p><p><b>code</b>: Service Provider <span style=\"background: LightGoldenRodYellow\">(Details : {http://example.org/ENTITY_IDENTIFIER_CODE code 'SJ' = 'SJ', given as 'Service Provider'})</span></p></div>"
+        },
+        "practitioner": {
+          "reference": "Practitioner/2"
+        },
+        "code": [
+          {
+            "coding": [
+              {
+                "system": "http://example.org/ENTITY_IDENTIFIER_CODE",
+                "code": "SJ",
+                "display": "Service Provider"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "http://example.org/fhir/Practitioner/2",
+      "resource": {
+        "resourceType": "Practitioner",
+        "id": "2",
+        "text": {
+          "status": "generated",
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative with Details</b></p><p><b>id</b>: 2</p><p><b>identifier</b>: SSN = 987654321</p><p><b>name</b>: SUSAN WATSON </p><p><b>telecom</b>: ph: 4029993456</p></div>"
+        },
+        "identifier": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://example.org/IDENTIFICATION_CODE_QUALIFIER",
+                  "code": "34",
+                  "display": "SSN"
+                }
+              ]
+            },
+            "system": "http://example.org/SSN",
+            "value": "987654321"
+          }
+        ],
+        "name": [
+          {
+            "family": "WATSON",
+            "given": ["SUSAN"]
+          }
+        ],
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "4029993456"
+          }
+        ]
+      }
+    }
+  ]
+}

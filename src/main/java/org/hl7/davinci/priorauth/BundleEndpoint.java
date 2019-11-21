@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
+import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 
 /**
@@ -31,7 +31,7 @@ public class BundleEndpoint {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", id);
     constraintMap.put("patient", patient);
-    return Endpoint.read(Database.BUNDLE, constraintMap, request, RequestType.JSON);
+    return Endpoint.read(Table.BUNDLE, constraintMap, request, RequestType.JSON);
   }
 
   @GetMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
@@ -41,18 +41,18 @@ public class BundleEndpoint {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", id);
     constraintMap.put("patient", patient);
-    return Endpoint.read(Database.BUNDLE, constraintMap, request, RequestType.XML);
+    return Endpoint.read(Table.BUNDLE, constraintMap, request, RequestType.XML);
   }
 
   @DeleteMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> deleteBundle(@RequestParam(name = "identifier") String id,
       @RequestParam(name = "patient.identifier") String patient) {
-    return Endpoint.delete(id, patient, Database.BUNDLE, RequestType.JSON);
+    return Endpoint.delete(id, patient, Table.BUNDLE, RequestType.JSON);
   }
 
   @DeleteMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
   public ResponseEntity<String> deleteBundleXml(@RequestParam(name = "identifier") String id,
       @RequestParam(name = "patient.identifier") String patient) {
-    return Endpoint.delete(id, patient, Database.BUNDLE, RequestType.XML);
+    return Endpoint.delete(id, patient, Table.BUNDLE, RequestType.XML);
   }
 }

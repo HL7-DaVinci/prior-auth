@@ -1,0 +1,48 @@
+{
+  "resourceType": "ClaimResponse",
+  "id": "1",
+  "text": {
+    "status": "generated",
+    "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative with Details</b></p><p><b>id</b>: 1</p><p><b>identifier</b>: AUTH0001</p><p><b>status</b>: active</p><p><b>type</b>: Professional <span style=\"background: LightGoldenRodYellow\">(Details : {http://terminology.hl7.org/CodeSystem/claim-type code 'professional' = 'Professional)</span></p><p><b>use</b>: preauthorization</p><p><b>patient</b>: <a href=\"Patient/1\">Patient/1</a></p><p><b>created</b>: Jul 20, 2019, 12:00:00 AM</p><p><b>insurer</b>: <a href=\"Organization/1\">Organization/1</a></p><p><b>requestor</b>: <a href=\"PractitionerRole/1\">PractitionerRole/1</a></p><p><b>outcome</b>: complete</p></div>"
+  },
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction",
+      "valueCode": "A1"
+    },
+    {
+      "url": "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-authorizedEventDate",
+      "valuePeriod": {
+        "start": "2005-05-02",
+        "end": "2005-06-02"
+      }
+    }
+  ],
+  "identifier": [
+    {
+      "system": "http://example.org/REVIEW_IDENTIFICATION_NUMBER",
+      "value": "AUTH0001"
+    }
+  ],
+  "status": "active",
+  "type": {
+    "coding": [
+      {
+        "system": "http://terminology.hl7.org/CodeSystem/claim-type",
+        "code": "professional"
+      }
+    ]
+  },
+  "use": "preauthorization",
+  "patient": {
+    "reference": "Patient/1"
+  },
+  "created": "2019-07-20",
+  "insurer": {
+    "reference": "Organization/1"
+  },
+  "requestor": {
+    "reference": "PractitionerRole/1"
+  },
+  "outcome": "complete"
+}

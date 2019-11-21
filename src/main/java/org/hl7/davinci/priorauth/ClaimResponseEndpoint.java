@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
+import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 
 /**
@@ -50,7 +50,7 @@ public class ClaimResponseEndpoint {
     constraintMap.put("patient", patient);
     if (status != null)
       constraintMap.put("status", status);
-    String claimId = App.getDB().readString(Database.CLAIM_RESPONSE, constraintMap, "claimId");
+    String claimId = App.getDB().readString(Table.CLAIM_RESPONSE, constraintMap, "claimId");
 
     // get the most recent claim id
     claimId = App.getDB().getMostRecentId(claimId);
@@ -66,19 +66,19 @@ public class ClaimResponseEndpoint {
     constraintMap.put("patient", patient);
     if (status != null)
       constraintMap.put("status", status);
-    return Endpoint.read(Database.CLAIM_RESPONSE, constraintMap, request, requestType);
+    return Endpoint.read(Table.CLAIM_RESPONSE, constraintMap, request, requestType);
   }
 
   @DeleteMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> deleteClaimResponse(@RequestParam(name = "identifier") String id,
       @RequestParam(name = "patient.identifier") String patient) {
-    return Endpoint.delete(id, patient, Database.CLAIM_RESPONSE, RequestType.JSON);
+    return Endpoint.delete(id, patient, Table.CLAIM_RESPONSE, RequestType.JSON);
   }
 
   @DeleteMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
   public ResponseEntity<String> deleteClaimResponseXml(@RequestParam(name = "identifier") String id,
       @RequestParam(name = "patient.identifier") String patient) {
-    return Endpoint.delete(id, patient, Database.CLAIM_RESPONSE, RequestType.XML);
+    return Endpoint.delete(id, patient, Table.CLAIM_RESPONSE, RequestType.XML);
   }
 
 }

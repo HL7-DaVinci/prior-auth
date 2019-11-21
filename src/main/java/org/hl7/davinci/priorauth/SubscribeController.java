@@ -1,5 +1,6 @@
 package org.hl7.davinci.priorauth;
 
+import org.hl7.davinci.priorauth.Database.Table;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -41,7 +42,7 @@ public class SubscribeController {
         if (matcher.find() && matcher.groupCount() == 1) {
             // Bind the id to the subscription in db
             String subscriptionId = matcher.group(1);
-            if (App.getDB().update(Database.SUBSCRIPTION, Collections.singletonMap("id", subscriptionId),
+            if (App.getDB().update(Table.SUBSCRIPTION, Collections.singletonMap("id", subscriptionId),
                     Collections.singletonMap("websocketId", username)))
                 sendMessageToUser(username, WebSocketConfig.SUBSCRIBE_USER_NOTIFICATION, "bound: " + subscriptionId);
             else

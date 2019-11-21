@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.DefaultMockMvcBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.junit.AfterClass;
@@ -61,12 +62,12 @@ public class ClaimEndpointTest {
     claimMap.put("patient", "1");
     claimMap.put("status", FhirUtils.getStatusFromResource(claim));
     claimMap.put("resource", claim);
-    App.getDB().write(Database.CLAIM, claimMap);
+    App.getDB().write(Table.CLAIM, claimMap);
   }
 
   @AfterClass
   public static void cleanup() {
-    App.getDB().delete(Database.CLAIM, "minimal", "1");
+    App.getDB().delete(Table.CLAIM, "minimal", "1");
   }
 
   @Test
@@ -118,7 +119,7 @@ public class ClaimEndpointTest {
     Map<String, Object> constraintMap = new HashMap<String, Object>();
     constraintMap.put("id", "minimal");
     constraintMap.put("patient", "1");
-    Claim claim = (Claim) App.getDB().read(Database.CLAIM, constraintMap);
+    Claim claim = (Claim) App.getDB().read(Table.CLAIM, constraintMap);
     Assert.assertNotNull(claim);
   }
 

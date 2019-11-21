@@ -2,6 +2,7 @@ package org.hl7.davinci.priorauth;
 
 import java.util.logging.Logger;
 
+import org.hl7.davinci.priorauth.Database.Table;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -37,11 +38,11 @@ public class ExpungeOperation {
     logger.info("GET/POST /$expunge");
     if (App.debugMode) {
       // Cascading delete of everything...
-      App.getDB().delete(Database.BUNDLE);
-      App.getDB().delete(Database.CLAIM);
-      App.getDB().delete(Database.CLAIM_ITEM);
-      App.getDB().delete(Database.CLAIM_RESPONSE);
-      App.getDB().delete(Database.SUBSCRIPTION);
+      App.getDB().delete(Table.BUNDLE);
+      App.getDB().delete(Table.CLAIM);
+      App.getDB().delete(Table.CLAIM_ITEM);
+      App.getDB().delete(Table.CLAIM_RESPONSE);
+      App.getDB().delete(Table.SUBSCRIPTION);
       return ResponseEntity.ok().body("Expunge success!");
     } else {
       logger.warning("ExpungeOperation::expungeDatabase:query disabled");
