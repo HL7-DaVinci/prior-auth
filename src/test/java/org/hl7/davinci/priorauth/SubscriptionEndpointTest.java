@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.codesystems.IssueSeverity;
+import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Subscription;
 import org.hl7.fhir.r4.model.OperationOutcome.OperationOutcomeIssueComponent;
@@ -259,5 +260,126 @@ public class SubscriptionEndpointTest {
         // Validate the response
         ValidationResult result = ValidationHelper.validate(subscriptionResponse);
         Assert.assertTrue(result.isSuccessful());
+    }
+
+    @Test
+    public void searchSubscriptions() throws Exception {
+        // Test that we can GET /fhir/Subscription.
+        DefaultMockMvcBuilder builder = MockMvcBuilders.webAppContextSetup(wac);
+        MockMvc mockMvc = builder.build();
+        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders
+                .get("/Subscription?patient.identifier=pat013").header("Accept", "application/fhir+json")
+                .header("Access-Control-Request-Method", "GET").header("Origin", "http://localhost:" + port);
+
+        // Test the response has CORS headers and returned status 200
+        MvcResult mvcresult = mockMvc.perform(requestBuilder).andExpect(ok).andExpect(cors).andReturn();
+
+        // Test the response is a JSON Bundle
+        String body = mvcresult.getResponse().getContentAsString();
+        Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
+        Assert.assertNotNull(bundle);
+
+        // Validate the response.
+        ValidationResult result = ValidationHelper.validate(bundle);
+        Assert.assertTrue(result.isSuccessful());
+    }
+
+    @Test
+    public void searchSubscriptionsXml() throws Exception {
+        // Test that we can GET /fhir/Subscription.
+        DefaultMockMvcBuilder builder = MockMvcBuilders.webAppContextSetup(wac);
+        MockMvc mockMvc = builder.build();
+        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders
+                .get("/Subscription?patient.identifier=pat013").header("Accept", "application/fhir+xml")
+                .header("Access-Control-Request-Method", "GET").header("Origin", "http://localhost:" + port);
+
+        // Test the response has CORS headers and returned status 200
+        MvcResult mvcresult = mockMvc.perform(requestBuilder).andExpect(ok).andExpect(cors).andReturn();
+
+        // Test the response is a XML Bundle
+        String body = mvcresult.getResponse().getContentAsString();
+        Bundle bundle = (Bundle) App.FHIR_CTX.newXmlParser().parseResource(body);
+        Assert.assertNotNull(bundle);
+
+        // Validate the response.
+        ValidationResult result = ValidationHelper.validate(bundle);
+        Assert.assertTrue(result.isSuccessful());
+    }
+
+    @Test
+    public void subscriptionExists() {
+        Map<String, Object> constraintMap = new HashMap<String, Object>();
+        constraintMap.put("id", "minimal");
+        constraintMap.put("patient", "pat013");
+        Subscription subscription = (Subscription) App.getDB().read(Table.SUBSCRIPTION, constraintMap);
+        Assert.assertNotNull(subscription);
+    }
+
+    @Test
+    public void getSubscription() throws Exception {
+        // Test that we can get fhir/Subscription/minimal
+        DefaultMockMvcBuilder builder = MockMvcBuilders.webAppContextSetup(wac);
+        MockMvc mockMvc = builder.build();
+        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders
+                .get("/Subscription?identifier=pended&patient.identifier=pat013")
+                .header("Accept", "application/fhir+json").header("Access-Control-Request-Method", "GET")
+                .header("Origin", "http://localhost:" + port);
+
+        // Test the response has CORS headers and returned status 200
+        MvcResult mvcresult = mockMvc.perform(requestBuilder).andExpect(ok).andExpect(cors).andReturn();
+
+        // Test the response is a JSON Bundle
+        String body = mvcresult.getResponse().getContentAsString();
+        Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
+        Assert.assertNotNull(bundle);
+
+        // Validate the response.
+        ValidationResult result = ValidationHelper.validate(bundle);
+        Assert.assertTrue(result.isSuccessful());
+    }
+
+    @Test
+    public void getSubscriptionXml() throws Exception {
+        // Test that we can get fhir/Subscription/minimal
+        DefaultMockMvcBuilder builder = MockMvcBuilders.webAppContextSetup(wac);
+        MockMvc mockMvc = builder.build();
+        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders
+                .get("/Subscription?identifier=pended&patient.identifier=pat013")
+                .header("Accept", "application/fhir+xml").header("Access-Control-Request-Method", "GET")
+                .header("Origin", "http://localhost:" + port);
+
+        // Test the response has CORS headers and returned status 200
+        MvcResult mvcresult = mockMvc.perform(requestBuilder).andExpect(ok).andExpect(cors).andReturn();
+
+        // Test the response is a XML Bundle
+        String body = mvcresult.getResponse().getContentAsString();
+        Bundle bundle = (Bundle) App.FHIR_CTX.newXmlParser().parseResource(body);
+        Assert.assertNotNull(bundle);
+
+        // Validate the response.
+        ValidationResult result = ValidationHelper.validate(bundle);
+        Assert.assertTrue(result.isSuccessful());
+    }
+
+    @Test
+    public void getSubscriptionThatDoesNotExist() throws Exception {
+        // Test that non-existent Subscription returns 200 and an empty bundle
+        DefaultMockMvcBuilder builder = MockMvcBuilders.webAppContextSetup(wac);
+        MockMvc mockMvc = builder.build();
+        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders
+                .get("/Subscription?identifier=ClaimResponseThatDoesNotExist&patient.identifier=45")
+                .header("Accept", "application/fhir+json").header("Access-Control-Request-Method", "GET")
+                .header("Origin", "http://localhost:" + port);
+
+        // Test the response has CORS headers and returned status 200
+        MvcResult mvcresult = mockMvc.perform(requestBuilder).andExpect(ok).andExpect(cors).andReturn();
+
+        // Test the response is a JSON Bundle
+        String body = mvcresult.getResponse().getContentAsString();
+        Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
+        Assert.assertNotNull(bundle);
+
+        // Validate the bundle is empty
+        Assert.assertEquals(0, bundle.getTotal());
     }
 }

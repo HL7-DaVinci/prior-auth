@@ -746,6 +746,8 @@ public class ClaimEndpoint {
               okhttp3.Response response = client
                   .newCall(new Request.Builder().post(RequestBody.create(null, "")).url(endpoint).build()).execute();
               logger.fine("SubscriptionHandler::Response " + response.code());
+              App.getDB().update(Table.SUBSCRIPTION, Collections.singletonMap("id", subscriptionId),
+                  Collections.singletonMap("status", SubscriptionStatus.ACTIVE.getDisplay().toLowerCase()));
             } catch (IOException e) {
               logger.log(Level.SEVERE, "SubscriptionHandler::IOException in request", e);
               App.getDB().update(Table.SUBSCRIPTION, Collections.singletonMap("id", subscriptionId),
@@ -759,6 +761,8 @@ public class ClaimEndpoint {
               logger.info("SubscriptionHandler::Sending web-socket notification to " + websocketId);
               SubscribeController.sendMessageToUser(websocketId, WebSocketConfig.SUBSCRIBE_USER_NOTIFICATION,
                   "ping: " + subscriptionId);
+              App.getDB().update(Table.SUBSCRIPTION, Collections.singletonMap("id", subscriptionId),
+                  Collections.singletonMap("status", SubscriptionStatus.ACTIVE.getDisplay().toLowerCase()));
             } else {
               logger.severe("SubscriptionHandler::Unable to send web-socket notification for subscription "
                   + subscriptionId + " because web-socket id is null. Client did not bind a websocket to id");
