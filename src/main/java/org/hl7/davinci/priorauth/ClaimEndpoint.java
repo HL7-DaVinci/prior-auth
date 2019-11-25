@@ -138,7 +138,7 @@ public class ClaimEndpoint {
 
     String id = null;
     String patient = null;
-    HttpStatus status = HttpStatus.OK;
+    HttpStatus status = HttpStatus.BAD_REQUEST;
     String formattedData = null;
     try {
       IParser parser = requestType == RequestType.JSON ? App.FHIR_CTX.newJsonParser() : App.FHIR_CTX.newXmlParser();
@@ -150,7 +150,6 @@ public class ClaimEndpoint {
           Bundle responseBundle = processBundle(bundle);
           if (responseBundle == null) {
             // Failed processing bundle...
-            status = HttpStatus.BAD_REQUEST;
             OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, PROCESS_FAILED);
             formattedData = FhirUtils.getFormattedData(error, requestType);
           } else {
@@ -158,29 +157,29 @@ public class ClaimEndpoint {
             id = FhirUtils.getIdFromResource(response);
             patient = FhirUtils.getPatientIdentifierFromBundle(responseBundle);
             formattedData = FhirUtils.getFormattedData(responseBundle, requestType);
+            status = HttpStatus.CREATED;
           }
         } else {
           // Claim is required...
-          status = HttpStatus.BAD_REQUEST;
           OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
           formattedData = FhirUtils.getFormattedData(error, requestType);
         }
       } else {
         // Bundle is required...
-        status = HttpStatus.BAD_REQUEST;
         OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
         formattedData = FhirUtils.getFormattedData(error, requestType);
       }
     } catch (Exception e) {
       // The submission failed so spectacularly that we need
       // catch an exception and send back an error message...
-      status = HttpStatus.BAD_REQUEST;
       OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.FATAL, IssueType.STRUCTURE, e.getMessage());
       formattedData = FhirUtils.getFormattedData(error, requestType);
     }
     MediaType contentType = requestType == RequestType.JSON ? MediaType.APPLICATION_JSON : MediaType.APPLICATION_XML;
-    return ResponseEntity.status(status).contentType(contentType).header(HttpHeaders.LOCATION,
-        App.getBaseUrl() + "ClaimResponse?identifier=" + id + "&patient.identifier=" + patient).body(formattedData);
+    return ResponseEntity.status(status).contentType(contentType)
+        .header(HttpHeaders.LOCATION,
+            App.getBaseUrl() + "/ClaimResponse?identifier=" + id + "&patient.identifier=" + patient)
+        .body(formattedData);
 
   }
 

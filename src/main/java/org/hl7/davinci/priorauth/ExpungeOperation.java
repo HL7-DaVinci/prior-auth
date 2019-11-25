@@ -6,7 +6,6 @@ import org.hl7.davinci.priorauth.Database.Table;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,11 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class ExpungeOperation {
 
   static final Logger logger = PALogger.getLogger();
-
-  @GetMapping("")
-  public ResponseEntity<String> getExpunge() {
-    return expungeDatabase();
-  }
 
   @PostMapping("")
   public ResponseEntity<String> postExpunge() {
@@ -35,7 +29,7 @@ public class ExpungeOperation {
    * @return - HTTP 200
    */
   private ResponseEntity<String> expungeDatabase() {
-    logger.info("GET/POST /$expunge");
+    logger.info("POST /$expunge");
     if (App.debugMode) {
       // Cascading delete of everything...
       App.getDB().delete(Table.BUNDLE);

@@ -53,7 +53,7 @@ public class ClaimSubmitTest {
   private WebApplicationContext wac;
 
   private static ResultMatcher cors = MockMvcResultMatchers.header().string("Access-Control-Allow-Origin", "*");
-  private static ResultMatcher ok = MockMvcResultMatchers.status().isOk();
+  private static ResultMatcher created = MockMvcResultMatchers.status().isCreated();
   private static ResultMatcher badRequest = MockMvcResultMatchers.status().isBadRequest();
 
   public static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
@@ -113,8 +113,8 @@ public class ClaimSubmitTest {
         .header("Content-Type", "application/fhir+json").header("Access-Control-Request-Method", "POST")
         .header("Origin", "http://localhost:" + port);
 
-    // Test the response has CORS headers and returned status 200
-    MvcResult mvcresult = mockMvc.perform(requestBuilder).andExpect(ok).andExpect(cors).andReturn();
+    // Test the response has CORS headers and returned status 201 (created)
+    MvcResult mvcresult = mockMvc.perform(requestBuilder).andExpect(created).andExpect(cors).andReturn();
 
     // Check Location header if it exists...
     String location = mvcresult.getResponse().getHeader("Location");
