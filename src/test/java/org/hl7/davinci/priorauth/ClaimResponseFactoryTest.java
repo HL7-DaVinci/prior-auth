@@ -102,6 +102,13 @@ public class ClaimResponseFactoryTest {
         validateClaimResponse(disposition, reviewAction);
     }
 
+    @Test
+    public void cancelledClaim() {
+        Disposition disposition = Disposition.CANCELLED;
+        ReviewAction reviewAction = ReviewAction.CANCELLED;
+        validateClaimResponse(disposition, reviewAction);
+    }
+
     private void validateClaimResponse(Disposition disposition, ReviewAction reviewAction) {
         // Generate and store the response
         Bundle responseBundle = ClaimResponseFactory.generateAndStoreClaimResponse(bundle, claim, id, disposition,
@@ -120,7 +127,8 @@ public class ClaimResponseFactoryTest {
                 claimResponse.getExtensionByUrl(FhirUtils.REVIEW_ACTION_EXTENSION_URL).getValue().primitiveValue());
         Assert.assertTrue(claimResponse.hasIdentifier());
 
-        if (disposition == Disposition.DENIED || disposition == Disposition.GRANTED)
+        if (disposition == Disposition.DENIED || disposition == Disposition.GRANTED
+                || disposition == Disposition.CANCELLED)
             Assert.assertEquals(RemittanceOutcome.COMPLETE, claimResponse.getOutcome());
         else if (disposition == Disposition.PARTIAL)
             Assert.assertEquals(RemittanceOutcome.PARTIAL, claimResponse.getOutcome());
@@ -135,7 +143,8 @@ public class ClaimResponseFactoryTest {
             String itemReviewAction = ic.getExtensionByUrl(FhirUtils.REVIEW_ACTION_EXTENSION_URL).getValue()
                     .primitiveValue();
             // Validate Item ReviewAction and Adjudication set correctly
-            if (disposition == Disposition.DENIED || disposition == Disposition.GRANTED) {
+            if (disposition == Disposition.DENIED || disposition == Disposition.GRANTED
+                    || disposition == Disposition.CANCELLED) {
                 Assert.assertEquals(reviewAction.asStringValue(), itemReviewAction);
             } else {
                 // Make sure at least one item is pending or some approved some denied
