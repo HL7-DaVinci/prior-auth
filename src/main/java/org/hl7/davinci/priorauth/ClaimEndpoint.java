@@ -1,15 +1,12 @@
 package org.hl7.davinci.priorauth;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimerTask;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -46,21 +43,15 @@ import org.hl7.fhir.r4.model.ClaimResponse.Use;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
-import org.hl7.fhir.r4.model.Subscription.SubscriptionChannelType;
-import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.StringType;
-import org.hl7.fhir.r4.model.Subscription;
 import org.hl7.fhir.r4.model.Type;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
 
 import ca.uhn.fhir.parser.IParser;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
 
 /**
  * The Claim endpoint to READ, SEARCH for, and DELETE submitted claims.
@@ -72,11 +63,11 @@ public class ClaimEndpoint {
 
   static final Logger logger = PALogger.getLogger();
 
-  String REQUIRES_BUNDLE = "Prior Authorization Claim/$submit Operation requires a Bundle with a single Claim as the first entry and supporting resources.";
-  String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
-  String ITEM_REFERENCE_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemReference";
-  String REVIEW_ACTION_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction";
-  String REVIEW_ACTION_REASON_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewActionReason";
+  static final String REQUIRES_BUNDLE = "Prior Authorization Claim/$submit Operation requires a Bundle with a single Claim as the first entry and supporting resources.";
+  static final String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
+  static final String ITEM_REFERENCE_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemReference";
+  static final String REVIEW_ACTION_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction";
+  static final String REVIEW_ACTION_REASON_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewActionReason";
 
   @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> readClaimJson(HttpServletRequest request,
@@ -476,32 +467,6 @@ public class ClaimEndpoint {
   }
 
   /**
-   * Update the claim and generate a new ClaimResponse.
-   * 
-   * @param bundle      - the Bundle the Claim is a part of.
-   * @param claimId     - the Claim ID.
-   * @param patient     - the Patient ID.
-   * @param disposition - the new disposition of the updated Claim.
-   */
-  private Bundle updateClaim(Bundle bundle, String claimId, String patient, Disposition disposition) {
-    logger
-        .info("ClaimEndpoint::updateClaim(" + claimId + "/" + patient + ", disposition: " + disposition.value() + ")");
-
-    // Generate a new id...
-    String id = UUID.randomUUID().toString();
-
-    // Get the claim from the database
-    Map<String, Object> claimConstraintMap = new HashMap<String, Object>();
-    claimConstraintMap.put("id", claimId);
-    claimConstraintMap.put("patient", patient);
-    Claim claim = (Claim) App.getDB().read(Table.CLAIM, claimConstraintMap);
-    if (claim != null)
-      return generateAndStoreClaimResponse(bundle, claim, id, Disposition.GRANTED, ClaimResponseStatus.ACTIVE, patient);
-    else
-      return null;
-  }
-
-  /**
    * Get the related claim for an update to a claim (replaces relationship)
    * 
    * @param claim - the base Claim resource.
@@ -540,8 +505,8 @@ public class ClaimEndpoint {
    *                            is referring to.
    * @return ClaimResponse that has been generated and stored in the Database.
    */
-  private Bundle generateAndStoreClaimResponse(Bundle bundle, Claim claim, String id, Disposition responseDisposition,
-      ClaimResponseStatus responseStatus, String patient) {
+  public static Bundle generateAndStoreClaimResponse(Bundle bundle, Claim claim, String id,
+      Disposition responseDisposition, ClaimResponseStatus responseStatus, String patient) {
     logger.info("ClaimEndpoint::generateAndStoreClaimResponse(" + id + "/" + patient + ", disposition: "
         + responseDisposition + ", status: " + responseStatus + ")");
 
@@ -618,7 +583,7 @@ public class ClaimEndpoint {
    * @param id     - the ClaimResponse ID (used to set the identifier system)
    * @return ClaimResponse ItemComponent with appropriate elements set
    */
-  private ClaimResponse.ItemComponent createItemComponent(ItemComponent item, ReviewAction action, String id) {
+  private static ClaimResponse.ItemComponent createItemComponent(ItemComponent item, ReviewAction action, String id) {
     ClaimResponse.ItemComponent itemComponent = new ClaimResponse.ItemComponent();
     itemComponent.setItemSequence(item.getSequence());
 
@@ -656,7 +621,7 @@ public class ClaimEndpoint {
    * @param responseDisposition - the overall disposition
    * @return a list of ItemComponents to be added to the ClaimResponse.items field
    */
-  private List<ClaimResponse.ItemComponent> setClaimResponseItems(Claim claim, Disposition responseDisposition) {
+  private static List<ClaimResponse.ItemComponent> setClaimResponseItems(Claim claim, Disposition responseDisposition) {
     List<ClaimResponse.ItemComponent> items = new ArrayList<ClaimResponse.ItemComponent>();
     // ReviewAction reviewAction = ReviewAction.DENIED;
     ReviewAction reviewAction = null;
@@ -707,74 +672,6 @@ public class ClaimEndpoint {
   }
 
   /**
-   * A TimerTask for updating claims.
-   */
-  class UpdateClaimTask extends TimerTask {
-    public Bundle bundle;
-    public String claimId;
-    public String patient;
-    public Disposition disposition;
-
-    UpdateClaimTask(Bundle bundle, String claimId, String patient, Disposition disposition) {
-      this.bundle = bundle;
-      this.claimId = claimId;
-      this.patient = patient;
-      this.disposition = disposition;
-    }
-
-    @Override
-    public void run() {
-      if (updateClaim(bundle, claimId, patient, disposition) != null) {
-        // Check for subscription
-        Map<String, Object> constraintMap = new HashMap<String, Object>();
-        constraintMap.put("claimResponseId", claimId);
-        constraintMap.put("patient", patient);
-        List<IBaseResource> subscriptions = App.getDB().readAll(Table.SUBSCRIPTION, constraintMap);
-
-        // Send notification to each subscriber
-        subscriptions.stream().forEach(resource -> {
-          Subscription subscription = (Subscription) resource;
-          String subscriptionId = FhirUtils.getIdFromResource(subscription);
-          SubscriptionChannelType subscriptionType = subscription.getChannel().getType();
-          if (subscriptionType == SubscriptionChannelType.RESTHOOK) {
-            // Send rest-hook notification...
-            String endpoint = subscription.getChannel().getEndpoint();
-            logger.info("SubscriptionHandler::Sending rest-hook notification to " + endpoint);
-            try {
-              OkHttpClient client = new OkHttpClient();
-              okhttp3.Response response = client
-                  .newCall(new Request.Builder().post(RequestBody.create(null, "")).url(endpoint).build()).execute();
-              logger.fine("SubscriptionHandler::Response " + response.code());
-              App.getDB().update(Table.SUBSCRIPTION, Collections.singletonMap("id", subscriptionId),
-                  Collections.singletonMap("status", SubscriptionStatus.ACTIVE.getDisplay().toLowerCase()));
-            } catch (IOException e) {
-              logger.log(Level.SEVERE, "SubscriptionHandler::IOException in request", e);
-              App.getDB().update(Table.SUBSCRIPTION, Collections.singletonMap("id", subscriptionId),
-                  Collections.singletonMap("status", SubscriptionStatus.ERROR.getDisplay().toLowerCase()));
-            }
-          } else if (subscriptionType == SubscriptionChannelType.WEBSOCKET) {
-            // Send websocket notification...
-            String websocketId = App.getDB().readString(Table.SUBSCRIPTION,
-                Collections.singletonMap("id", subscriptionId), "websocketId");
-            if (websocketId != null) {
-              logger.info("SubscriptionHandler::Sending web-socket notification to " + websocketId);
-              SubscribeController.sendMessageToUser(websocketId, WebSocketConfig.SUBSCRIBE_USER_NOTIFICATION,
-                  "ping: " + subscriptionId);
-              App.getDB().update(Table.SUBSCRIPTION, Collections.singletonMap("id", subscriptionId),
-                  Collections.singletonMap("status", SubscriptionStatus.ACTIVE.getDisplay().toLowerCase()));
-            } else {
-              logger.severe("SubscriptionHandler::Unable to send web-socket notification for subscription "
-                  + subscriptionId + " because web-socket id is null. Client did not bind a websocket to id");
-              App.getDB().update(Table.SUBSCRIPTION, Collections.singletonMap("id", subscriptionId),
-                  Collections.singletonMap("status", SubscriptionStatus.ERROR.getDisplay().toLowerCase()));
-            }
-          }
-        });
-      }
-    }
-  }
-
-  /**
    * Schedule an update to the Claim to support pending actions.
    *
    * @param bundle      - the bundle containing the claim.
@@ -792,7 +689,7 @@ public class ClaimEndpoint {
    * @param max The largest the random number could be.
    * @return int representing the random number.
    */
-  private int getRand(int max) {
+  private static int getRand(int max) {
     Date date = new Date();
     return (int) ((date.getTime() % max) + 1);
   }
