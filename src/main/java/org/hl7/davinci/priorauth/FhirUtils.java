@@ -152,16 +152,6 @@ public class FhirUtils {
   }
 
   /**
-   * Get the review action extension value from a ClaimResponse
-   * 
-   * @param claimResponse - the ClaimResponse resource
-   * @return the X12 review action value if it exsits, otherwise null
-   */
-  public static String getReviewActionFromClaimResponse(ClaimResponse claimResponse) {
-    return claimResponse.getExtensionByUrl(FhirUtils.REVIEW_ACTION_EXTENSION_URL).getValue().primitiveValue();
-  }
-
-  /**
    * Convert the response disposition into a review action
    * 
    * @param disposition - the response disposition
