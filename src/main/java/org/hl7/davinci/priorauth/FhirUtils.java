@@ -66,6 +66,10 @@ public class FhirUtils {
     public StringType value() {
       return new StringType(this.value);
     }
+
+    public String asStringValue() {
+      return this.value;
+    }
   }
 
   /**

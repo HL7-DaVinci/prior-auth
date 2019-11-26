@@ -87,12 +87,12 @@ public class ClaimResponseFactory {
         response.addExtension(REVIEW_ACTION_EXTENSION_URL,
                 FhirUtils.dispositionToReviewAction(responseDisposition).value());
 
-        if (responseDisposition == Disposition.GRANTED || responseDisposition == Disposition.PARTIAL) {
-            Identifier identifier = new Identifier();
-            identifier.setSystem(App.getBaseUrl());
-            identifier.setValue(id);
-            response.addIdentifier(identifier);
-        } else if (responseDisposition == Disposition.DENIED || responseDisposition == Disposition.PENDING) {
+        Identifier identifier = new Identifier();
+        identifier.setSystem(App.getBaseUrl());
+        identifier.setValue(id);
+        response.addIdentifier(identifier);
+
+        if (responseDisposition == Disposition.DENIED || responseDisposition == Disposition.PENDING) {
             response.addExtension(REVIEW_ACTION_REASON_EXTENSION_URL, new StringType("X"));
         }
 
