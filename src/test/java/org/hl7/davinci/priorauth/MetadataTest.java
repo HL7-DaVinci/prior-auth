@@ -17,6 +17,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import org.hl7.fhir.r4.model.CapabilityStatement;
+import org.hl7.fhir.r4.model.Extension;
+import org.hl7.fhir.r4.model.StringType;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -59,6 +61,14 @@ public class MetadataTest {
     CapabilityStatement capabilityStatement = (CapabilityStatement) App.FHIR_CTX.newJsonParser().parseResource(body);
     Assert.assertNotNull(capabilityStatement);
 
+    // Test the websocket extension is included
+    StringType websocketUrl = null;
+    for (Extension ext : capabilityStatement.getExtension()) {
+      if (ext.getUrl().equals("http://hl7.org/fhir/StructureDefinition/capabilitystatement-websocket"))
+        websocketUrl = (StringType) ext.getValue();
+    }
+    Assert.assertNotNull(websocketUrl);
+
     // Validate the response.
     ValidationResult result = ValidationHelper.validate(capabilityStatement);
     Assert.assertTrue(result.isSuccessful());
@@ -80,6 +90,14 @@ public class MetadataTest {
     String body = mvcresult.getResponse().getContentAsString();
     CapabilityStatement capabilityStatement = (CapabilityStatement) App.FHIR_CTX.newXmlParser().parseResource(body);
     Assert.assertNotNull(capabilityStatement);
+
+    // Test the websocket extension is included
+    StringType websocketUrl = null;
+    for (Extension ext : capabilityStatement.getExtension()) {
+      if (ext.getUrl().equals("http://hl7.org/fhir/StructureDefinition/capabilitystatement-websocket"))
+        websocketUrl = (StringType) ext.getValue();
+    }
+    Assert.assertNotNull(websocketUrl);
 
     // Validate the response.
     ValidationResult result = ValidationHelper.validate(capabilityStatement);
