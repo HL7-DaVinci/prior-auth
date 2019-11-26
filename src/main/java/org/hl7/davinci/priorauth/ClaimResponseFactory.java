@@ -31,10 +31,6 @@ public class ClaimResponseFactory {
 
     static final Logger logger = PALogger.getLogger();
 
-    static final String ITEM_REFERENCE_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemReference";
-    static final String REVIEW_ACTION_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction";
-    static final String REVIEW_ACTION_REASON_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewActionReason";
-
     /**
      * Generate a new ClaimResponse and store it in the database.
      *
@@ -84,7 +80,7 @@ public class ClaimResponseFactory {
         // TODO response.setPreAuthPeriod(period)?
         response.setId(id);
 
-        response.addExtension(REVIEW_ACTION_EXTENSION_URL,
+        response.addExtension(FhirUtils.REVIEW_ACTION_EXTENSION_URL,
                 FhirUtils.dispositionToReviewAction(responseDisposition).value());
 
         Identifier identifier = new Identifier();
@@ -93,7 +89,7 @@ public class ClaimResponseFactory {
         response.addIdentifier(identifier);
 
         if (responseDisposition == Disposition.DENIED || responseDisposition == Disposition.PENDING) {
-            response.addExtension(REVIEW_ACTION_REASON_EXTENSION_URL, new StringType("X"));
+            response.addExtension(FhirUtils.REVIEW_ACTION_REASON_EXTENSION_URL, new StringType("X"));
         }
 
         // Create the responseBundle
@@ -203,11 +199,11 @@ public class ClaimResponseFactory {
             Identifier itemIdentifier = new Identifier();
             itemIdentifier.setSystem(App.getBaseUrl() + "/ClaimResponse/" + id);
             itemIdentifier.setValue(Integer.toString(item.getSequence()));
-            itemComponent.addExtension(ITEM_REFERENCE_EXTENSION_URL, itemIdentifier);
+            itemComponent.addExtension(FhirUtils.ITEM_REFERENCE_EXTENSION_URL, itemIdentifier);
         } else if (action == ReviewAction.DENIED || action == ReviewAction.PENDED)
-            itemComponent.addExtension(REVIEW_ACTION_REASON_EXTENSION_URL, new StringType("X"));
+            itemComponent.addExtension(FhirUtils.REVIEW_ACTION_REASON_EXTENSION_URL, new StringType("X"));
 
-        Extension reviewActionExtension = new Extension(REVIEW_ACTION_EXTENSION_URL);
+        Extension reviewActionExtension = new Extension(FhirUtils.REVIEW_ACTION_EXTENSION_URL);
         reviewActionExtension.setValue(action.value());
         itemComponent.addExtension(reviewActionExtension);
 

@@ -52,8 +52,6 @@ public class ClaimEndpoint {
 
   static final String REQUIRES_BUNDLE = "Prior Authorization Claim/$submit Operation requires a Bundle with a single Claim as the first entry and supporting resources.";
   static final String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
-  static final String REVIEW_ACTION_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction";
-  static final String REVIEW_ACTION_REASON_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewActionReason";
 
   @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> readClaimJson(HttpServletRequest request,
@@ -311,11 +309,10 @@ public class ClaimEndpoint {
       // Update the items...
       for (ItemComponent item : claim.getItem()) {
         boolean itemIsCancelled = false;
-        String extUrl = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemCancelled";
         if (item.hasModifierExtension()) {
           List<Extension> exts = item.getModifierExtension();
           for (Extension ext : exts) {
-            if (ext.getUrl().equals(extUrl) && ext.hasValue()) {
+            if (ext.getUrl().equals(FhirUtils.ITEM_CANCELLED_EXTENSION_URL) && ext.hasValue()) {
               Type type = ext.getValue();
               itemIsCancelled = type.castToBoolean(type).booleanValue();
             }

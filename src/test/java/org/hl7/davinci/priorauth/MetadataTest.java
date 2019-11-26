@@ -64,7 +64,7 @@ public class MetadataTest {
     // Test the websocket extension is included
     StringType websocketUrl = null;
     for (Extension ext : capabilityStatement.getExtension()) {
-      if (ext.getUrl().equals("http://hl7.org/fhir/StructureDefinition/capabilitystatement-websocket"))
+      if (ext.getUrl().equals(FhirUtils.WEBSOCKET_EXTENSION_URL))
         websocketUrl = (StringType) ext.getValue();
     }
     Assert.assertNotNull(websocketUrl);
@@ -94,7 +94,7 @@ public class MetadataTest {
     // Test the websocket extension is included
     StringType websocketUrl = null;
     for (Extension ext : capabilityStatement.getExtension()) {
-      if (ext.getUrl().equals("http://hl7.org/fhir/StructureDefinition/capabilitystatement-websocket"))
+      if (ext.getUrl().equals(FhirUtils.WEBSOCKET_EXTENSION_URL))
         websocketUrl = (StringType) ext.getValue();
     }
     Assert.assertNotNull(websocketUrl);

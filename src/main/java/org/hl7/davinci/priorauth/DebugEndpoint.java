@@ -136,7 +136,7 @@ public class DebugEndpoint {
     String id = FhirUtils.getIdFromResource(claimResponse);
     String patient = FhirUtils.getPatientIdentifierFromBundle(claimResponseBundle);
     String status = FhirUtils.getStatusFromResource(claimResponse);
-    String outcome = FhirUtils.getReviewActionFromClaimResponse(claimResponse);
+    String outcome = claimResponse.getExtensionByUrl(FhirUtils.REVIEW_ACTION_EXTENSION_URL).getValue().primitiveValue();
     App.getDB().delete(Table.CLAIM_RESPONSE, id, patient);
 
     Map<String, Object> dataMap = new HashMap<String, Object>();

@@ -74,13 +74,6 @@ public class FhirUtilsTest {
     }
 
     @Test
-    public void testGetReviewActionFromClaimResponse() {
-        Assert.assertEquals("A1", FhirUtils.getReviewActionFromClaimResponse(claimResponse));
-        Assert.assertEquals("A1", FhirUtils
-                .getReviewActionFromClaimResponse(FhirUtils.getClaimResponseFromResponseBundle(bundleResponse)));
-    }
-
-    @Test
     public void testGetClaimResponseFromResponseBundle() {
         // Validate ClaimResponse found in bundle
         ClaimResponse foundResponse = FhirUtils.getClaimResponseFromResponseBundle(bundleResponse);

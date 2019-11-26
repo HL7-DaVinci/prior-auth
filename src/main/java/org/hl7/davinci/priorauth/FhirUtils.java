@@ -20,7 +20,6 @@ import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.RelatedClaimComponent;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
-import org.hl7.fhir.r4.model.Extension;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -28,6 +27,13 @@ import org.json.simple.parser.ParseException;
 public class FhirUtils {
 
   static final Logger logger = PALogger.getLogger();
+
+  // FHIR Extension URLS
+  public static final String ITEM_REFERENCE_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemReference";
+  public static final String REVIEW_ACTION_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction";
+  public static final String REVIEW_ACTION_REASON_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewActionReason";
+  public static final String ITEM_CANCELLED_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemCancelled";
+  public static final String WEBSOCKET_EXTENSION_URL = "http://hl7.org/fhir/StructureDefinition/capabilitystatement-websocket";
 
   /**
    * Enum for the ClaimResponse Disposition field Values are Granted, Denied,
@@ -152,13 +158,7 @@ public class FhirUtils {
    * @return the X12 review action value if it exsits, otherwise null
    */
   public static String getReviewActionFromClaimResponse(ClaimResponse claimResponse) {
-    String reviewActionUrl = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction";
-    for (Extension ext : claimResponse.getExtension()) {
-      if (ext.getUrl().equals(reviewActionUrl)) {
-        return ext.getValue().primitiveValue();
-      }
-    }
-    return null;
+    return claimResponse.getExtensionByUrl(FhirUtils.REVIEW_ACTION_EXTENSION_URL).getValue().primitiveValue();
   }
 
   /**

@@ -34,8 +34,6 @@ public class ClaimResponseFactoryTest {
     private static String patient = "pat013";
     private static ClaimResponseStatus status = ClaimResponseStatus.ACTIVE;
 
-    static final String REVIEW_ACTION_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction";
-
     @BeforeClass
     public static void setupClass() throws IOException {
         App.initializeAppDB();
@@ -118,7 +116,8 @@ public class ClaimResponseFactoryTest {
         Assert.assertNotNull(claimResponse);
         Assert.assertEquals(status, claimResponse.getStatus());
         Assert.assertEquals(disposition.value(), claimResponse.getDisposition());
-        Assert.assertEquals(reviewAction.asStringValue(), FhirUtils.getReviewActionFromClaimResponse(claimResponse));
+        Assert.assertEquals(reviewAction.asStringValue(),
+                claimResponse.getExtensionByUrl(FhirUtils.REVIEW_ACTION_EXTENSION_URL).getValue().primitiveValue());
         Assert.assertTrue(claimResponse.hasIdentifier());
 
         if (disposition == Disposition.DENIED || disposition == Disposition.GRANTED)
@@ -133,7 +132,8 @@ public class ClaimResponseFactoryTest {
         Boolean atLeastOneGranted = false;
         Boolean atLeastOnePended = false;
         for (ItemComponent ic : claimResponse.getItem()) {
-            String itemReviewAction = ic.getExtensionByUrl(REVIEW_ACTION_EXTENSION_URL).getValue().primitiveValue();
+            String itemReviewAction = ic.getExtensionByUrl(FhirUtils.REVIEW_ACTION_EXTENSION_URL).getValue()
+                    .primitiveValue();
             // Validate Item ReviewAction and Adjudication set correctly
             if (disposition == Disposition.DENIED || disposition == Disposition.GRANTED) {
                 Assert.assertEquals(reviewAction.asStringValue(), itemReviewAction);

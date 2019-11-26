@@ -79,8 +79,7 @@ public class Metadata {
     metadata.setFhirVersion(FHIRVersion._4_0_0);
     metadata.addFormat("json");
     metadata.addFormat("xml");
-    metadata.addExtension("http://hl7.org/fhir/StructureDefinition/capabilitystatement-websocket",
-        new StringType("/fhir"));
+    metadata.addExtension(FhirUtils.WEBSOCKET_EXTENSION_URL, new StringType("/fhir"));
     metadata.addImplementationGuide("https://build.fhir.org/ig/HL7/davinci-pas/index.html");
     metadata
         .addImplementationGuide("http://wiki.hl7.org/index.php?title=Da_Vinci_Prior_Authorization_FHIR_IG_Proposal");
