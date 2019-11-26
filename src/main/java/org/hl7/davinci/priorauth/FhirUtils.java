@@ -1,5 +1,6 @@
 package org.hl7.davinci.priorauth;
 
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -323,5 +324,16 @@ public class FhirUtils {
     issue.setCode(type);
     issue.setDiagnostics(message);
     return error;
+  }
+
+  /**
+   * Get a random number between 1 and max.
+   *
+   * @param max The largest the random number could be.
+   * @return int representing the random number.
+   */
+  public static int getRand(int max) {
+    Date date = new Date();
+    return (int) ((date.getTime() % max) + 1);
   }
 }

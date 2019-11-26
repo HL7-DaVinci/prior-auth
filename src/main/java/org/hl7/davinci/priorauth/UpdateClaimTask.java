@@ -63,7 +63,7 @@ class UpdateClaimTask extends TimerTask {
         claimConstraintMap.put("patient", patient);
         Claim claim = (Claim) App.getDB().read(Table.CLAIM, claimConstraintMap);
         if (claim != null)
-            return ClaimEndpoint.generateAndStoreClaimResponse(bundle, claim, id, Disposition.GRANTED,
+            return ClaimResponseFactory.generateAndStoreClaimResponse(bundle, claim, id, Disposition.GRANTED,
                     ClaimResponseStatus.ACTIVE, patient);
         else
             return null;
