@@ -168,11 +168,11 @@ public class ClaimEndpoint {
    */
   private Bundle processBundle(Bundle bundle) {
     logger.fine("ClaimEndpoint::processBundle");
-    // Store the submission...
+
     // Generate a shared id...
     String id = UUID.randomUUID().toString();
 
-    // get the patient
+    // Get the patient
     Claim claim = FhirUtils.getClaimFromRequestBundle(bundle);
     String patient = FhirUtils.getPatientIdentifierFromBundle(bundle);
     if (patient == null) {
@@ -184,8 +184,6 @@ public class ClaimEndpoint {
     Disposition responseDisposition = Disposition.UNKNOWN;
     ClaimResponseStatus responseStatus = ClaimResponseStatus.ACTIVE;
     ClaimStatus status = claim.getStatus();
-    boolean delayedUpdate = false;
-    Disposition delayedDisposition = Disposition.UNKNOWN;
 
     if (status == ClaimStatus.CANCELLED) {
       // Cancel the claim...
@@ -241,52 +239,16 @@ public class ClaimEndpoint {
         processClaimItems(claim, id, relatedId);
       }
 
-      // Generate random responses since not cancelling
-      // with a 4 in 6 chance of being pending
-      switch (FhirUtils.getRand(6)) {
-      case 1:
-      case 2:
-      case 3:
-        responseDisposition = Disposition.PENDING;
-
-        switch (FhirUtils.getRand(2)) {
-        case 1:
-          delayedDisposition = Disposition.GRANTED;
-          break;
-        case 2:
-          delayedDisposition = Disposition.DENIED;
-          break;
-        }
-
-        delayedUpdate = true;
-        break;
-      case 4:
-        // We can only have partial disposition when there are
-        // more than 2 items in the Claim
-        if (claim.hasItem() && claim.getItem().size() >= 2)
-          responseDisposition = Disposition.PARTIAL;
-        else
-          responseDisposition = Disposition.GRANTED;
-        break;
-      case 5:
-        responseDisposition = Disposition.GRANTED;
-        break;
-      case 6:
-      default:
-        responseDisposition = Disposition.DENIED;
-        break;
-      }
+      responseDisposition = ClaimResponseFactory.determineDisposition(claim);
     }
-    // Process the claim...
-    // TODO
 
     // Generate the claim response...
     Bundle responseBundle = ClaimResponseFactory.generateAndStoreClaimResponse(bundle, claim, id, responseDisposition,
         responseStatus, patient);
 
-    if (delayedUpdate) {
-      // schedule the update
-      schedulePendedClaimUpdate(bundle, id, patient, delayedDisposition);
+    // Schedule update to Pended Claim
+    if (responseDisposition == Disposition.PENDING) {
+      schedulePendedClaimUpdate(bundle, id, patient);
     }
 
     // Respond...
@@ -457,8 +419,8 @@ public class ClaimEndpoint {
    * @param patient     - the Patient ID.
    * @param disposition - the new disposition of the updated Claim.
    */
-  private void schedulePendedClaimUpdate(Bundle bundle, String id, String patient, Disposition disposition) {
-    App.timer.schedule(new UpdateClaimTask(bundle, id, patient, disposition), 30000); // 30s
+  private void schedulePendedClaimUpdate(Bundle bundle, String id, String patient) {
+    App.timer.schedule(new UpdateClaimTask(bundle, id, patient), 30000); // 30s
   }
 
 }

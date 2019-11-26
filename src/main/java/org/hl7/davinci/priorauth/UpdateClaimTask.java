@@ -31,15 +31,13 @@ class UpdateClaimTask extends TimerTask {
     public Bundle bundle;
     public String claimId;
     public String patient;
-    public Disposition disposition;
 
     static final Logger logger = PALogger.getLogger();
 
-    UpdateClaimTask(Bundle bundle, String claimId, String patient, Disposition disposition) {
+    UpdateClaimTask(Bundle bundle, String claimId, String patient) {
         this.bundle = bundle;
         this.claimId = claimId;
         this.patient = patient;
-        this.disposition = disposition;
     }
 
     /**
@@ -50,19 +48,16 @@ class UpdateClaimTask extends TimerTask {
      * @param patient     - the Patient ID.
      * @param disposition - the new disposition of the updated Claim.
      */
-    private Bundle updatePendedClaim(Bundle bundle, String claimId, String patient, Disposition disposition) {
-        logger.info("ClaimEndpoint::updateClaim(" + claimId + "/" + patient + ", disposition: " + disposition.value()
-                + ")");
+    private Bundle updatePendedClaim(Bundle bundle, String claimId, String patient) {
+        logger.info("ClaimEndpoint::updateClaim(" + claimId + "/" + patient + ")");
 
         // Generate a new id...
         String id = UUID.randomUUID().toString();
 
         // Get the claim from the database
-        Map<String, Object> claimConstraintMap = new HashMap<String, Object>();
-        claimConstraintMap.put("id", claimId);
-        claimConstraintMap.put("patient", patient);
-        Claim claim = (Claim) App.getDB().read(Table.CLAIM, claimConstraintMap);
+        Claim claim = (Claim) App.getDB().read(Table.CLAIM, Collections.singletonMap("id", claimId));
         if (claim != null)
+            // TODO: Verify has not been cancelled
             return ClaimResponseFactory.generateAndStoreClaimResponse(bundle, claim, id, Disposition.GRANTED,
                     ClaimResponseStatus.ACTIVE, patient);
         else
@@ -71,7 +66,7 @@ class UpdateClaimTask extends TimerTask {
 
     @Override
     public void run() {
-        if (updatePendedClaim(bundle, claimId, patient, disposition) != null) {
+        if (updatePendedClaim(bundle, claimId, patient) != null) {
             // Check for subscription
             Map<String, Object> constraintMap = new HashMap<String, Object>();
             constraintMap.put("claimResponseId", claimId);

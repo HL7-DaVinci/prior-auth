@@ -117,6 +117,35 @@ public class ClaimResponseFactory {
     }
 
     /**
+     * Determine the Disposition for the Claim
+     * 
+     * @param claim - the Claim to produce an outcome for
+     * @return Disposition of Pending, Partial, Granted, or Denied
+     */
+    public static Disposition determineDisposition(Claim claim) {
+        // Generate random responses since not cancelling
+        // with a 4 in 6 chance of being pending
+        switch (FhirUtils.getRand(6)) {
+        case 1:
+        case 2:
+        case 3:
+            return Disposition.PENDING;
+        case 4:
+            // We can only have partial disposition when there are
+            // more than 2 items in the Claim
+            if (claim.hasItem() && claim.getItem().size() >= 2)
+                return Disposition.PARTIAL;
+            else
+                return Disposition.GRANTED;
+        case 5:
+            return Disposition.GRANTED;
+        case 6:
+        default:
+            return Disposition.DENIED;
+        }
+    }
+
+    /**
      * Set the Items on the ClaimResponse indicating the adjudication of each one
      * 
      * @param claim               - the initial Claim which contains the items
