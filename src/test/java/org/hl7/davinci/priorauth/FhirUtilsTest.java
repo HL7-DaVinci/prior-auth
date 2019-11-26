@@ -23,6 +23,7 @@ import org.junit.Test;
 public class FhirUtilsTest {
 
     private static Claim claim;
+    private static Claim claimUpdate;
     private static ClaimResponse claimResponse;
     private static Bundle bundleRequest;
     private static Bundle bundleResponse;
@@ -34,6 +35,10 @@ public class FhirUtilsTest {
         Path fixture = modulesFolder.resolve("claim-only.json");
         String fixtureStr = new String(Files.readAllBytes(fixture));
         claim = (Claim) App.FHIR_CTX.newJsonParser().parseResource(fixtureStr);
+
+        fixture = modulesFolder.resolve("claim-update.json");
+        fixtureStr = new String(Files.readAllBytes(fixture));
+        claimUpdate = (Claim) App.FHIR_CTX.newJsonParser().parseResource(fixtureStr);
 
         fixture = modulesFolder.resolve("claimresponse-only.json");
         fixtureStr = new String(Files.readAllBytes(fixture));
@@ -102,6 +107,11 @@ public class FhirUtilsTest {
         // Validate BundleEntryComponent is null for id which does not exist
         bec = FhirUtils.getEntryComponentFromBundle(bundleRequest, ResourceType.Organization, "id-does-not-exist");
         Assert.assertNull(bec);
+    }
+
+    @Test
+    public void testGetRelatedClaimComponent() {
+        Assert.assertEquals("claim1", FhirUtils.getRelatedComponent(claimUpdate).getId());
     }
 
     @Test

@@ -221,7 +221,7 @@ public class ClaimEndpoint {
       claimMap.put("patient", patient);
       claimMap.put("status", claimStatusStr);
       claimMap.put("resource", claim);
-      RelatedClaimComponent related = getRelatedComponent(claim);
+      RelatedClaimComponent related = FhirUtils.getRelatedComponent(claim);
       if (related != null) {
         // This is an update...
         relatedId = related.getIdElement().asStringValue();
@@ -302,7 +302,7 @@ public class ClaimEndpoint {
 
     if (delayedUpdate) {
       // schedule the update
-      scheduleClaimUpdate(bundle, id, patient, delayedDisposition);
+      schedulePendedClaimUpdate(bundle, id, patient, delayedDisposition);
     }
 
     // Respond...
@@ -464,29 +464,6 @@ public class ClaimEndpoint {
       // Get the new related id from the db
       relatedId = App.getDB().readRelated(Table.CLAIM, constraintMap);
     }
-  }
-
-  /**
-   * Get the related claim for an update to a claim (replaces relationship)
-   * 
-   * @param claim - the base Claim resource.
-   * @return the first related claim with relationship "replaces" or null if no
-   *         matching related resource.
-   */
-  private RelatedClaimComponent getRelatedComponent(Claim claim) {
-    if (claim.hasRelated()) {
-      for (RelatedClaimComponent relatedComponent : claim.getRelated()) {
-        if (relatedComponent.hasRelationship()) {
-          for (Coding code : relatedComponent.getRelationship().getCoding()) {
-            if (code.getCode().equals("replaces")) {
-              // This claim is an update to an old claim
-              return relatedComponent;
-            }
-          }
-        }
-      }
-    }
-    return null;
   }
 
   /**
@@ -679,7 +656,7 @@ public class ClaimEndpoint {
    * @param patient     - the Patient ID.
    * @param disposition - the new disposition of the updated Claim.
    */
-  private void scheduleClaimUpdate(Bundle bundle, String id, String patient, Disposition disposition) {
+  private void schedulePendedClaimUpdate(Bundle bundle, String id, String patient, Disposition disposition) {
     App.timer.schedule(new UpdateClaimTask(bundle, id, patient, disposition), 30000); // 30s
   }
 

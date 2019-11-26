@@ -8,6 +8,7 @@ import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
+import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Reference;
@@ -16,6 +17,7 @@ import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
+import org.hl7.fhir.r4.model.Claim.RelatedClaimComponent;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
 import org.hl7.fhir.r4.model.Extension;
 import org.json.simple.JSONObject;
@@ -218,6 +220,29 @@ public class FhirUtils {
       Resource resource = entry.getResource();
       if (resource.getResourceType() == resourceType && FhirUtils.getIdFromResource(resource).equals(id)) {
         return entry;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Get the related claim for an update to a claim (replaces relationship)
+   * 
+   * @param claim - the base Claim resource.
+   * @return the first related claim with relationship "replaces" or null if no
+   *         matching related resource.
+   */
+  public static RelatedClaimComponent getRelatedComponent(Claim claim) {
+    if (claim.hasRelated()) {
+      for (RelatedClaimComponent relatedComponent : claim.getRelated()) {
+        if (relatedComponent.hasRelationship()) {
+          for (Coding code : relatedComponent.getRelationship().getCoding()) {
+            if (code.getCode().equals("replaces")) {
+              // This claim is an update to an old claim
+              return relatedComponent;
+            }
+          }
+        }
       }
     }
     return null;

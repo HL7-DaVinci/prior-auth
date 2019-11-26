@@ -1,0 +1,51 @@
+{
+  "resourceType": "Claim",
+  "id": "update",
+  "status": "draft",
+  "related": [
+    {
+      "id": "claim1",
+      "relationship": {
+        "coding": [
+          {
+            "code": "replaces",
+            "display": "replaces"
+          }
+        ]
+      }
+    }
+  ],
+  "type": {
+    "coding": [
+      {
+        "system": "http://terminology.hl7.org/CodeSystem/claim-type",
+        "code": "professional",
+        "display": "Professional"
+      }
+    ]
+  },
+  "use": "preauthorization",
+  "patient": {
+    "reference": "Patient/1"
+  },
+  "created": "2019-04-01",
+  "provider": {
+    "reference": "Organization/1"
+  },
+  "priority": {
+    "coding": [
+      {
+        "code": "normal"
+      }
+    ]
+  },
+  "insurance": [
+    {
+      "sequence": 1,
+      "focal": true,
+      "coverage": {
+        "reference": "Coverage/1"
+      }
+    }
+  ]
+}
