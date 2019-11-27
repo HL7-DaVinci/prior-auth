@@ -26,7 +26,6 @@ import org.hl7.davinci.priorauth.FhirUtils.Disposition;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
-import org.hl7.fhir.r4.model.Claim.RelatedClaimComponent;
 import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.ClaimResponse.ClaimResponseStatus;
@@ -180,15 +179,13 @@ public class ClaimEndpoint {
       return null;
     }
 
-    String claimId = id;
+    ClaimStatus status = claim.getStatus();
     Disposition responseDisposition = Disposition.UNKNOWN;
     ClaimResponseStatus responseStatus = ClaimResponseStatus.ACTIVE;
-    ClaimStatus status = claim.getStatus();
 
     if (status == ClaimStatus.CANCELLED) {
       // Cancel the claim...
-      claimId = FhirUtils.getIdFromResource(claim);
-      if (cancelClaim(claimId, patient)) {
+      if (cancelClaim(FhirUtils.getIdFromResource(claim), patient)) {
         responseStatus = ClaimResponseStatus.CANCELLED;
         responseDisposition = Disposition.CANCELLED;
       } else
@@ -196,27 +193,20 @@ public class ClaimEndpoint {
     } else {
       // Store the claim...
       claim.setId(id);
-      String relatedId = null;
-      String claimStatusStr = FhirUtils.getStatusFromResource(claim);
       Map<String, Object> claimMap = new HashMap<String, Object>();
       claimMap.put("id", id);
       claimMap.put("patient", patient);
-      claimMap.put("status", claimStatusStr);
+      claimMap.put("status", FhirUtils.getStatusFromResource(claim));
       claimMap.put("resource", claim);
-      RelatedClaimComponent related = FhirUtils.getRelatedComponent(claim);
-      if (related != null) {
+      String relatedId = FhirUtils.getRelatedComponentId(claim);
+      if (relatedId != null) {
         // This is an update...
-        relatedId = related.getIdElement().asStringValue();
         relatedId = App.getDB().getMostRecentId(relatedId);
         logger.info("ClaimEndpoint::Udpated id to most recent: " + relatedId);
         claimMap.put("related", relatedId);
 
         // Check if related is cancelled in the DB
-        Map<String, Object> constraintMap = new HashMap<String, Object>();
-        constraintMap.put("id", relatedId);
-        String relatedStatusStr = App.getDB().readStatus(Table.CLAIM, constraintMap);
-        ClaimStatus relatedStatus = ClaimStatus.fromCode(relatedStatusStr);
-        if (relatedStatus == Claim.ClaimStatus.CANCELLED) {
+        if (FhirUtils.isCancelled(Table.CLAIM, relatedId)) {
           logger.warning(
               "ClaimEndpoint::Unable to submit update to claim " + relatedId + " because it has been cancelled");
           return null;
@@ -236,6 +226,7 @@ public class ClaimEndpoint {
 
       // Store the claim items...
       if (claim.hasItem()) {
+        // TODO: if this is false then maybe we should return null
         processClaimItems(claim, id, relatedId);
       }
 
@@ -303,7 +294,7 @@ public class ClaimEndpoint {
         Map<String, Object> itemMap = new HashMap<String, Object>();
         itemMap.put("id", id);
         itemMap.put("sequence", item.getSequence());
-        itemMap.put("status", claimStatusStr);
+        itemMap.put("status", claimStatusStr); // TODO: check isCancelled flag on item
         if (!App.getDB().write(Table.CLAIM_ITEM, itemMap))
           ret = false;
       }

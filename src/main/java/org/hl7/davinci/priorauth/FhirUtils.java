@@ -1,9 +1,11 @@
 package org.hl7.davinci.priorauth;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
@@ -221,20 +223,21 @@ public class FhirUtils {
   }
 
   /**
-   * Get the related claim for an update to a claim (replaces relationship)
+   * Get the id of the related claim for an update to a claim (replaces
+   * relationship)
    * 
    * @param claim - the base Claim resource.
-   * @return the first related claim with relationship "replaces" or null if no
-   *         matching related resource.
+   * @return the id of the first related claim with relationship "replaces" or
+   *         null if no matching related resource.
    */
-  public static RelatedClaimComponent getRelatedComponent(Claim claim) {
+  public static String getRelatedComponentId(Claim claim) {
     if (claim.hasRelated()) {
       for (RelatedClaimComponent relatedComponent : claim.getRelated()) {
         if (relatedComponent.hasRelationship()) {
           for (Coding code : relatedComponent.getRelationship().getCoding()) {
             if (code.getCode().equals("replaces")) {
               // This claim is an update to an old claim
-              return relatedComponent;
+              return relatedComponent.getId();
             }
           }
         }
@@ -253,6 +256,11 @@ public class FhirUtils {
     if (resource.getIdElement().hasIdPart())
       return resource.getIdElement().getIdPart();
     return null;
+  }
+
+  public static Boolean isCancelled(Table table, String id) {
+    String status = App.getDB().readStatus(table, Collections.singletonMap("id", id));
+    return status.equals("cancelled");
   }
 
   /**

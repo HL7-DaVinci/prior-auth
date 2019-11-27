@@ -4,7 +4,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
@@ -104,7 +107,7 @@ public class FhirUtilsTest {
 
     @Test
     public void testGetRelatedClaimComponent() {
-        Assert.assertEquals("claim1", FhirUtils.getRelatedComponent(claimUpdate).getId());
+        Assert.assertEquals("claim1", FhirUtils.getRelatedComponentId(claimUpdate));
     }
 
     @Test
@@ -114,6 +117,33 @@ public class FhirUtilsTest {
         Assert.assertEquals("1", FhirUtils.getIdFromResource(claimResponse));
         Assert.assertEquals("pa-request-example-referral", FhirUtils.getIdFromResource(bundleRequest));
         Assert.assertEquals("pa-response-example-referral", FhirUtils.getIdFromResource(bundleResponse));
+    }
+
+    @Test
+    public void testIsCancelled() {
+        App.initializeAppDB();
+
+        // Insert cancelled claim into DB
+        Map<String, Object> claimMap = new HashMap<String, Object>();
+        claimMap.put("id", "claim01");
+        claimMap.put("patient", "pat013");
+        claimMap.put("status", "cancelled");
+        claimMap.put("resource", claim);
+        App.getDB().write(Table.CLAIM, claimMap);
+
+        // Insert non cancelled claim into DB
+        claimMap.replace("id", "claim02");
+        claimMap.replace("status", "active");
+        App.getDB().write(Table.CLAIM, claimMap);
+
+        // Validate cancelled claim is true
+        Assert.assertTrue(FhirUtils.isCancelled(Table.CLAIM, "claim01"));
+
+        // Validate active claim is false
+        Assert.assertFalse(FhirUtils.isCancelled(Table.CLAIM, "claim02"));
+
+        // Clean up
+        App.getDB().delete(Table.CLAIM);
     }
 
     @Test
