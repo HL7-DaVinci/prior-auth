@@ -258,6 +258,13 @@ public class FhirUtils {
     return null;
   }
 
+  /**
+   * Returns true if element with id in table has status cancelled
+   * 
+   * @param table - Table in DB to read status from
+   * @param id    - the id of the row to read
+   * @return true if the status column of row given by id is "cancelled"
+   */
   public static Boolean isCancelled(Table table, String id) {
     String status = App.getDB().readStatus(table, Collections.singletonMap("id", id));
     return status.equals("cancelled");

@@ -56,8 +56,7 @@ class UpdateClaimTask extends TimerTask {
 
         // Get the claim from the database
         Claim claim = (Claim) App.getDB().read(Table.CLAIM, Collections.singletonMap("id", claimId));
-        if (claim != null)
-            // TODO: Verify has not been cancelled
+        if (claim != null && !FhirUtils.isCancelled(Table.CLAIM, claimId))
             return ClaimResponseFactory.generateAndStoreClaimResponse(bundle, claim, id, Disposition.GRANTED,
                     ClaimResponseStatus.ACTIVE, patient);
         else

@@ -226,8 +226,10 @@ public class ClaimEndpoint {
 
       // Store the claim items...
       if (claim.hasItem()) {
-        // TODO: if this is false then maybe we should return null
-        processClaimItems(claim, id, relatedId);
+        if (!processClaimItems(claim, id, relatedId)) {
+          logger.severe("ClaimEndpoint::processBundle:unable to process claim items successfully");
+          return null;
+        }
       }
 
       responseDisposition = ClaimResponseFactory.determineDisposition(claim);
@@ -291,10 +293,21 @@ public class ClaimEndpoint {
     } else {
       // Add the claim items...
       for (ItemComponent item : claim.getItem()) {
+        boolean itemIsCancelled = false;
+        if (item.hasModifierExtension()) {
+          List<Extension> exts = item.getModifierExtension();
+          for (Extension ext : exts) {
+            if (ext.getUrl().equals(FhirUtils.ITEM_CANCELLED_EXTENSION_URL) && ext.hasValue()) {
+              Type type = ext.getValue();
+              itemIsCancelled = type.castToBoolean(type).booleanValue();
+            }
+          }
+        }
+
         Map<String, Object> itemMap = new HashMap<String, Object>();
         itemMap.put("id", id);
         itemMap.put("sequence", item.getSequence());
-        itemMap.put("status", claimStatusStr); // TODO: check isCancelled flag on item
+        itemMap.put("status", itemIsCancelled ? ClaimStatus.CANCELLED.getDisplay().toLowerCase() : claimStatusStr);
         if (!App.getDB().write(Table.CLAIM_ITEM, itemMap))
           ret = false;
       }
