@@ -9,12 +9,15 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -27,6 +30,7 @@ import org.hl7.fhir.r4.model.Subscription;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionChannelType;
+import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
 
 import ca.uhn.fhir.parser.IParser;
 
@@ -45,6 +49,26 @@ public class SubscriptionEndpoint {
     String SUBSCRIPTION_ADDED_SUCCESS = "Subscription successful";
     String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
     String INVALID_CHANNEL_TYPE = "Invalid channel type. Must be rest-hook or websocket";
+
+    @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
+    public ResponseEntity<String> readSubscriptionJSON(HttpServletRequest request,
+            @RequestParam(name = "identifier", required = false) String id,
+            @RequestParam(name = "patient.identifier") String patient) {
+        Map<String, Object> constraintMap = new HashMap<String, Object>();
+        constraintMap.put("claimResponseId", id);
+        constraintMap.put("patient", patient);
+        return Endpoint.read(Table.SUBSCRIPTION, constraintMap, request, RequestType.JSON);
+    }
+
+    @GetMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
+    public ResponseEntity<String> readSubscriptionXML(HttpServletRequest request,
+            @RequestParam(name = "identifier", required = false) String id,
+            @RequestParam(name = "patient.identifier") String patient) {
+        Map<String, Object> constraintMap = new HashMap<String, Object>();
+        constraintMap.put("claimResponseId", id);
+        constraintMap.put("patient", patient);
+        return Endpoint.read(Table.SUBSCRIPTION, constraintMap, request, RequestType.XML);
+    }
 
     @PostMapping(value = "", consumes = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
     public ResponseEntity<String> addSubscriptionJSON(HttpEntity<String> entity) {
@@ -162,12 +186,13 @@ public class SubscriptionEndpoint {
         String outcome = App.getDB().readString(Table.CLAIM_RESPONSE, Collections.singletonMap("id", claimResponseId),
                 "outcome");
         logger.info("SubscriptionEndpoint::Outcome for desired resource is: " + outcome);
-        if (!outcome.equals(FhirUtils.ReviewAction.PENDED.value().asStringValue()))
+        if (!outcome.equals(FhirUtils.ReviewAction.PENDED.asStringValue()))
             return null;
 
         // Add to db
         String id = UUID.randomUUID().toString();
         subscription.setId(id);
+        subscription.setStatus(SubscriptionStatus.ACTIVE);
         logger.fine("SubscriptionEndpoint::Subscription given uuid " + id);
         Map<String, Object> dataMap = new HashMap<String, Object>();
         dataMap.put("id", id);

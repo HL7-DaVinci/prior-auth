@@ -1,13 +1,17 @@
 package org.hl7.davinci.priorauth;
 
+import java.util.Collections;
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
+import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Reference;
@@ -16,8 +20,8 @@ import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
+import org.hl7.fhir.r4.model.Claim.RelatedClaimComponent;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
-import org.hl7.fhir.r4.model.Extension;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -25,6 +29,13 @@ import org.json.simple.parser.ParseException;
 public class FhirUtils {
 
   static final Logger logger = PALogger.getLogger();
+
+  // FHIR Extension URLS
+  public static final String ITEM_REFERENCE_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemReference";
+  public static final String REVIEW_ACTION_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction";
+  public static final String REVIEW_ACTION_REASON_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewActionReason";
+  public static final String ITEM_CANCELLED_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemCancelled";
+  public static final String WEBSOCKET_EXTENSION_URL = "http://hl7.org/fhir/StructureDefinition/capabilitystatement-websocket";
 
   /**
    * Enum for the ClaimResponse Disposition field Values are Granted, Denied,
@@ -62,6 +73,10 @@ public class FhirUtils {
 
     public StringType value() {
       return new StringType(this.value);
+    }
+
+    public String asStringValue() {
+      return this.value;
     }
   }
 
@@ -139,22 +154,6 @@ public class FhirUtils {
   }
 
   /**
-   * Get the review action extension value from a ClaimResponse
-   * 
-   * @param claimResponse - the ClaimResponse resource
-   * @return the X12 review action value if it exsits, otherwise null
-   */
-  public static String getReviewActionFromClaimResponse(ClaimResponse claimResponse) {
-    String reviewActionUrl = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction";
-    for (Extension ext : claimResponse.getExtension()) {
-      if (ext.getUrl().equals(reviewActionUrl)) {
-        return ext.getValue().primitiveValue();
-      }
-    }
-    return null;
-  }
-
-  /**
    * Convert the response disposition into a review action
    * 
    * @param disposition - the response disposition
@@ -224,6 +223,30 @@ public class FhirUtils {
   }
 
   /**
+   * Get the id of the related claim for an update to a claim (replaces
+   * relationship)
+   * 
+   * @param claim - the base Claim resource.
+   * @return the id of the first related claim with relationship "replaces" or
+   *         null if no matching related resource.
+   */
+  public static String getRelatedComponentId(Claim claim) {
+    if (claim.hasRelated()) {
+      for (RelatedClaimComponent relatedComponent : claim.getRelated()) {
+        if (relatedComponent.hasRelationship()) {
+          for (Coding code : relatedComponent.getRelationship().getCoding()) {
+            if (code.getCode().equals("replaces")) {
+              // This claim is an update to an old claim
+              return relatedComponent.getId();
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
    * Return the id of a resource
    * 
    * @param resource - the resource to get the id from
@@ -233,6 +256,18 @@ public class FhirUtils {
     if (resource.getIdElement().hasIdPart())
       return resource.getIdElement().getIdPart();
     return null;
+  }
+
+  /**
+   * Returns true if element with id in table has status cancelled
+   * 
+   * @param table - Table in DB to read status from
+   * @param id    - the id of the row to read
+   * @return true if the status column of row given by id is "cancelled"
+   */
+  public static Boolean isCancelled(Table table, String id) {
+    String status = App.getDB().readStatus(table, Collections.singletonMap("id", id));
+    return status.equals("cancelled");
   }
 
   /**
@@ -298,5 +333,16 @@ public class FhirUtils {
     issue.setCode(type);
     issue.setDiagnostics(message);
     return error;
+  }
+
+  /**
+   * Get a random number between 1 and max.
+   *
+   * @param max The largest the random number could be.
+   * @return int representing the random number.
+   */
+  public static int getRand(int max) {
+    Date date = new Date();
+    return (int) ((date.getTime() % max) + 1);
   }
 }

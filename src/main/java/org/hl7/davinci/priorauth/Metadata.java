@@ -3,6 +3,7 @@ package org.hl7.davinci.priorauth;
 import java.util.Calendar;
 
 import org.hl7.fhir.r4.model.CapabilityStatement;
+import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.CapabilityStatement.CapabilityStatementImplementationComponent;
 import org.hl7.fhir.r4.model.CapabilityStatement.CapabilityStatementKind;
 import org.hl7.fhir.r4.model.CapabilityStatement.CapabilityStatementRestComponent;
@@ -78,6 +79,7 @@ public class Metadata {
     metadata.setFhirVersion(FHIRVersion._4_0_0);
     metadata.addFormat("json");
     metadata.addFormat("xml");
+    metadata.addExtension(FhirUtils.WEBSOCKET_EXTENSION_URL, new StringType("/fhir"));
     metadata.addImplementationGuide("https://build.fhir.org/ig/HL7/davinci-pas/index.html");
     metadata
         .addImplementationGuide("http://wiki.hl7.org/index.php?title=Da_Vinci_Prior_Authorization_FHIR_IG_Proposal");

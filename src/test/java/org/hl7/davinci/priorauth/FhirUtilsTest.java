@@ -4,7 +4,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
@@ -23,6 +26,7 @@ import org.junit.Test;
 public class FhirUtilsTest {
 
     private static Claim claim;
+    private static Claim claimUpdate;
     private static ClaimResponse claimResponse;
     private static Bundle bundleRequest;
     private static Bundle bundleResponse;
@@ -34,6 +38,10 @@ public class FhirUtilsTest {
         Path fixture = modulesFolder.resolve("claim-only.json");
         String fixtureStr = new String(Files.readAllBytes(fixture));
         claim = (Claim) App.FHIR_CTX.newJsonParser().parseResource(fixtureStr);
+
+        fixture = modulesFolder.resolve("claim-update.json");
+        fixtureStr = new String(Files.readAllBytes(fixture));
+        claimUpdate = (Claim) App.FHIR_CTX.newJsonParser().parseResource(fixtureStr);
 
         fixture = modulesFolder.resolve("claimresponse-only.json");
         fixtureStr = new String(Files.readAllBytes(fixture));
@@ -69,13 +77,6 @@ public class FhirUtilsTest {
     }
 
     @Test
-    public void testGetReviewActionFromClaimResponse() {
-        Assert.assertEquals("A1", FhirUtils.getReviewActionFromClaimResponse(claimResponse));
-        Assert.assertEquals("A1", FhirUtils
-                .getReviewActionFromClaimResponse(FhirUtils.getClaimResponseFromResponseBundle(bundleResponse)));
-    }
-
-    @Test
     public void testGetClaimResponseFromResponseBundle() {
         // Validate ClaimResponse found in bundle
         ClaimResponse foundResponse = FhirUtils.getClaimResponseFromResponseBundle(bundleResponse);
@@ -105,12 +106,44 @@ public class FhirUtilsTest {
     }
 
     @Test
+    public void testGetRelatedClaimComponent() {
+        Assert.assertEquals("claim1", FhirUtils.getRelatedComponentId(claimUpdate));
+    }
+
+    @Test
     public void testGetIdFromResource() {
         // Validate id from resources are correct
         Assert.assertEquals("1", FhirUtils.getIdFromResource(claim));
         Assert.assertEquals("1", FhirUtils.getIdFromResource(claimResponse));
         Assert.assertEquals("pa-request-example-referral", FhirUtils.getIdFromResource(bundleRequest));
         Assert.assertEquals("pa-response-example-referral", FhirUtils.getIdFromResource(bundleResponse));
+    }
+
+    @Test
+    public void testIsCancelled() {
+        App.initializeAppDB();
+
+        // Insert cancelled claim into DB
+        Map<String, Object> claimMap = new HashMap<String, Object>();
+        claimMap.put("id", "claim01");
+        claimMap.put("patient", "pat013");
+        claimMap.put("status", "cancelled");
+        claimMap.put("resource", claim);
+        App.getDB().write(Table.CLAIM, claimMap);
+
+        // Insert non cancelled claim into DB
+        claimMap.replace("id", "claim02");
+        claimMap.replace("status", "active");
+        App.getDB().write(Table.CLAIM, claimMap);
+
+        // Validate cancelled claim is true
+        Assert.assertTrue(FhirUtils.isCancelled(Table.CLAIM, "claim01"));
+
+        // Validate active claim is false
+        Assert.assertFalse(FhirUtils.isCancelled(Table.CLAIM, "claim02"));
+
+        // Clean up
+        App.getDB().delete(Table.CLAIM);
     }
 
     @Test

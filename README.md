@@ -42,7 +42,7 @@ curl -X POST
 
 ## FHIR Services
 
-The service endpoints in the table below are relative to `http://localhost:9000/fhir`.
+The service endpoints in the table below are relative to `http://localhost:9000/fhir`. `patient` is the first `identifier.value` on the `Patient` referenced in the submitted `Claim`.
 
 | Service                                                                       | Methods  | Description                                                                                                                                                                                                        |
 | ----------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -64,9 +64,10 @@ The service endpoints in the table below are relative to `http://localhost:9000/
 | `/ClaimResponse?identifier={id}&patient.identifier={patient}&status={status}` | `GET`    | Gets a single `ClaimResponse` by `id`, `patient`, and `status`.                                                                                                                                                    |
 | `/ClaimResponse?identifier={id}&patient.identifier={patient}`                 | `DELETE` | Deletes a single `ClaimResponse` by `id` and `patient`.                                                                                                                                                            |
 | `/Subscription`                                                               | `POST`   | Submit a new Subscription for a pended or partial ClaimResponse using rest-hook or websockets.                                                                                                                     |
+| `/Subscription?identifier={id}&patient.identifier={patient}&status={status}`  | `GET`    | Gets a single `Subscription` defined with `id` for `patient`.                                                                                                                                                      |
 | `/Subscription?identifier={id}&patient.identifier={patient}`                  | `DELETE` | Deletes (todo update which id this uses and if it deletes all or just a single).                                                                                                                                   |
 
-> _Note About IDs_: The Prior Authorization service generates an `id` when a successful `Claim/$submit` operation is performed. The `Bundle` that was submitted will subsequently be available at `/Bundle?identifier={id}&patient.identifier={patient}`, and the `Claim` from the submission will be available at `/Claim?identifier={id}&patient.identifier={patient}`, and the `ClaimResponse` will also be available at `/ClaimResponse?identifier={id}&patient.identifier={patient}`. _All three resources will share the same `id`._
+> _Note About IDs_: The Prior Authorization service generates a preAuthRef `id` when a successful `Claim/$submit` operation is performed. If the submitted resources do not contain ids their ids will be updated to `id`. The `id` referenced by the `identifier` in the request parameters is the preAuthRef `id`. The `Bundle` that was submitted will subsequently be available at `/Bundle?identifier={id}&patient.identifier={patient}`, and the `Claim` from the submission will be available at `/Claim?identifier={id}&patient.identifier={patient}`, and the `ClaimResponse` will also be available at `/ClaimResponse?identifier={id}&patient.identifier={patient}`. _All three resources will share the same `id`._
 
 > _Note About DELETE_: A DELETE by `id` to one resource (i.e. `Bundle`, `Claim`, `ClaimResponse`) is a _Cascading Delete_ and it will delete all associated and related resources.
 
@@ -79,7 +80,7 @@ If debug mode is enabled the following endpoints are available for use at `http:
 | `/debug/ClaimResponse`            | `GET`   | HTML page to view the ClaimResponse table in the database                                                                                                              |
 | `/debug/ClaimItem`                | `GET`   | HTML page to view the ClaimItem table in the database                                                                                                                  |
 | `/debug/Subscription`             | `GET`   | HTML page to view the Subscription table in the database                                                                                                               |
-| `/debug/PopulateDatabaseTestData` | `GET`   | Insert test data into the database. Remove any of the existing test data and insert a fresh copy. All test data has a timestamp in 2200 so it can easily be identifier |
+| `/debug/PopulateDatabaseTestData` | `POST`  | Insert test data into the database. Remove any of the existing test data and insert a fresh copy. All test data has a timestamp in 2200 so it can easily be identifier |
 | `/$expunge`                       | `POST`  | Delete all entried in all tables                                                                                                                                       |
 
 ## Contents of `/Claim/$submit` Submission
@@ -154,6 +155,8 @@ For example:
 }
 ```
 
+A successful submission will return a `ClaimResponse` with the status code `201` with the `Location` header set to the location of the newly created `ClaimResponse`.
+
 ## Contents of `/Subscription` Submission
 
 `POST`ing to the `/Subscription` endpoint is used to submit a new Rest-Hook or WebSocket based subscription for a pended or partial ClaimResponse. Once an update has been made a notification will be sent to the subscription. The subscriber can then poll using the original `identifier` to obtain the most updated ClaimResponse.
@@ -163,6 +166,7 @@ The body for a Rest-Hook subscription is as follows:
 ```json
 {
   "resourceType": "Subscription",
+  "status": "requested",
   "criteria": "identifier={id}&patient.identifier={patient}&status=active",
   "channel": {
     "type": "rest-hook",
@@ -178,6 +182,7 @@ The body for a WebSocket subscription is as follows:
 ```json
 {
   "resourceType": "Subscription",
+  "status": "requested",
   "criteria": "identifier={id}&patient.identifier={patient}&status=active",
   "channel": {
     "type": "websocket"
@@ -195,6 +200,7 @@ Assuming the contents of the Subscription are valid and the server is able to pr
 {
   "resourceType": "Subscription",
   "id": "{new subscription id}",
+  "status": "active",
   "criteria": "identifier={id}&patient.identifier={patient}&status=active",
   "channel": {
     "type": "websocket"
@@ -214,7 +220,7 @@ The flow for Rest-Hook subscriptions is as follows:
 2.  Start the Prior Auth Client service
 3.  Submit a Claim to `/Claim/$submit`
 4.  Subscribe to a pended or partial ClaimResponse by submitting a Rest-Hook subscription to `/Subscription`
-5.  When an update is ready the Prior Auth service will send a `GET` to the `channel.endpoint` provided in the Subscription
+5.  When an update is ready the Prior Auth service will send a `POST` to the `channel.endpoint` provided in the Subscription
 6.  The Prior Auth Client will receive the notification and poll for the updated ClaimResponse resource. If the ClaimResponse has outcome `complete` or `error` the client performs a `DELETE` on `/Subscription`
 
 ## Using WebSocket Subscriptions
@@ -226,10 +232,10 @@ To use WebSocket subscriptions the client must submit a Subscription as well as 
 1.  Start the Prior Auth service
 2.  Submit a Claim to `/Claim/$submit`
 3.  Subscribe to a pended or partial ClaimResponse by submitting a WebSocket subscription to `/Subscription`. The response to this submission will contain the logical id of the Subscription used in step 5
-4.  The client should connect to the WebSocket `ws://localhost:9000/connect` and subscribe to `/private/notification`
+4.  The client should connect to the WebSocket `ws://{BASE}/fhir/connect` and subscribe to `/private/notification`. For localhost the `{BASE}` is `localhost:9000`. To connect to the RI on LogicaHealth use `wss://davinci-prior-auth.logicahealth.org/fhir/connect`.
 5.  The client then binds the Subscription id by sending the message `bind: id` (using the logical id of the Subscription) to `/subscribe` over the WebSocket
-6.  If the id is bound successfully the client receives the message `bound: id` over `/private/notification`
-7.  When an update is ready the Prior Auth service will send the message `ping: id` over `/private/notification`
+6.  If the id is bound successfully the client receives the message `bound: id` over `{BASE}/fhir/private/notification`
+7.  When an update is ready the Prior Auth service will send the message `ping: id` over `{BASE}/fhir/private/notification`
 8.  The client can then poll for the updated ClaimResponse
 
 The [Prior Auth Client Github](https://github.com/HL7-DaVinci/prior-auth-client) provides a WebSocket client in `src/main/resources/index.html`. This client handles steps 4 and 5 through the web interface. Details on how to use the client are provided in the Prior Auth Client README.

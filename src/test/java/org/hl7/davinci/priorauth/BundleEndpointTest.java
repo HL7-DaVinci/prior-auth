@@ -175,7 +175,7 @@ public class BundleEndpointTest {
         .header("Accept", "application/fhir+json").header("Access-Control-Request-Method", "GET")
         .header("Origin", "http://localhost:" + port);
 
-    // Test the response has CORS headers and returned status 200
+    // Test the response has CORS headers and returned status 404
     mockMvc.perform(requestBuilder).andExpect(notFound).andExpect(cors);
   }
 
