@@ -128,6 +128,7 @@ public class DebugEndpoint {
     if (related != null)
       dataMap.put("related", related);
 
+    dataMap.replace("resource", claim);
     return App.getDB().write(Table.CLAIM, dataMap);
   }
 
