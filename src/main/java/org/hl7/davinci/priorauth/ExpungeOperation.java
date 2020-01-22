@@ -32,11 +32,11 @@ public class ExpungeOperation {
     logger.info("POST /$expunge");
     if (App.debugMode) {
       // Cascading delete of everything...
+      App.getDB().delete(Table.SUBSCRIPTION);
       App.getDB().delete(Table.BUNDLE);
       App.getDB().delete(Table.CLAIM);
       App.getDB().delete(Table.CLAIM_ITEM);
       App.getDB().delete(Table.CLAIM_RESPONSE);
-      App.getDB().delete(Table.SUBSCRIPTION);
       return ResponseEntity.ok().body("Expunge success!");
     } else {
       logger.warning("ExpungeOperation::expungeDatabase:query disabled");
