@@ -36,7 +36,7 @@ public class FhirUtils {
   public static final String REVIEW_ACTION_REASON_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewActionReason";
   public static final String ITEM_CANCELLED_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemCancelled";
   public static final String WEBSOCKET_EXTENSION_URL = "http://hl7.org/fhir/StructureDefinition/capabilitystatement-websocket";
-
+  public static final String ITEM_CHANGED_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-infoChanged";
   /**
    * Enum for the ClaimResponse Disposition field Values are Granted, Denied,
    * Partial, Pending, and Cancelled
