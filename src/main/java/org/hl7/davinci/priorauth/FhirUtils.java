@@ -80,6 +80,26 @@ public class FhirUtils {
     }
   }
 
+  public  enum Security {
+    /*On receiving a write operation, the server SHOULD preserve the labels unless applicable business rules dictate otherwise*/
+    SUBSETTED("subsetted"), ABSTRED("abstracted"), AGGRED("aggregated"), ANONYED("anonymized");
+
+
+    private final String value;
+
+    Security(String value) {
+      this.value = value;
+    }
+
+    public StringType value() {
+      return new StringType(this.value);
+    }
+
+    public String asStringValue() {
+      return this.value;
+    }
+  }
+
   /**
    * Internal function to get the correct status from a resource depending on the
    * type
@@ -345,4 +365,26 @@ public class FhirUtils {
     Date date = new Date();
     return (int) ((date.getTime() % max) + 1);
   }
+
+  /**
+   * Internal function to get the correct status from a resource depending on the
+   * type
+   *
+   * @param resource - the resource.
+   * @return - the status of the resource.
+   */
+  public static String getSecurityFromResource(IBaseResource resource) {
+    String security = "unknown"; //note that currently this will be empty on most claims so should i set this to ""?
+    String resourceString = FhirUtils.json(resource);
+    try {
+      JSONObject resourceJSON = (JSONObject) new JSONParser().parse(resourceString);
+      if (resourceJSON.containsKey("security"))
+        security = (String) resourceJSON.get("security");
+    } catch (ParseException e) {
+      logger.log(Level.SEVERE, "FhirUtils::getStatusFromResource:Unable to parse JSON", e);
+    }
+
+    return security.toLowerCase();
+  }
+
 }

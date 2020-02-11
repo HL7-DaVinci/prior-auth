@@ -14,6 +14,7 @@ BEGIN TRANSACTION;
         "status" varchar,
         "timestamp" datetime DEFAULT CURRENT_TIMESTAMP,
         "resource" clob,
+        "security" varchar DEFAULT NULL,
         FOREIGN KEY ("related") REFERENCES Claim("id") ON DELETE CASCADE
     );
 
@@ -43,6 +44,7 @@ BEGIN TRANSACTION;
         "claimResponseId" varchar,
         "patient" varchar,
         "status" varchar,
+        "end" varchar,
         "websocketId" varchar DEFAULT NULL,
         "timestamp" datetime DEFAULT CURRENT_TIMESTAMP,
         "resource" clob,

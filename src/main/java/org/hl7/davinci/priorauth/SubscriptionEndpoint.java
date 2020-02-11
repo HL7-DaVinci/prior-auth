@@ -155,6 +155,8 @@ public class SubscriptionEndpoint {
         String patientIdentifierVarName = "patient.identifier";
         String criteria = subscription.getCriteria();
         String regex = "(.*)=(.*)&(.*)=(.*)&(.*)=(.*)";
+		String endVarName  = "end";
+		String end = "";
 
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(criteria);
@@ -180,6 +182,8 @@ public class SubscriptionEndpoint {
                 patient = criteriaMap.get(variableName);
             if (variableName.equals(statusVarName))
                 status = criteriaMap.get(variableName);
+			if (variableName.equals(endVarName))
+                status = criteriaMap.get(variableName);
         }
 
         // Check the desired ClaimResponse is pended
@@ -200,6 +204,7 @@ public class SubscriptionEndpoint {
         dataMap.put("patient", patient);
         dataMap.put("status", status);
         dataMap.put("resource", subscription);
+		dataMap.put (endVarName, end);
         if (App.getDB().write(Table.SUBSCRIPTION, dataMap))
             return subscription;
         else
