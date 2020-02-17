@@ -56,7 +56,7 @@ public class ExpungeOperation {
         if (results)
             return ResponseEntity.ok().body("Expunge success!");
         else
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Expunge operation disabled");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Expunge operation failed");
     }
 
     private boolean expungeSubscriptions(String status) {
