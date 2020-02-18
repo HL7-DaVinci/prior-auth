@@ -224,7 +224,6 @@ public class ClaimEndpoint {
       Map<String, Object> bundleMap = new HashMap<String, Object>();
       bundleMap.put("id", id);
       bundleMap.put("patient", patient);
-      bundleMap.put("security", security);
       bundleMap.put("resource", bundle);
       App.getDB().write(Table.BUNDLE, bundleMap);
 
