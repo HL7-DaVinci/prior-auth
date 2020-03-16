@@ -684,5 +684,38 @@
 			},
 			"response": []
 		}
+	
+	{
+					"name": "Claim: Post a new diffReq $submit",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/fhir+json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{rest-root}}/fhir/Claim/$submit",
+							"host": [
+								"{{rest-root}}"
+							],
+							"path": [
+								"fhir",
+								"Claim",
+								"$submit"
+							]
+						},
+						"description": "Post a  existing Claim to the Claim/$submit endpoint."
+					},
+					"response": []
+				}
+	
 	]
 }

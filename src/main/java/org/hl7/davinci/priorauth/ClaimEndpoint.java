@@ -194,6 +194,9 @@ public class ClaimEndpoint {
       // Store the claim...
       claim.setId(id);
       Map<String, Object> claimMap = new HashMap<String, Object>();
+      String security = FhirUtils.getSecurityFromResource(bundle);
+      if(security != null)
+        claimMap.put("security", security); //this is important to show it's an incomplete claim
       claimMap.put("id", id);
       claimMap.put("patient", patient);
       claimMap.put("status", FhirUtils.getStatusFromResource(claim));
@@ -264,12 +267,18 @@ public class ClaimEndpoint {
       // Update the items...
       for (ItemComponent item : claim.getItem()) {
         boolean itemIsCancelled = false;
+        boolean itemHasChanged = false;
         if (item.hasModifierExtension()) {
           List<Extension> exts = item.getModifierExtension();
           for (Extension ext : exts) {
             if (ext.getUrl().equals(FhirUtils.ITEM_CANCELLED_EXTENSION_URL) && ext.hasValue()) {
               Type type = ext.getValue();
               itemIsCancelled = type.castToBoolean(type).booleanValue();
+            }
+            if (ext.getUrl().equals(FhirUtils.ITEM_CHANGED_EXTENSION_URL) && ext.hasValue()) {
+              Type type = ext.getValue();
+              itemHasChanged = type.castToBoolean(type).booleanValue(); //these are the only items that need to be updated
+
             }
           }
         }
@@ -294,12 +303,16 @@ public class ClaimEndpoint {
       // Add the claim items...
       for (ItemComponent item : claim.getItem()) {
         boolean itemIsCancelled = false;
+        boolean itemHasChanged = false;
         if (item.hasModifierExtension()) {
           List<Extension> exts = item.getModifierExtension();
           for (Extension ext : exts) {
             if (ext.getUrl().equals(FhirUtils.ITEM_CANCELLED_EXTENSION_URL) && ext.hasValue()) {
               Type type = ext.getValue();
               itemIsCancelled = type.castToBoolean(type).booleanValue();
+            }  else if (ext.getUrl().equals(FhirUtils.ITEM_CHANGED_EXTENSION_URL) && ext.hasValue()) {
+              Type type = ext.getValue();
+              itemHasChanged = type.castToBoolean(type).booleanValue();
             }
           }
         }

@@ -561,4 +561,20 @@ public class Database {
     return reducedArr.get();
   }
 
+  public boolean delete(Table table, String  id) {
+    logger.info("Database::delete(" + table.value() + ")");
+    boolean result = false;
+    if (table != null) {
+      try (Connection connection = getConnection()) {
+          PreparedStatement stmt = connection
+            .prepareStatement("DELETE FROM " + table.value() + " WHERE id = ?;");
+        stmt.setString(1, id);
+        stmt.execute();
+        result = stmt.getUpdateCount() > 0 ? true : false;
+      } catch (SQLException e) {
+        logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
+      }
+    }
+    return result;
+  }
 }

@@ -36,7 +36,7 @@ public class FhirUtils {
   public static final String REVIEW_ACTION_REASON_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewActionReason";
   public static final String ITEM_CANCELLED_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemCancelled";
   public static final String WEBSOCKET_EXTENSION_URL = "http://hl7.org/fhir/StructureDefinition/capabilitystatement-websocket";
-
+  public static final String ITEM_CHANGED_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-infoChanged";
   /**
    * Enum for the ClaimResponse Disposition field Values are Granted, Denied,
    * Partial, Pending, and Cancelled
@@ -68,6 +68,26 @@ public class FhirUtils {
     private final String value;
 
     ReviewAction(String value) {
+      this.value = value;
+    }
+
+    public StringType value() {
+      return new StringType(this.value);
+    }
+
+    public String asStringValue() {
+      return this.value;
+    }
+  }
+
+  public  enum Security {
+    /*On receiving a write operation, the server SHOULD preserve the labels unless applicable business rules dictate otherwise*/
+    SUBSETTED("subsetted"), ABSTRED("abstracted"), AGGRED("aggregated"), ANONYED("anonymized");
+
+
+    private final String value;
+
+    Security(String value) {
       this.value = value;
     }
 
@@ -345,4 +365,26 @@ public class FhirUtils {
     Date date = new Date();
     return (int) ((date.getTime() % max) + 1);
   }
+
+  /**
+   * Internal function to get the correct status from a resource depending on the
+   * type
+   *
+   * @param resource - the resource.
+   * @return - the status of the resource.
+   */
+  public static String getSecurityFromResource(IBaseResource resource) {
+    String security = "unknown"; //note that currently this will be empty on most claims so should i set this to ""?
+    String resourceString = FhirUtils.json(resource);
+    try {
+      JSONObject resourceJSON = (JSONObject) new JSONParser().parse(resourceString);
+      if (resourceJSON.containsKey("security"))
+        security = (String) resourceJSON.get("security");
+    } catch (ParseException e) {
+      logger.log(Level.SEVERE, "FhirUtils::getStatusFromResource:Unable to parse JSON", e);
+    }
+
+    return security.toLowerCase();
+  }
+
 }
