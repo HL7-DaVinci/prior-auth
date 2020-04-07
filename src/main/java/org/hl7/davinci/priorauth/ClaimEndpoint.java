@@ -120,13 +120,16 @@ public class ClaimEndpoint {
       IBaseResource resource = parser.parseResource(body);
       if (resource instanceof Bundle) {
         Bundle bundle = (Bundle) resource;
-        if (bundle.hasEntry() && (bundle.getEntry().size() > 1) && bundle.getEntryFirstRep().hasResource()
+        // TODO: I think this should use .getEntry().get(0) instead of
+        // getEntryFirstRep()
+        if (bundle.hasEntry() && (bundle.getEntry().size() >= 1) && bundle.getEntryFirstRep().hasResource()
             && bundle.getEntryFirstRep().getResource().getResourceType() == ResourceType.Claim) {
           Bundle responseBundle = processBundle(bundle);
           if (responseBundle == null) {
             // Failed processing bundle...
             OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, PROCESS_FAILED);
             formattedData = FhirUtils.getFormattedData(error, requestType);
+            logger.severe("ClaimEndpoint::SubmitOperation:Failed to process Bundle:" + bundle.getId());
           } else {
             ClaimResponse response = FhirUtils.getClaimResponseFromResponseBundle(responseBundle);
             id = FhirUtils.getIdFromResource(response);
@@ -138,14 +141,16 @@ public class ClaimEndpoint {
           // Claim is required...
           OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
           formattedData = FhirUtils.getFormattedData(error, requestType);
+          logger.severe("ClaimEndpoint::SubmitOperation:First bundle entry is not a PASClaim");
         }
       } else {
         // Bundle is required...
         OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
         formattedData = FhirUtils.getFormattedData(error, requestType);
+        logger.severe("ClaimEndpoint::SubmitOperation:Body is not a Bundle");
       }
     } catch (Exception e) {
-      // The submission failed so spectacularly that we need
+      // The submission failed so spectacularly that we need to
       // catch an exception and send back an error message...
       OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.FATAL, IssueType.STRUCTURE, e.getMessage());
       formattedData = FhirUtils.getFormattedData(error, requestType);
@@ -166,7 +171,7 @@ public class ClaimEndpoint {
    * @return ClaimResponse with the result.
    */
   private Bundle processBundle(Bundle bundle) {
-    logger.fine("ClaimEndpoint::processBundle");
+    logger.fine("ClaimEndpoint::processBundle:" + bundle.getId());
 
     // Generate a shared id...
     String id = UUID.randomUUID().toString();
@@ -194,9 +199,7 @@ public class ClaimEndpoint {
       // Store the claim...
       claim.setId(id);
       Map<String, Object> claimMap = new HashMap<String, Object>();
-      String security = FhirUtils.getSecurityFromResource(bundle);
-      if(security != null)
-        claimMap.put("security", security); //this is important to show it's an incomplete claim
+      claimMap.put("isDifferential", FhirUtils.isDifferential(bundle));
       claimMap.put("id", id);
       claimMap.put("patient", patient);
       claimMap.put("status", FhirUtils.getStatusFromResource(claim));
@@ -205,7 +208,7 @@ public class ClaimEndpoint {
       if (relatedId != null) {
         // This is an update...
         relatedId = App.getDB().getMostRecentId(relatedId);
-        logger.info("ClaimEndpoint::Udpated id to most recent: " + relatedId);
+        logger.info("ClaimEndpoint::Udpated related id to most recent: " + relatedId);
         claimMap.put("related", relatedId);
 
         // Check if related is cancelled in the DB
@@ -267,18 +270,12 @@ public class ClaimEndpoint {
       // Update the items...
       for (ItemComponent item : claim.getItem()) {
         boolean itemIsCancelled = false;
-        boolean itemHasChanged = false;
         if (item.hasModifierExtension()) {
           List<Extension> exts = item.getModifierExtension();
           for (Extension ext : exts) {
             if (ext.getUrl().equals(FhirUtils.ITEM_CANCELLED_EXTENSION_URL) && ext.hasValue()) {
               Type type = ext.getValue();
               itemIsCancelled = type.castToBoolean(type).booleanValue();
-            }
-            if (ext.getUrl().equals(FhirUtils.ITEM_CHANGED_EXTENSION_URL) && ext.hasValue()) {
-              Type type = ext.getValue();
-              itemHasChanged = type.castToBoolean(type).booleanValue(); //these are the only items that need to be updated
-
             }
           }
         }
@@ -303,16 +300,12 @@ public class ClaimEndpoint {
       // Add the claim items...
       for (ItemComponent item : claim.getItem()) {
         boolean itemIsCancelled = false;
-        boolean itemHasChanged = false;
         if (item.hasModifierExtension()) {
           List<Extension> exts = item.getModifierExtension();
           for (Extension ext : exts) {
             if (ext.getUrl().equals(FhirUtils.ITEM_CANCELLED_EXTENSION_URL) && ext.hasValue()) {
               Type type = ext.getValue();
               itemIsCancelled = type.castToBoolean(type).booleanValue();
-            }  else if (ext.getUrl().equals(FhirUtils.ITEM_CHANGED_EXTENSION_URL) && ext.hasValue()) {
-              Type type = ext.getValue();
-              itemHasChanged = type.castToBoolean(type).booleanValue();
             }
           }
         }

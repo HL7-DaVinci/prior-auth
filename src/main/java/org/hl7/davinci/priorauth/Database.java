@@ -507,6 +507,29 @@ public class Database {
   }
 
   /**
+   * Delete method for the expunge operation to delete by id.
+   * 
+   * @param table - the table to delete from.
+   * @param id    - the id of the resource to delete.
+   * @return true if the resource was deleted and false otherwise.
+   */
+  public boolean delete(Table table, String id) {
+    logger.info("Database::delete(" + table.value() + ", " + id + ")");
+    boolean result = false;
+    if (table != null && id != null) {
+      try (Connection connection = getConnection()) {
+        PreparedStatement stmt = connection.prepareStatement("DELETE FROM " + table.value() + " WHERE id = ?;");
+        stmt.setString(1, id);
+        stmt.execute();
+        result = stmt.getUpdateCount() > 0 ? true : false;
+      } catch (SQLException e) {
+        logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
+      }
+    }
+    return result;
+  }
+
+  /**
    * Delete all resources of a particular type.
    * 
    * @param table - the Table to delete from.
@@ -561,20 +584,4 @@ public class Database {
     return reducedArr.get();
   }
 
-  public boolean delete(Table table, String  id) {
-    logger.info("Database::delete(" + table.value() + ")");
-    boolean result = false;
-    if (table != null) {
-      try (Connection connection = getConnection()) {
-          PreparedStatement stmt = connection
-            .prepareStatement("DELETE FROM " + table.value() + " WHERE id = ?;");
-        stmt.setString(1, id);
-        stmt.execute();
-        result = stmt.getUpdateCount() > 0 ? true : false;
-      } catch (SQLException e) {
-        logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
-      }
-    }
-    return result;
-  }
 }

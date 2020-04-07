@@ -12,9 +12,9 @@ BEGIN TRANSACTION;
         "patient" varchar,
         "related" varchar DEFAULT NULL,
         "status" varchar,
+        "isDifferential" boolean DEFAULT FALSE,
         "timestamp" datetime DEFAULT CURRENT_TIMESTAMP,
         "resource" clob,
-        "security" varchar DEFAULT NULL,
         FOREIGN KEY ("related") REFERENCES Claim("id") ON DELETE CASCADE
     );
 
@@ -24,6 +24,7 @@ BEGIN TRANSACTION;
         "patient" varchar,
         "status" varchar,
         "outcome" varchar,
+        "isDifferential" boolean DEFAULT FALSE,
         "timestamp" datetime DEFAULT CURRENT_TIMESTAMP,
         "resource" clob,
         FOREIGN KEY ("claimId") REFERENCES Claim("id") ON DELETE CASCADE

@@ -32,11 +32,14 @@ public class FhirUtils {
 
   // FHIR Extension URLS
   public static final String ITEM_REFERENCE_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemReference";
+  public static final String ITEM_CANCELLED_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemCancelled";
+  public static final String ITEM_CHANGED_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-infoChanged";
   public static final String REVIEW_ACTION_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction";
   public static final String REVIEW_ACTION_REASON_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewActionReason";
-  public static final String ITEM_CANCELLED_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemCancelled";
   public static final String WEBSOCKET_EXTENSION_URL = "http://hl7.org/fhir/StructureDefinition/capabilitystatement-websocket";
-  public static final String ITEM_CHANGED_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-infoChanged";
+  public static final String SECURITY_SYSTEM_URL = "http://terminology.hl7.org/CodeSystem/v3-ObservationValue";
+  public static final String SECURITY_SUBSETTED = "SUBSETTED";
+
   /**
    * Enum for the ClaimResponse Disposition field Values are Granted, Denied,
    * Partial, Pending, and Cancelled
@@ -68,26 +71,6 @@ public class FhirUtils {
     private final String value;
 
     ReviewAction(String value) {
-      this.value = value;
-    }
-
-    public StringType value() {
-      return new StringType(this.value);
-    }
-
-    public String asStringValue() {
-      return this.value;
-    }
-  }
-
-  public  enum Security {
-    /*On receiving a write operation, the server SHOULD preserve the labels unless applicable business rules dictate otherwise*/
-    SUBSETTED("subsetted"), ABSTRED("abstracted"), AGGRED("aggregated"), ANONYED("anonymized");
-
-
-    private final String value;
-
-    Security(String value) {
       this.value = value;
     }
 
@@ -161,6 +144,16 @@ public class FhirUtils {
         // TODO: This is a temporary fix so the result is not null. The IG should be
         // updated to explain what to do here
         return patientId;
+      } else if (isDifferential(bundle)) {
+        // Differential update so the patient will be in original bundle
+        logger.info(
+            "FhirUtils::getPatientIdentifierFromBundle:Traversing update chain for patient:Bundle/" + bundle.getId());
+        String relatedId = getRelatedComponentId(getClaimFromRequestBundle(bundle));
+        logger.fine("FhirUtils::getPatientIdentifierFromBundle:Found related ID:" + relatedId);
+        if (relatedId != null) {
+          Bundle relatedBundle = (Bundle) App.getDB().read(Table.BUNDLE, Collections.singletonMap("id", relatedId));
+          return getPatientIdentifierFromBundle(relatedBundle);
+        }
       }
       logger.severe("FhirUtils::getPatientIdentifierFromBundle:Patient with given id not found in Bundle");
 
@@ -170,7 +163,6 @@ public class FhirUtils {
       return patientReference.getIdentifier().getValue();
     else
       return null;
-
   }
 
   /**
@@ -287,6 +279,7 @@ public class FhirUtils {
    */
   public static Boolean isCancelled(Table table, String id) {
     String status = App.getDB().readStatus(table, Collections.singletonMap("id", id));
+    logger.fine("FhirUtils::isCancelled:" + status);
     return status.equals("cancelled");
   }
 
@@ -367,24 +360,30 @@ public class FhirUtils {
   }
 
   /**
-   * Internal function to get the correct status from a resource depending on the
-   * type
-   *
-   * @param resource - the resource.
-   * @return - the status of the resource.
+   * Determines whether or not the PAS request is differential or complete.
+   * Wrapper around securityIsSubsetted for readability.
+   * 
+   * @param bundle - the bundle resource.
+   * @return true if the bundle is a differential request and false otherwise.
    */
-  public static String getSecurityFromResource(IBaseResource resource) {
-    String security = "unknown"; //note that currently this will be empty on most claims so should i set this to ""?
-    String resourceString = FhirUtils.json(resource);
-    try {
-      JSONObject resourceJSON = (JSONObject) new JSONParser().parse(resourceString);
-      if (resourceJSON.containsKey("security"))
-        security = (String) resourceJSON.get("security");
-    } catch (ParseException e) {
-      logger.log(Level.SEVERE, "FhirUtils::getStatusFromResource:Unable to parse JSON", e);
-    }
-
-    return security.toLowerCase();
+  public static boolean isDifferential(Bundle bundle) {
+    return FhirUtils.securityIsSubsetted(bundle);
   }
 
+  /**
+   * Internal function to determine whether the security tag is SUBSETTED or not
+   *
+   * @param bundle - the resource.
+   * @return true if the security tag is SUBSETTED and false otherwise
+   */
+  private static boolean securityIsSubsetted(Bundle bundle) {
+    for (Coding coding : bundle.getMeta().getSecurity()) {
+      logger.info("FhirUtils::Security:" + coding.getCode());
+      if (coding.getSystem().equals(SECURITY_SYSTEM_URL) && coding.getCode().equals(SECURITY_SUBSETTED)) {
+        logger.info("FhirUtils::securityIsSubsetted:true");
+        return true;
+      }
+    }
+    return false;
+  }
 }
