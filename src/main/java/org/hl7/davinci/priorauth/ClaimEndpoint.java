@@ -3,6 +3,7 @@ package org.hl7.davinci.priorauth;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -51,6 +52,8 @@ public class ClaimEndpoint {
 
   static final String REQUIRES_BUNDLE = "Prior Authorization Claim/$submit Operation requires a Bundle with a single Claim as the first entry and supporting resources.";
   static final String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
+
+  static final HashMap<String, Timer> pendedTimers = new HashMap<String, Timer>();
 
   @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> readClaimJson(HttpServletRequest request,
@@ -216,6 +219,16 @@ public class ClaimEndpoint {
           logger.warning(
               "ClaimEndpoint::Unable to submit update to claim " + relatedId + " because it has been cancelled");
           return null;
+        }
+
+        // Check if the related is pended in the DB
+        if (FhirUtils.isPended(relatedId)) {
+          logger.warning("ClaimEndpoint::Related claim " + relatedId + " is pending. Cancelling the scheduled update");
+          Timer timer = pendedTimers.get(relatedId);
+          if (timer != null) {
+            timer.cancel();
+            pendedTimers.remove(relatedId);
+          }
         }
       }
 
@@ -430,7 +443,9 @@ public class ClaimEndpoint {
    * @param disposition - the new disposition of the updated Claim.
    */
   private void schedulePendedClaimUpdate(Bundle bundle, String id, String patient) {
-    App.timer.schedule(new UpdateClaimTask(bundle, id, patient), 30000); // 30s
+    Timer timer = new Timer();
+    pendedTimers.put(id, timer);
+    timer.schedule(new UpdateClaimTask(bundle, id, patient), 30000); // 30s
   }
 
 }

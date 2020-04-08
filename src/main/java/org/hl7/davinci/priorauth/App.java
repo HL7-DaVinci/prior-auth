@@ -5,8 +5,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import ca.uhn.fhir.context.FhirContext;
 
-import java.util.Timer;
-
 /**
  * The Da Vinci Prior Authorization Reference Implementation microservice is
  * launched with this App.
@@ -24,11 +22,6 @@ public class App {
    * Local database for FHIR resources.
    */
   private static Database DB;
-
-  /**
-   * Timer for scheduling tasks to be completed at a later time.
-   */
-  public static final Timer timer = new Timer();
 
   public static boolean debugMode = false;
 

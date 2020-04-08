@@ -132,7 +132,7 @@ public class ClaimResponseFactory {
     public static Disposition determineDisposition(Claim claim) {
         // Generate random responses since not cancelling
         // with a 4 in 6 chance of being pending
-        switch (FhirUtils.getRand(6)) {
+        switch (FhirUtils.getRand(3)) {
             case 1:
             case 2:
             case 3:

@@ -284,6 +284,21 @@ public class FhirUtils {
   }
 
   /**
+   * Returns true if Claim with the given id is pended
+   * 
+   * @param id - the id of the claim to read.
+   * @return true if the Claim is pended, false otherwise.
+   */
+  public static Boolean isPended(String id) {
+    id = App.getDB().getMostRecentId(id);
+
+    String outcome = App.getDB().readString(Table.CLAIM_RESPONSE, Collections.singletonMap("claimId", id), "outcome");
+    logger.fine("FhirUtils::isPended:Outcome " + outcome);
+
+    return outcome != null ? outcome.equals("A4") : false;
+  }
+
+  /**
    * Convert a FHIR resource into JSON.
    * 
    * @param resource - the resource to convert to JSON.
@@ -377,6 +392,7 @@ public class FhirUtils {
    * @return true if the security tag is SUBSETTED and false otherwise
    */
   private static boolean securityIsSubsetted(Bundle bundle) {
+    // Using a loop since bundle.getMeta().getSecurity(SYSTEM, CODE) returns null
     for (Coding coding : bundle.getMeta().getSecurity()) {
       logger.info("FhirUtils::Security:" + coding.getCode());
       if (coding.getSystem().equals(SECURITY_SYSTEM_URL) && coding.getCode().equals(SECURITY_SUBSETTED)) {
