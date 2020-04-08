@@ -1,5 +1,6 @@
 package org.hl7.davinci.priorauth;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -208,10 +209,15 @@ public class ClaimEndpoint {
       claimMap.put("status", FhirUtils.getStatusFromResource(claim));
       claimMap.put("resource", claim);
       String relatedId = FhirUtils.getRelatedComponentId(claim);
-      if (relatedId != null) {
+      // Check the related id exists
+      Claim relatedClaim = (Claim) App.getDB().read(Table.CLAIM, Collections.singletonMap("id", relatedId));
+      if (relatedClaim == null) {
+        logger.warning("ClaimEndpoint::Unable to submit update to claim " + relatedId + " because it does not exist");
+        return null;
+      } else if (relatedId != null) {
         // This is an update...
         relatedId = App.getDB().getMostRecentId(relatedId);
-        logger.info("ClaimEndpoint::Udpated related id to most recent: " + relatedId);
+        logger.info("ClaimEndpoint::Updated related id to most recent: " + relatedId);
         claimMap.put("related", relatedId);
 
         // Check if related is cancelled in the DB
