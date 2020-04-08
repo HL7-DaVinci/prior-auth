@@ -209,13 +209,16 @@ public class ClaimEndpoint {
       claimMap.put("status", FhirUtils.getStatusFromResource(claim));
       claimMap.put("resource", claim);
       String relatedId = FhirUtils.getRelatedComponentId(claim);
-      // Check the related id exists
-      Claim relatedClaim = (Claim) App.getDB().read(Table.CLAIM, Collections.singletonMap("id", relatedId));
-      if (relatedClaim == null) {
-        logger.warning("ClaimEndpoint::Unable to submit update to claim " + relatedId + " because it does not exist");
-        return null;
-      } else if (relatedId != null) {
+      if (relatedId != null) {
         // This is an update...
+
+        // Check the related id exists
+        Claim relatedClaim = (Claim) App.getDB().read(Table.CLAIM, Collections.singletonMap("id", relatedId));
+        if (relatedClaim == null) {
+          logger.warning("ClaimEndpoint::Unable to submit update to claim " + relatedId + " because it does not exist");
+          return null;
+        }
+
         relatedId = App.getDB().getMostRecentId(relatedId);
         logger.info("ClaimEndpoint::Updated related id to most recent: " + relatedId);
         claimMap.put("related", relatedId);

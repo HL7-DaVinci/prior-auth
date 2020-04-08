@@ -295,7 +295,7 @@ public class FhirUtils {
     String outcome = App.getDB().readString(Table.CLAIM_RESPONSE, Collections.singletonMap("claimId", id), "outcome");
     logger.fine("FhirUtils::isPended:Outcome " + outcome);
 
-    return outcome != null ? outcome.equals("A4") : false;
+    return outcome != null ? outcome.equals(ReviewAction.PENDED.asStringValue()) : false;
   }
 
   /**
