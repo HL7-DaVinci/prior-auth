@@ -124,10 +124,8 @@ public class ClaimEndpoint {
       IBaseResource resource = parser.parseResource(body);
       if (resource instanceof Bundle) {
         Bundle bundle = (Bundle) resource;
-        // TODO: I think this should use .getEntry().get(0) instead of
-        // getEntryFirstRep()
-        if (bundle.hasEntry() && (bundle.getEntry().size() >= 1) && bundle.getEntryFirstRep().hasResource()
-            && bundle.getEntryFirstRep().getResource().getResourceType() == ResourceType.Claim) {
+        if (bundle.hasEntry() && (bundle.getEntry().size() >= 1) && bundle.getEntry().get(0).hasResource()
+            && bundle.getEntry().get(0).getResource().getResourceType() == ResourceType.Claim) {
           Bundle responseBundle = processBundle(bundle);
           if (responseBundle == null) {
             // Failed processing bundle...

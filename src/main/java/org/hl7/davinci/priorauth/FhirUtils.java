@@ -194,11 +194,11 @@ public class FhirUtils {
    * @return ClaimResponse resource for the response
    */
   public static ClaimResponse getClaimResponseFromResponseBundle(Bundle bundle) {
-    if (bundle.getEntryFirstRep().getResource().getResourceType() == ResourceType.ClaimResponse)
-      return (ClaimResponse) bundle.getEntryFirstRep().getResource();
+    Resource resource = bundle.getEntry().get(0).getResource();
+    if (resource.getResourceType() == ResourceType.ClaimResponse)
+      return (ClaimResponse) resource;
     else
       return null;
-
   }
 
   /**
@@ -208,8 +208,9 @@ public class FhirUtils {
    * @return Claim resource for the request
    */
   public static Claim getClaimFromRequestBundle(Bundle bundle) {
-    if (bundle.getEntryFirstRep().getResource().getResourceType() == ResourceType.Claim)
-      return (Claim) bundle.getEntryFirstRep().getResource();
+    Resource resource = bundle.getEntry().get(0).getResource();
+    if (resource.getResourceType() == ResourceType.Claim)
+      return (Claim) resource;
     else
       return null;
   }
