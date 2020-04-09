@@ -195,8 +195,11 @@ public class ClaimEndpoint {
       if (cancelClaim(FhirUtils.getIdFromResource(claim), patient)) {
         responseStatus = ClaimResponseStatus.CANCELLED;
         responseDisposition = Disposition.CANCELLED;
-      } else
+        cancelTimer(FhirUtils.getIdFromResource(claim));
+      } else {
+        logger.severe("ClaimEndpoint::Unable to cancel Claim/" + FhirUtils.getIdFromResource(claim));
         return null;
+      }
     } else {
       // Store the claim...
       claim.setId(id);
@@ -231,11 +234,7 @@ public class ClaimEndpoint {
         // Check if the related is pended in the DB
         if (FhirUtils.isPended(relatedId)) {
           logger.warning("ClaimEndpoint::Related claim " + relatedId + " is pending. Cancelling the scheduled update");
-          Timer timer = pendedTimers.get(relatedId);
-          if (timer != null) {
-            timer.cancel();
-            pendedTimers.remove(relatedId);
-          }
+          cancelTimer(relatedId);
         }
       }
 
@@ -453,6 +452,22 @@ public class ClaimEndpoint {
     Timer timer = new Timer();
     pendedTimers.put(id, timer);
     timer.schedule(new UpdateClaimTask(bundle, id, patient), 30000); // 30s
+  }
+
+  /**
+   * Cancels a timer for a specific id (key).
+   * 
+   * @param id - the id of the claim to cancel the timer for.
+   * @return true if the timer was cancelled successfully, false otherwise.
+   */
+  private boolean cancelTimer(String id) {
+    Timer timer = pendedTimers.get(id);
+    if (timer != null) {
+      timer.cancel();
+      pendedTimers.remove(id);
+      return true;
+    }
+    return false;
   }
 
 }
