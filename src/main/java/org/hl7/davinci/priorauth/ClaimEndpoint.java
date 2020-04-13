@@ -1,8 +1,10 @@
 package org.hl7.davinci.priorauth;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -51,6 +53,8 @@ public class ClaimEndpoint {
 
   static final String REQUIRES_BUNDLE = "Prior Authorization Claim/$submit Operation requires a Bundle with a single Claim as the first entry and supporting resources.";
   static final String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
+
+  static final HashMap<String, Timer> pendedTimers = new HashMap<String, Timer>();
 
   @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> readClaimJson(HttpServletRequest request,
@@ -120,13 +124,14 @@ public class ClaimEndpoint {
       IBaseResource resource = parser.parseResource(body);
       if (resource instanceof Bundle) {
         Bundle bundle = (Bundle) resource;
-        if (bundle.hasEntry() && (bundle.getEntry().size() > 1) && bundle.getEntryFirstRep().hasResource()
-            && bundle.getEntryFirstRep().getResource().getResourceType() == ResourceType.Claim) {
+        if (bundle.hasEntry() && (bundle.getEntry().size() >= 1) && bundle.getEntry().get(0).hasResource()
+            && bundle.getEntry().get(0).getResource().getResourceType() == ResourceType.Claim) {
           Bundle responseBundle = processBundle(bundle);
           if (responseBundle == null) {
             // Failed processing bundle...
             OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, PROCESS_FAILED);
             formattedData = FhirUtils.getFormattedData(error, requestType);
+            logger.severe("ClaimEndpoint::SubmitOperation:Failed to process Bundle:" + bundle.getId());
           } else {
             ClaimResponse response = FhirUtils.getClaimResponseFromResponseBundle(responseBundle);
             id = FhirUtils.getIdFromResource(response);
@@ -138,14 +143,16 @@ public class ClaimEndpoint {
           // Claim is required...
           OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
           formattedData = FhirUtils.getFormattedData(error, requestType);
+          logger.severe("ClaimEndpoint::SubmitOperation:First bundle entry is not a PASClaim");
         }
       } else {
         // Bundle is required...
         OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
         formattedData = FhirUtils.getFormattedData(error, requestType);
+        logger.severe("ClaimEndpoint::SubmitOperation:Body is not a Bundle");
       }
     } catch (Exception e) {
-      // The submission failed so spectacularly that we need
+      // The submission failed so spectacularly that we need to
       // catch an exception and send back an error message...
       OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.FATAL, IssueType.STRUCTURE, e.getMessage());
       formattedData = FhirUtils.getFormattedData(error, requestType);
@@ -166,7 +173,7 @@ public class ClaimEndpoint {
    * @return ClaimResponse with the result.
    */
   private Bundle processBundle(Bundle bundle) {
-    logger.fine("ClaimEndpoint::processBundle");
+    logger.fine("ClaimEndpoint::processBundle:" + bundle.getId());
 
     // Generate a shared id...
     String id = UUID.randomUUID().toString();
@@ -188,15 +195,16 @@ public class ClaimEndpoint {
       if (cancelClaim(FhirUtils.getIdFromResource(claim), patient)) {
         responseStatus = ClaimResponseStatus.CANCELLED;
         responseDisposition = Disposition.CANCELLED;
-      } else
+        cancelTimer(FhirUtils.getIdFromResource(claim));
+      } else {
+        logger.severe("ClaimEndpoint::Unable to cancel Claim/" + FhirUtils.getIdFromResource(claim));
         return null;
+      }
     } else {
       // Store the claim...
       claim.setId(id);
       Map<String, Object> claimMap = new HashMap<String, Object>();
-      String security = FhirUtils.getSecurityFromResource(bundle);
-      if(security != null)
-        claimMap.put("security", security); //this is important to show it's an incomplete claim
+      claimMap.put("isDifferential", FhirUtils.isDifferential(bundle));
       claimMap.put("id", id);
       claimMap.put("patient", patient);
       claimMap.put("status", FhirUtils.getStatusFromResource(claim));
@@ -204,8 +212,16 @@ public class ClaimEndpoint {
       String relatedId = FhirUtils.getRelatedComponentId(claim);
       if (relatedId != null) {
         // This is an update...
+
+        // Check the related id exists
+        Claim relatedClaim = (Claim) App.getDB().read(Table.CLAIM, Collections.singletonMap("id", relatedId));
+        if (relatedClaim == null) {
+          logger.warning("ClaimEndpoint::Unable to submit update to claim " + relatedId + " because it does not exist");
+          return null;
+        }
+
         relatedId = App.getDB().getMostRecentId(relatedId);
-        logger.info("ClaimEndpoint::Udpated id to most recent: " + relatedId);
+        logger.info("ClaimEndpoint::Updated related id to most recent: " + relatedId);
         claimMap.put("related", relatedId);
 
         // Check if related is cancelled in the DB
@@ -213,6 +229,12 @@ public class ClaimEndpoint {
           logger.warning(
               "ClaimEndpoint::Unable to submit update to claim " + relatedId + " because it has been cancelled");
           return null;
+        }
+
+        // Check if the related is pended in the DB
+        if (FhirUtils.isPended(relatedId)) {
+          logger.warning("ClaimEndpoint::Related claim " + relatedId + " is pending. Cancelling the scheduled update");
+          cancelTimer(relatedId);
         }
       }
 
@@ -267,18 +289,12 @@ public class ClaimEndpoint {
       // Update the items...
       for (ItemComponent item : claim.getItem()) {
         boolean itemIsCancelled = false;
-        boolean itemHasChanged = false;
         if (item.hasModifierExtension()) {
           List<Extension> exts = item.getModifierExtension();
           for (Extension ext : exts) {
             if (ext.getUrl().equals(FhirUtils.ITEM_CANCELLED_EXTENSION_URL) && ext.hasValue()) {
               Type type = ext.getValue();
               itemIsCancelled = type.castToBoolean(type).booleanValue();
-            }
-            if (ext.getUrl().equals(FhirUtils.ITEM_CHANGED_EXTENSION_URL) && ext.hasValue()) {
-              Type type = ext.getValue();
-              itemHasChanged = type.castToBoolean(type).booleanValue(); //these are the only items that need to be updated
-
             }
           }
         }
@@ -303,16 +319,12 @@ public class ClaimEndpoint {
       // Add the claim items...
       for (ItemComponent item : claim.getItem()) {
         boolean itemIsCancelled = false;
-        boolean itemHasChanged = false;
         if (item.hasModifierExtension()) {
           List<Extension> exts = item.getModifierExtension();
           for (Extension ext : exts) {
             if (ext.getUrl().equals(FhirUtils.ITEM_CANCELLED_EXTENSION_URL) && ext.hasValue()) {
               Type type = ext.getValue();
               itemIsCancelled = type.castToBoolean(type).booleanValue();
-            }  else if (ext.getUrl().equals(FhirUtils.ITEM_CHANGED_EXTENSION_URL) && ext.hasValue()) {
-              Type type = ext.getValue();
-              itemHasChanged = type.castToBoolean(type).booleanValue();
             }
           }
         }
@@ -437,7 +449,25 @@ public class ClaimEndpoint {
    * @param disposition - the new disposition of the updated Claim.
    */
   private void schedulePendedClaimUpdate(Bundle bundle, String id, String patient) {
-    App.timer.schedule(new UpdateClaimTask(bundle, id, patient), 30000); // 30s
+    Timer timer = new Timer();
+    pendedTimers.put(id, timer);
+    timer.schedule(new UpdateClaimTask(bundle, id, patient), 30000); // 30s
+  }
+
+  /**
+   * Cancels a timer for a specific id (key).
+   * 
+   * @param id - the id of the claim to cancel the timer for.
+   * @return true if the timer was cancelled successfully, false otherwise.
+   */
+  private boolean cancelTimer(String id) {
+    Timer timer = pendedTimers.get(id);
+    if (timer != null) {
+      timer.cancel();
+      pendedTimers.remove(id);
+      return true;
+    }
+    return false;
   }
 
 }

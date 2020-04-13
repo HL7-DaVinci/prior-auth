@@ -18,6 +18,7 @@ import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Identifier;
+import org.hl7.fhir.r4.model.Meta;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
@@ -99,6 +100,12 @@ public class ClaimResponseFactory {
         BundleEntryComponent responseEntry = responseBundle.addEntry();
         responseEntry.setResource(response);
         responseEntry.setFullUrl(App.getBaseUrl() + "/ClaimResponse/" + id);
+        if (FhirUtils.isDifferential(bundle)) {
+            logger.info("ClaimResponseFactory::Adding subsetted tag");
+            Meta meta = new Meta();
+            meta.addSecurity(FhirUtils.SECURITY_SYSTEM_URL, FhirUtils.SECURITY_SUBSETTED, FhirUtils.SECURITY_SUBSETTED);
+            // responseBundle.setMeta(meta); // This causes an error for some reason
+        }
         for (BundleEntryComponent entry : bundle.getEntry()) {
             responseBundle.addEntry(entry);
         }
