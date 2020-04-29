@@ -42,7 +42,7 @@ public class FhirUtils {
 
   /**
    * Enum for the ClaimResponse Disposition field Values are Granted, Denied,
-   * Partial, Pending, and Cancelled
+   * Partial, Pending, Cancelled, and Unknown
    */
   public enum Disposition {
     GRANTED("Granted"), DENIED("Denied"), PARTIAL("Partial"), PENDING("Pending"), CANCELLED("Cancelled"),
@@ -80,6 +80,15 @@ public class FhirUtils {
 
     public String asStringValue() {
       return this.value;
+    }
+
+    public static ReviewAction fromString(String value) {
+      for (ReviewAction reviewAction : ReviewAction.values()) {
+        if (reviewAction.asStringValue().equals(value))
+          return reviewAction;
+      }
+
+      return null;
     }
   }
 

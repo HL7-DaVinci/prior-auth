@@ -1,7 +1,6 @@
 package org.hl7.davinci.priorauth;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -76,7 +75,7 @@ public class ClaimResponseFactory {
         } else {
             response.setOutcome(RemittanceOutcome.COMPLETE);
         }
-        response.setItem(setClaimResponseItems(claim, responseDisposition));
+        response.setItem(setClaimResponseItems(claim));
         response.setDisposition(responseDisposition.value());
         response.setPreAuthRef(id);
         // TODO response.setPreAuthPeriod(period)?
@@ -107,11 +106,14 @@ public class ClaimResponseFactory {
             meta.addSecurity(FhirUtils.SECURITY_SYSTEM_URL, FhirUtils.SECURITY_SUBSETTED, FhirUtils.SECURITY_SUBSETTED);
             // responseBundle.setMeta(meta); // This causes an error for some reason
         }
+
+        // TODO: update this to only add entries referenced in the ClaimResponse
+        // resource
         for (BundleEntryComponent entry : bundle.getEntry()) {
             responseBundle.addEntry(entry);
         }
 
-        // Store the claim respnose...
+        // Store the claim response...
         Map<String, Object> responseMap = new HashMap<String, Object>();
         responseMap.put("id", id);
         responseMap.put("claimId", claimId);
@@ -125,65 +127,74 @@ public class ClaimResponseFactory {
     }
 
     /**
-     * Determine the Disposition for the Claim item
+     * Determine the Disposition for the Claim
      * 
      * @param bundle - the Claim Bundle with all supporting documentation
      * @return Disposition of Pending, Partial, Granted, or Denied
      */
     public static Disposition determineDisposition(Bundle bundle) {
-        PriorAuthRule rule = new PriorAuthRule("HomeOxygenTherapyPriorAuthRule");
-        return rule.computeDisposition(null);
+        Claim claim = FhirUtils.getClaimFromRequestBundle(bundle);
+        String claimId = FhirUtils.getIdFromResource(claim);
+        if (claim.hasItem()) {
+            // Go through each claim and determine what the complete disposition is
+            boolean atleastOneGranted = false;
+            boolean atleastOneDenied = false;
+            boolean atleastOnePended = false;
+            for (ItemComponent item : claim.getItem()) {
+                Map<String, Object> constraintMap = new HashMap<String, Object>();
+                constraintMap.put("id", claimId);
+                constraintMap.put("sequence", item.getSequence());
+                String outcome = App.getDB().readString(Table.CLAIM_ITEM, constraintMap, "outcome");
+                ReviewAction reviewAction = ReviewAction.fromString(outcome);
+
+                if (reviewAction == ReviewAction.APPROVED)
+                    atleastOneGranted = true;
+                else if (reviewAction == ReviewAction.DENIED)
+                    atleastOneDenied = true;
+                else if (reviewAction == ReviewAction.PENDED)
+                    atleastOnePended = true;
+            }
+
+            Disposition disposition = Disposition.UNKNOWN;
+            if (atleastOnePended)
+                disposition = Disposition.PENDING;
+            else if (atleastOneGranted && atleastOneDenied)
+                disposition = Disposition.PARTIAL;
+            else if (atleastOneGranted && !atleastOneDenied)
+                disposition = Disposition.GRANTED;
+            else if (atleastOneDenied && !atleastOneGranted)
+                disposition = Disposition.DENIED;
+
+            logger.info("ClaimResponseFactory::determineDisposition:Claim " + claimId + ":" + disposition.value());
+            return disposition;
+        } else {
+            // There were no items on this claim so determine the disposition here
+            PriorAuthRule rule = new PriorAuthRule("HomeOxygenTherapyPriorAuthRule");
+            return rule.computeDisposition(null);
+        }
     }
 
     /**
      * Set the Items on the ClaimResponse indicating the adjudication of each one
      * 
-     * @param claim               - the initial Claim which contains the items
-     * @param responseDisposition - the overall disposition
+     * @param claim - the initial Claim which contains the items
      * @return a list of ItemComponents to be added to the ClaimResponse.items field
      */
-    private static List<ClaimResponse.ItemComponent> setClaimResponseItems(Claim claim,
-            Disposition responseDisposition) {
+    private static List<ClaimResponse.ItemComponent> setClaimResponseItems(Claim claim) {
         List<ClaimResponse.ItemComponent> items = new ArrayList<ClaimResponse.ItemComponent>();
-        ReviewAction reviewAction = null;
-        boolean hasDeniedAtLeastOne = false;
-        boolean hasApprovedAtLeastOne = false;
 
         // Set the Items on the ClaimResponse based on the initial Claim and the
         // Response disposition
         for (ItemComponent item : claim.getItem()) {
-            reviewAction = FhirUtils.dispositionToReviewAction(responseDisposition);
-            if (responseDisposition == Disposition.PARTIAL) {
-                // Deny some and approve some
-                if (!hasDeniedAtLeastOne) {
-                    reviewAction = ReviewAction.DENIED;
-                    hasDeniedAtLeastOne = true;
-                } else if (!hasApprovedAtLeastOne) {
-                    reviewAction = ReviewAction.APPROVED;
-                    hasApprovedAtLeastOne = true;
-                } else {
-                    switch (FhirUtils.getRand(2)) {
-                        case 1:
-                            reviewAction = ReviewAction.DENIED;
-                            break;
-                        case 2:
-                        default:
-                            reviewAction = ReviewAction.APPROVED;
-                            break;
-                    }
-                }
-            }
-
-            ClaimResponse.ItemComponent itemComponent = createItemComponent(item, reviewAction,
-                    FhirUtils.getIdFromResource(claim));
-            items.add(itemComponent);
-
-            // Update the ClaimItem database
+            // Read the item outcome from the database
             Map<String, Object> constraintMap = new HashMap<String, Object>();
             constraintMap.put("id", FhirUtils.getIdFromResource(claim));
             constraintMap.put("sequence", item.getSequence());
-            App.getDB().update(Table.CLAIM_ITEM, constraintMap,
-                    Collections.singletonMap("outcome", reviewAction.value()));
+            String outcome = App.getDB().readString(Table.CLAIM_ITEM, constraintMap, "outcome");
+
+            ClaimResponse.ItemComponent itemComponent = createItemComponent(item, ReviewAction.fromString(outcome),
+                    FhirUtils.getIdFromResource(claim));
+            items.add(itemComponent);
         }
         return items;
     }

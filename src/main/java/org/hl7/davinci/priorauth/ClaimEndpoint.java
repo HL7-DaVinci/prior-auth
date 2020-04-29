@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
+import org.hl7.davinci.rules.PriorAuthRule;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
@@ -187,7 +188,7 @@ public class ClaimEndpoint {
     }
 
     ClaimStatus status = claim.getStatus();
-    Disposition responseDisposition = Disposition.UNKNOWN;
+    Disposition responseDisposition = null;
     ClaimResponseStatus responseStatus = ClaimResponseStatus.ACTIVE;
 
     if (status == ClaimStatus.CANCELLED) {
@@ -251,7 +252,7 @@ public class ClaimEndpoint {
 
       // Store the claim items...
       if (claim.hasItem()) {
-        if (!processClaimItems(claim, id, relatedId)) {
+        if (!processClaimItems(bundle, id, relatedId)) {
           logger.severe("ClaimEndpoint::processBundle:unable to process claim items successfully");
           return null;
         }
@@ -282,61 +283,58 @@ public class ClaimEndpoint {
    * @param relatedId - the related id to this claim.
    * @return true if all updates successful, false otherwise.
    */
-  private boolean processClaimItems(Claim claim, String id, String relatedId) {
+  private boolean processClaimItems(Bundle bundle, String id, String relatedId) {
     boolean ret = true;
+    Claim claim = FhirUtils.getClaimFromRequestBundle(bundle);
     String claimStatusStr = FhirUtils.getStatusFromResource(claim);
-    if (relatedId != null) {
-      // Update the items...
-      for (ItemComponent item : claim.getItem()) {
-        boolean itemIsCancelled = false;
-        if (item.hasModifierExtension()) {
-          List<Extension> exts = item.getModifierExtension();
-          for (Extension ext : exts) {
-            if (ext.getUrl().equals(FhirUtils.ITEM_CANCELLED_EXTENSION_URL) && ext.hasValue()) {
-              Type type = ext.getValue();
-              itemIsCancelled = type.castToBoolean(type).booleanValue();
-            }
+    for (ItemComponent item : claim.getItem()) {
+      boolean itemIsCancelled = false;
+      if (item.hasModifierExtension()) {
+        List<Extension> exts = item.getModifierExtension();
+        for (Extension ext : exts) {
+          if (ext.getUrl().equals(FhirUtils.ITEM_CANCELLED_EXTENSION_URL) && ext.hasValue()) {
+            Type type = ext.getValue();
+            itemIsCancelled = type.castToBoolean(type).booleanValue();
           }
         }
+      }
 
-        Map<String, Object> dataMap = new HashMap<String, Object>();
+      Disposition itemDisposition;
+      if (!itemIsCancelled) {
+        PriorAuthRule rule = new PriorAuthRule("HomeOxygenTherapyPriorAuthRule");
+        itemDisposition = rule.computeDisposition(bundle);
+      } else
+        itemDisposition = Disposition.CANCELLED;
+
+      Map<String, Object> dataMap = new HashMap<String, Object>();
+      dataMap.put("id", id);
+      dataMap.put("sequence", item.getSequence());
+      dataMap.put("status", itemIsCancelled ? ClaimStatus.CANCELLED.getDisplay().toLowerCase() : claimStatusStr);
+      dataMap.put("outcome", FhirUtils.dispositionToReviewAction(itemDisposition).value());
+      if (relatedId != null) {
+        // This is an update
         Map<String, Object> constraintMap = new HashMap<String, Object>();
         constraintMap.put("id", relatedId);
         constraintMap.put("sequence", item.getSequence());
-        dataMap.put("id", id);
-        dataMap.put("sequence", item.getSequence());
-        dataMap.put("status", itemIsCancelled ? ClaimStatus.CANCELLED.getDisplay().toLowerCase() : claimStatusStr);
 
-        // Update if item exists otherwise add to database
-        if (App.getDB().readStatus(Table.CLAIM_ITEM, constraintMap) == null) {
-          App.getDB().write(Table.CLAIM_ITEM, dataMap);
-        } else {
-          if (!App.getDB().update(Table.CLAIM_ITEM, constraintMap, dataMap))
+        // Update if item exists
+        if (App.getDB().readStatus(Table.CLAIM_ITEM, constraintMap) != null) {
+          if (!App.getDB().update(Table.CLAIM_ITEM, constraintMap, dataMap)) {
+            logger.warning(
+                "ClaimEndpoint::processClaimItems:unable to update claim item:" + id + "/" + item.getSequence());
             ret = false;
+          }
+          continue;
         }
       }
-    } else {
-      // Add the claim items...
-      for (ItemComponent item : claim.getItem()) {
-        boolean itemIsCancelled = false;
-        if (item.hasModifierExtension()) {
-          List<Extension> exts = item.getModifierExtension();
-          for (Extension ext : exts) {
-            if (ext.getUrl().equals(FhirUtils.ITEM_CANCELLED_EXTENSION_URL) && ext.hasValue()) {
-              Type type = ext.getValue();
-              itemIsCancelled = type.castToBoolean(type).booleanValue();
-            }
-          }
-        }
 
-        Map<String, Object> itemMap = new HashMap<String, Object>();
-        itemMap.put("id", id);
-        itemMap.put("sequence", item.getSequence());
-        itemMap.put("status", itemIsCancelled ? ClaimStatus.CANCELLED.getDisplay().toLowerCase() : claimStatusStr);
-        if (!App.getDB().write(Table.CLAIM_ITEM, itemMap))
-          ret = false;
+      // Add new item to the database
+      if (!App.getDB().write(Table.CLAIM_ITEM, dataMap)) {
+        logger.warning("ClaimEndpoint::processClaimItems:unable to write claim item:" + id + "/" + item.getSequence());
+        ret = false;
       }
     }
+
     return ret;
   }
 
@@ -448,7 +446,7 @@ public class ClaimEndpoint {
    * @param patient     - the Patient ID.
    * @param disposition - the new disposition of the updated Claim.
    */
-  private void schedulePendedClaimUpdate(Bundle bundle, String id, String patient) {
+  protected void schedulePendedClaimUpdate(Bundle bundle, String id, String patient) {
     Timer timer = new Timer();
     pendedTimers.put(id, timer);
     timer.schedule(new UpdateClaimTask(bundle, id, patient), 30000); // 30s

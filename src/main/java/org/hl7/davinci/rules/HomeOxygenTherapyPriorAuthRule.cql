@@ -6,4 +6,4 @@ define PRIORAUTH_GRANTED:
   false
 
 define PRIORAUTH_PENDED:
-  true
+  false
