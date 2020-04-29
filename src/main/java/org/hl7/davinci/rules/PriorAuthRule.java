@@ -3,14 +3,12 @@ package org.hl7.davinci.rules;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.xml.bind.JAXBException;
 
-import org.opencds.cqf.cql.data.DataProvider;
 import org.opencds.cqf.cql.execution.Context;
 import org.opencds.cqf.cql.execution.CqlLibraryReader;
 import org.cqframework.cql.cql2elm.CqlTranslator;
@@ -33,20 +31,43 @@ public class PriorAuthRule {
     private Library library;
     private Context context;
 
+    /**
+     * Enum to represent the different CQL rule names. All of the prior auth rule
+     * files should include all of these define expressions
+     */
+    public enum Rule {
+        GRANTED("PRIORAUTH_GRANTED"), PENDED("PRIORAUTH_PENDED");
+
+        private final String value;
+
+        Rule(String value) {
+            this.value = value;
+        }
+
+        public String value() {
+            return this.value;
+        }
+    }
+
     public PriorAuthRule(String request) {
         // TODO: add a proper map from request to CQL
         this.cql = getCQLFromFile(request + ".cql");
         this.library = createLibrary();
         this.context = new Context(library);
-        // DataProvider dataProvider = new Data
-        // this.context.registerDataProvider("http://hl7.org/fhir", dataProvider);
-        // this.context.
     }
 
+    /**
+     * Determine the disposition of the Claim by executing the bundle against the
+     * CQL rule file
+     * 
+     * @param bundle - the Claim Bundle
+     * @return the disposition of Granted, Pending, or Denied
+     */
     public Disposition computeDisposition(Bundle bundle) {
-        if (this.executeRule(bundle, "PRIORAUTH_GRANTED"))
+        // TODO: add the bundle to the context
+        if (this.executeRule(Rule.GRANTED))
             return Disposition.GRANTED;
-        else if (this.executeRule(bundle, "PRIORAUTH_PENDED"))
+        else if (this.executeRule(Rule.PENDED))
             return Disposition.PENDING;
         else
             return Disposition.DENIED;
@@ -55,14 +76,13 @@ public class PriorAuthRule {
     /**
      * Execute the rule on a given bundle and determine the disposition
      * 
-     * @param bundle - Claim Bundle to run the rule against
+     * @param rule - the CQL expression to execute
      * @return true if the PriorAuth is granted, false otherwise
      */
-    private boolean executeRule(Bundle bundle, String rule) {
-        logger.info("PriorAuthRule::executeRule");
-        boolean disposition = (boolean) this.context.resolveExpressionRef(rule).evaluate(context);
-        logger.info("PriorAuthRule::executeRule:" + rule + ":" + disposition);
-        return disposition;
+    private boolean executeRule(Rule rule) {
+        boolean value = (boolean) this.context.resolveExpressionRef(rule.value()).evaluate(this.context);
+        logger.info("PriorAuthRule::executeRule:" + rule.value() + ":" + value);
+        return value;
     }
 
     /**
@@ -76,8 +96,9 @@ public class PriorAuthRule {
         String path = "src/main/java/org/hl7/davinci/rules/" + fileName;
         try {
             cql = new String(Files.readAllBytes(Paths.get(path)));
+            logger.fine("PriorAuthRule::getCQLFromFile:Read CQL file:" + path);
         } catch (Exception e) {
-            logger.warning("PriorAuthRule::getCQLFromFile:CQL File does not exist:" + fileName);
+            logger.warning("PriorAuthRule::getCQLFromFile:CQL File does not exist:" + path);
         }
         return cql;
     }
