@@ -257,7 +257,7 @@ public class ClaimEndpoint {
         }
       }
 
-      responseDisposition = ClaimResponseFactory.determineDisposition(claim);
+      responseDisposition = ClaimResponseFactory.determineDisposition(bundle);
     }
 
     // Generate the claim response...

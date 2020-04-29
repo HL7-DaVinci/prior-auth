@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
 import org.hl7.davinci.priorauth.FhirUtils.ReviewAction;
+import org.hl7.davinci.rules.PriorAuthRule;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
@@ -124,32 +125,14 @@ public class ClaimResponseFactory {
     }
 
     /**
-     * Determine the Disposition for the Claim
+     * Determine the Disposition for the Claim item
      * 
-     * @param claim - the Claim to produce an outcome for
+     * @param bundle - the Claim Bundle with all supporting documentation
      * @return Disposition of Pending, Partial, Granted, or Denied
      */
-    public static Disposition determineDisposition(Claim claim) {
-        // Generate random responses since not cancelling
-        // with a 4 in 6 chance of being pending
-        switch (FhirUtils.getRand(3)) {
-            case 1:
-            case 2:
-            case 3:
-                return Disposition.PENDING;
-            case 4:
-                // We can only have partial disposition when there are
-                // more than 2 items in the Claim
-                if (claim.hasItem() && claim.getItem().size() >= 2)
-                    return Disposition.PARTIAL;
-                else
-                    return Disposition.GRANTED;
-            case 5:
-                return Disposition.GRANTED;
-            case 6:
-            default:
-                return Disposition.DENIED;
-        }
+    public static Disposition determineDisposition(Bundle bundle) {
+        PriorAuthRule rule = new PriorAuthRule("HomeOxygenTherapyPriorAuthRule");
+        return rule.computeDisposition(null);
     }
 
     /**
@@ -162,7 +145,6 @@ public class ClaimResponseFactory {
     private static List<ClaimResponse.ItemComponent> setClaimResponseItems(Claim claim,
             Disposition responseDisposition) {
         List<ClaimResponse.ItemComponent> items = new ArrayList<ClaimResponse.ItemComponent>();
-        // ReviewAction reviewAction = ReviewAction.DENIED;
         ReviewAction reviewAction = null;
         boolean hasDeniedAtLeastOne = false;
         boolean hasApprovedAtLeastOne = false;
