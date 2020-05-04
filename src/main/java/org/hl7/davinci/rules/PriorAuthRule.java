@@ -9,6 +9,12 @@ import java.util.logging.Logger;
 
 import javax.xml.bind.JAXBException;
 
+import org.opencds.cqf.cql.data.DataProvider;
+import org.opencds.cqf.cql.data.CompositeDataProvider;
+import org.opencds.cqf.cql.model.R4FhirModelResolver;
+
+import ca.uhn.fhir.context.FhirContext;
+
 import org.opencds.cqf.cql.execution.Context;
 import org.opencds.cqf.cql.execution.CqlLibraryReader;
 import org.cqframework.cql.cql2elm.CqlTranslator;
@@ -28,7 +34,6 @@ public class PriorAuthRule {
     private static final Logger logger = PALogger.getLogger();
 
     private String cql;
-    private Library library;
     private Context context;
 
     /**
@@ -52,7 +57,7 @@ public class PriorAuthRule {
     public PriorAuthRule(String request) {
         // TODO: add a proper map from request to CQL
         this.cql = getCQLFromFile(request + ".cql");
-        this.library = createLibrary();
+        Library library = createLibrary();
         this.context = new Context(library);
     }
 
@@ -64,7 +69,7 @@ public class PriorAuthRule {
      * @return the disposition of Granted, Pending, or Denied
      */
     public Disposition computeDisposition(Bundle bundle) {
-        // TODO: add the bundle to the context
+        this.context.registerDataProvider("http://hl7.org/fhir", createDataProvider(bundle));
         if (this.executeRule(Rule.GRANTED))
             return Disposition.GRANTED;
         else if (this.executeRule(Rule.PENDED))
@@ -120,6 +125,12 @@ public class PriorAuthRule {
             logger.log(Level.SEVERE, "PriorAuthRule::createLibrary:exception reading library", e);
         }
         return library;
+    }
+
+    private DataProvider createDataProvider(Bundle bundle) {
+        R4FhirModelResolver modelResolver = new R4FhirModelResolver();
+        BundleRetrieveProvider bundleRetrieveProvider = new BundleRetrieveProvider(FhirContext.forR4(), bundle);
+        return new CompositeDataProvider(modelResolver, bundleRetrieveProvider);
     }
 
 }
