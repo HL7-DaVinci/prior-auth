@@ -170,7 +170,8 @@ public class ClaimResponseFactory {
         } else {
             // There were no items on this claim so determine the disposition here
             PriorAuthRule rule = new PriorAuthRule("HomeOxygenTherapyPriorAuthRule");
-            return rule.computeDisposition(null);
+            logger.info("ClaimResponseFactory::Created the rule!");
+            return rule.computeDisposition(bundle);
         }
     }
 

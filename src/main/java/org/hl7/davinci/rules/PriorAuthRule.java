@@ -22,6 +22,7 @@ import org.cqframework.cql.cql2elm.FhirLibrarySourceProvider;
 import org.cqframework.cql.cql2elm.LibraryManager;
 import org.cqframework.cql.cql2elm.ModelManager;
 import org.cqframework.cql.elm.execution.Library;
+import org.hl7.davinci.priorauth.FhirUtils;
 import org.hl7.davinci.priorauth.PALogger;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
 import org.hl7.fhir.r4.model.Bundle;
@@ -56,6 +57,7 @@ public class PriorAuthRule {
 
     public PriorAuthRule(String request) {
         // TODO: add a proper map from request to CQL
+        logger.info("PriorAuthRule::Creating Rule:" + request);
         this.cql = getCQLFromFile(request + ".cql");
         Library library = createLibrary();
         this.context = new Context(library);
@@ -69,7 +71,9 @@ public class PriorAuthRule {
      * @return the disposition of Granted, Pending, or Denied
      */
     public Disposition computeDisposition(Bundle bundle) {
+        logger.info("PriorAuthRule::computeDisposition:Bundle/" + FhirUtils.getIdFromResource(bundle));
         this.context.registerDataProvider("http://hl7.org/fhir", createDataProvider(bundle));
+        logger.info("PriorAuthRule::dataprovider is registered");
         if (this.executeRule(Rule.GRANTED))
             return Disposition.GRANTED;
         else if (this.executeRule(Rule.PENDED))
@@ -85,8 +89,10 @@ public class PriorAuthRule {
      * @return true if the PriorAuth is granted, false otherwise
      */
     private boolean executeRule(Rule rule) {
-        boolean value = (boolean) this.context.resolveExpressionRef(rule.value()).evaluate(this.context);
-        logger.info("PriorAuthRule::executeRule:" + rule.value() + ":" + value);
+        logger.info("PriorAuthRule::executing rule:" + rule.value());
+        Object rawValue = this.context.resolveExpressionRef(rule.value()).evaluate(this.context);
+        logger.info("PriorAuthRule::executeRule:" + rule.value() + ":" + rawValue.toString());
+        boolean value = true;
         return value;
     }
 
@@ -114,9 +120,11 @@ public class PriorAuthRule {
      * @return Library or null
      */
     private Library createLibrary() {
+        logger.info("PriorAuthRule::createLibrary");
         ModelManager modelManager = new ModelManager();
         LibraryManager libraryManager = new LibraryManager(modelManager);
         libraryManager.getLibrarySourceLoader().registerProvider(new FhirLibrarySourceProvider());
+        logger.info("HERE");
         CqlTranslator translator = CqlTranslator.fromText(this.cql, modelManager, libraryManager);
         Library library = null;
         try {
@@ -124,10 +132,12 @@ public class PriorAuthRule {
         } catch (IOException | JAXBException e) {
             logger.log(Level.SEVERE, "PriorAuthRule::createLibrary:exception reading library", e);
         }
+        logger.info("Created library");
         return library;
     }
 
     private DataProvider createDataProvider(Bundle bundle) {
+        logger.info("PriorAuthRule::createDataProvider:Bundle/" + FhirUtils.getIdFromResource(bundle));
         R4FhirModelResolver modelResolver = new R4FhirModelResolver();
         BundleRetrieveProvider bundleRetrieveProvider = new BundleRetrieveProvider(FhirContext.forR4(), bundle);
         return new CompositeDataProvider(modelResolver, bundleRetrieveProvider);
