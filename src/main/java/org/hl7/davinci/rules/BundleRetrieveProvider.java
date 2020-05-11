@@ -1,8 +1,10 @@
 package org.hl7.davinci.rules;
 
 import java.util.List;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import org.hl7.davinci.priorauth.PALogger;
 import org.hl7.fhir.instance.model.api.IBaseBundle;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.opencds.cqf.cql.retrieve.RetrieveProvider;
@@ -16,6 +18,8 @@ public class BundleRetrieveProvider implements RetrieveProvider {
 
     private IBaseBundle bundle;
     private FhirContext fhirContext;
+
+    private static final Logger logger = PALogger.getLogger();
 
     public BundleRetrieveProvider(FhirContext fhirContext, IBaseBundle bundle) {
         this.fhirContext = fhirContext;

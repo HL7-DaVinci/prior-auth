@@ -372,6 +372,67 @@
           }
         ]
       }
+    },
+    {
+      "fullUrl": "https://example.com/base/Observation/obs1",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs1",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "imaging",
+                "display": "imaging"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "21905-5",
+              "display": "Primary tumor.clinical [Class] Cancer"
+            }
+          ],
+          "text": "Primary tumor.clinical [Class] Cancer"
+        },
+        "subject": {
+          "reference": "Patient/pat013"
+        },
+        "encounter": {
+          "reference": "Encounter/enc001"
+        },
+        "effectiveDateTime": "2019-02-01T00:33:16-05:00",
+        "issued": "2019-02-01T00:33:16.310-05:00",
+        "valueCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "23351008",
+              "display": "T1 category (finding)"
+            },
+            {
+              "system": "http://cancerstaging.org",
+              "code": "cT1"
+            }
+          ],
+          "text": "T1 category (finding)"
+        },
+        "meta": {
+          "profile": [
+            "http://hl7.org/fhir/us/mcode/StructureDefinition/mcode-tnm-clinical-primary-tumor-category"
+          ]
+        },
+        "focus": [
+          {
+            "reference": "Condition/75402dea-d2a8-498b-bc3b-f4e045277517"
+          }
+        ]
+      }
     }
   ]
 }

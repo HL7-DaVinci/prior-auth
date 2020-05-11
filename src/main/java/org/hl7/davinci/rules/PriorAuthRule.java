@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -18,10 +19,15 @@ import ca.uhn.fhir.context.FhirContext;
 import org.opencds.cqf.cql.execution.Context;
 import org.opencds.cqf.cql.execution.CqlLibraryReader;
 import org.cqframework.cql.cql2elm.CqlTranslator;
+import org.cqframework.cql.cql2elm.CqlTranslatorException;
 import org.cqframework.cql.cql2elm.FhirLibrarySourceProvider;
 import org.cqframework.cql.cql2elm.LibraryManager;
 import org.cqframework.cql.cql2elm.ModelManager;
 import org.cqframework.cql.elm.execution.Library;
+import org.cqframework.cql.elm.tracking.TrackBack;
+import org.fhir.ucum.UcumEssenceService;
+import org.fhir.ucum.UcumException;
+import org.fhir.ucum.UcumService;
 import org.hl7.davinci.priorauth.FhirUtils;
 import org.hl7.davinci.priorauth.PALogger;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
@@ -59,7 +65,12 @@ public class PriorAuthRule {
         // TODO: add a proper map from request to CQL
         logger.info("PriorAuthRule::Creating Rule:" + request);
         this.cql = getCQLFromFile(request + ".cql");
-        Library library = createLibrary();
+        Library library = null;
+        try {
+            library = createLibrary();
+        } catch (UcumException e) {
+            logger.log(Level.SEVERE, "PriorAuthRule::Unable to create library", e);
+        }
         this.context = new Context(library);
     }
 
@@ -118,21 +129,32 @@ public class PriorAuthRule {
      * Helper method to create the Library for the constructor
      * 
      * @return Library or null
+     * @throws UcumException
      */
-    private Library createLibrary() {
+    private Library createLibrary() throws UcumException {
         logger.info("PriorAuthRule::createLibrary");
         ModelManager modelManager = new ModelManager();
         LibraryManager libraryManager = new LibraryManager(modelManager);
         libraryManager.getLibrarySourceLoader().registerProvider(new FhirLibrarySourceProvider());
-        logger.info("HERE");
         CqlTranslator translator = CqlTranslator.fromText(this.cql, modelManager, libraryManager);
+        if (translator.getErrors().size() > 0) {
+            ArrayList<String> errors = new ArrayList<>();
+            for (CqlTranslatorException error : translator.getErrors()) {
+                TrackBack tb = error.getLocator();
+                String lines = tb == null ? "[n/a]"
+                        : String.format("[%d:%d, %d:%d]", tb.getStartLine(), tb.getStartChar(), tb.getEndLine(),
+                                tb.getEndChar());
+                errors.add(lines + error.getMessage());
+            }
+            throw new IllegalArgumentException(errors.toString());
+        }
+
         Library library = null;
         try {
             library = CqlLibraryReader.read(new StringReader(translator.toXml()));
         } catch (IOException | JAXBException e) {
             logger.log(Level.SEVERE, "PriorAuthRule::createLibrary:exception reading library", e);
         }
-        logger.info("Created library");
         return library;
     }
 
