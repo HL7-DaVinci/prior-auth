@@ -84,7 +84,7 @@ public class PriorAuthRule {
     public Disposition computeDisposition(Bundle bundle) {
         logger.info("PriorAuthRule::computeDisposition:Bundle/" + FhirUtils.getIdFromResource(bundle));
         this.context.registerDataProvider("http://hl7.org/fhir", createDataProvider(bundle));
-        logger.info("PriorAuthRule::dataprovider is registered");
+
         if (this.executeRule(Rule.GRANTED))
             return Disposition.GRANTED;
         else if (this.executeRule(Rule.PENDED))
@@ -102,9 +102,13 @@ public class PriorAuthRule {
     private boolean executeRule(Rule rule) {
         logger.info("PriorAuthRule::executing rule:" + rule.value());
         Object rawValue = this.context.resolveExpressionRef(rule.value()).evaluate(this.context);
-        logger.info("PriorAuthRule::executeRule:" + rule.value() + ":" + rawValue.toString());
-        boolean value = true;
-        return value;
+        logger.fine("PriorAuthRule::executeRule:" + rule.value() + ":" + rawValue.toString());
+        try {
+            return (boolean) rawValue;
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Rule " + rule.value() + " did not return a boolean", e);
+            return false;
+        }
     }
 
     /**
@@ -132,7 +136,7 @@ public class PriorAuthRule {
      * @throws UcumException
      */
     private Library createLibrary() throws UcumException {
-        logger.info("PriorAuthRule::createLibrary");
+        logger.fine("PriorAuthRule::createLibrary");
         ModelManager modelManager = new ModelManager();
         LibraryManager libraryManager = new LibraryManager(modelManager);
         libraryManager.getLibrarySourceLoader().registerProvider(new FhirLibrarySourceProvider());
@@ -158,6 +162,12 @@ public class PriorAuthRule {
         return library;
     }
 
+    /**
+     * Create a DataProvider from the request Bundle to execute the CQL against
+     * 
+     * @param bundle - the request bundle for the CQL
+     * @return a FHIR DataProvider
+     */
     private DataProvider createDataProvider(Bundle bundle) {
         logger.info("PriorAuthRule::createDataProvider:Bundle/" + FhirUtils.getIdFromResource(bundle));
         R4FhirModelResolver modelResolver = new R4FhirModelResolver();

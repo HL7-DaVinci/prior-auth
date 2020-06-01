@@ -8,7 +8,8 @@ code "TNM clinical primary tumor code": '21905-5' from "LOINC" display 'Primary 
 context Patient
 
 define PRIORAUTH_GRANTED:
-  [Claim]
+  [Claim] C
+  return C.status.value
 
 define PRIORAUTH_PENDED:
   false
