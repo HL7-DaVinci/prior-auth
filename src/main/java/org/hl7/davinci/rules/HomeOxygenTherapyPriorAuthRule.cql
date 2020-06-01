@@ -9,7 +9,7 @@ context Patient
 
 define PRIORAUTH_GRANTED:
   First([Claim] C
-  return C.status.value ~ 'active')
+  return C.status.value = 'active')
 
 define PRIORAUTH_PENDED:
   false
