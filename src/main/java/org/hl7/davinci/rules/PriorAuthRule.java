@@ -25,9 +25,7 @@ import org.cqframework.cql.cql2elm.LibraryManager;
 import org.cqframework.cql.cql2elm.ModelManager;
 import org.cqframework.cql.elm.execution.Library;
 import org.cqframework.cql.elm.tracking.TrackBack;
-import org.fhir.ucum.UcumEssenceService;
 import org.fhir.ucum.UcumException;
-import org.fhir.ucum.UcumService;
 import org.hl7.davinci.priorauth.FhirUtils;
 import org.hl7.davinci.priorauth.PALogger;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
@@ -106,7 +104,9 @@ public class PriorAuthRule {
         try {
             return (boolean) rawValue;
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Rule " + rule.value() + " did not return a boolean", e);
+            logger.log(Level.SEVERE,
+                    "Rule " + rule.value() + " did not return a boolean (Returned value: " + rawValue.toString() + ")",
+                    e);
             return false;
         }
     }
