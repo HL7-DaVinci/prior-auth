@@ -61,6 +61,7 @@ public class ClaimResponseFactoryTest {
         icDataMap.put("id", id);
         icDataMap.put("status", "active");
         icDataMap.put("sequence", null);
+        icDataMap.put("outcome", "A1");
         for (org.hl7.fhir.r4.model.Claim.ItemComponent ic : claim.getItem()) {
             icDataMap.replace("sequence", ic.getSequence());
             App.getDB().write(Table.CLAIM_ITEM, icDataMap);
@@ -134,50 +135,6 @@ public class ClaimResponseFactoryTest {
             Assert.assertEquals(RemittanceOutcome.PARTIAL, claimResponse.getOutcome());
         else if (disposition == Disposition.PENDING)
             Assert.assertEquals(RemittanceOutcome.QUEUED, claimResponse.getOutcome());
-
-        // Validate Item outcomes
-        Boolean atLeastOneDenied = false;
-        Boolean atLeastOneGranted = false;
-        Boolean atLeastOnePended = false;
-        for (ItemComponent ic : claimResponse.getItem()) {
-            String itemReviewAction = ic.getExtensionByUrl(FhirUtils.REVIEW_ACTION_EXTENSION_URL).getValue()
-                    .primitiveValue();
-            // Validate Item ReviewAction and Adjudication set correctly
-            if (disposition == Disposition.DENIED || disposition == Disposition.GRANTED
-                    || disposition == Disposition.CANCELLED) {
-                Assert.assertEquals(reviewAction.asStringValue(), itemReviewAction);
-            } else {
-                // Make sure at least one item is pending or some approved some denied
-                if (itemReviewAction.equals(ReviewAction.DENIED.asStringValue()))
-                    atLeastOneDenied = true;
-                if (itemReviewAction.equals(ReviewAction.APPROVED.asStringValue()))
-                    atLeastOneGranted = true;
-                if (itemReviewAction.equals(ReviewAction.PENDED.asStringValue()))
-                    atLeastOnePended = true;
-            }
-            Assert.assertNotNull(ic.getAdjudication());
-            Assert.assertNotNull(ic.getAdjudicationFirstRep());
-
-            // Validate Item outcome updated in DB
-            Map<String, Object> claimItemMap = new HashMap<String, Object>();
-            claimItemMap.put("id", id);
-            claimItemMap.put("sequence", ic.getItemSequence());
-            String readOutcome = App.getDB().readString(Table.CLAIM_ITEM, claimItemMap, "outcome");
-
-            if (disposition != Disposition.PARTIAL)
-                Assert.assertEquals(reviewAction.asStringValue(), readOutcome);
-            else
-                Assert.assertNotNull(readOutcome);
-        }
-
-        // If PARTIAL make sure items are partial and if PENDING make sure one item
-        // pending
-        if (disposition == Disposition.PARTIAL) {
-            Assert.assertTrue(atLeastOneDenied);
-            Assert.assertTrue(atLeastOneGranted);
-        } else if (disposition == Disposition.PENDING) {
-            Assert.assertTrue(atLeastOnePended);
-        }
 
         // Validate ClaimResponse table updated
         Bundle readBundle = (Bundle) App.getDB().read(Table.CLAIM_RESPONSE, Collections.singletonMap("id", id));
