@@ -10,7 +10,6 @@ import java.util.logging.Logger;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
 import org.hl7.davinci.priorauth.FhirUtils.ReviewAction;
-import org.hl7.davinci.rules.PriorAuthRule;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
@@ -169,9 +168,12 @@ public class ClaimResponseFactory {
             return disposition;
         } else {
             // There were no items on this claim so determine the disposition here
-            PriorAuthRule rule = new PriorAuthRule("HomeOxygenTherapyPriorAuthRule");
-            logger.info("ClaimResponseFactory::Created the rule!");
-            return rule.computeDisposition(bundle);
+            // PriorAuthRule rule = new PriorAuthRule("HomeOxygenTherapyPriorAuthRule");
+            // logger.info("ClaimResponseFactory::Created the rule!");
+            // return rule.computeDisposition(bundle);
+            logger.warning(
+                    "ClaimResponseFactory::determineDisposition:Request had no items to compute disposition from. Returning in pended by default");
+            return Disposition.PENDING;
         }
     }
 

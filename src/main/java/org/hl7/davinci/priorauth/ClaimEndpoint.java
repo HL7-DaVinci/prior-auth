@@ -301,8 +301,7 @@ public class ClaimEndpoint {
 
       Disposition itemDisposition;
       if (!itemIsCancelled) {
-        PriorAuthRule rule = new PriorAuthRule("HomeOxygenTherapyPriorAuthRule");
-        itemDisposition = rule.computeDisposition(bundle);
+        itemDisposition = PriorAuthRule.computeDisposition(bundle, item.getSequence());
       } else
         itemDisposition = Disposition.CANCELLED;
 

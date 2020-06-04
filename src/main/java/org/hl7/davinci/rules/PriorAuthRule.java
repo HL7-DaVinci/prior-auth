@@ -25,11 +25,12 @@ import org.cqframework.cql.cql2elm.LibraryManager;
 import org.cqframework.cql.cql2elm.ModelManager;
 import org.cqframework.cql.elm.execution.Library;
 import org.cqframework.cql.elm.tracking.TrackBack;
-import org.fhir.ucum.UcumException;
 import org.hl7.davinci.priorauth.FhirUtils;
 import org.hl7.davinci.priorauth.PALogger;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Claim;
+import org.hl7.fhir.r4.model.Claim.ItemComponent;
 
 /**
  * The main class for executing priorauthorization rules
@@ -37,9 +38,6 @@ import org.hl7.fhir.r4.model.Bundle;
 public class PriorAuthRule {
 
     private static final Logger logger = PALogger.getLogger();
-
-    private String cql;
-    private Context context;
 
     /**
      * Enum to represent the different CQL rule names. All of the prior auth rule
@@ -59,36 +57,38 @@ public class PriorAuthRule {
         }
     }
 
-    public PriorAuthRule(String request) {
-        // TODO: add a proper map from request to CQL
-        logger.info("PriorAuthRule::Creating Rule:" + request);
-        this.cql = getCQLFromFile(request + ".cql");
-        Library library = null;
-        try {
-            library = createLibrary();
-        } catch (UcumException e) {
-            logger.log(Level.SEVERE, "PriorAuthRule::Unable to create library", e);
-        }
-        this.context = new Context(library);
-    }
-
     /**
      * Determine the disposition of the Claim by executing the bundle against the
      * CQL rule file
      * 
-     * @param bundle - the Claim Bundle
+     * @param bundle   - the Claim Bundle
+     * @param sequence - the sequence ID of the claim item to compute the
+     *                 disposition of
      * @return the disposition of Granted, Pending, or Denied
      */
-    public Disposition computeDisposition(Bundle bundle) {
+    public static Disposition computeDisposition(Bundle bundle, int sequence) {
         logger.info("PriorAuthRule::computeDisposition:Bundle/" + FhirUtils.getIdFromResource(bundle));
-        this.context.registerDataProvider("http://hl7.org/fhir", createDataProvider(bundle));
 
-        if (this.executeRule(Rule.GRANTED))
-            return Disposition.GRANTED;
-        else if (this.executeRule(Rule.PENDED))
-            return Disposition.PENDING;
+        Claim claim = FhirUtils.getClaimFromRequestBundle(bundle);
+        ItemComponent claimItem = claim.getItem().stream().filter(item -> item.getSequence() == sequence).findFirst()
+                .get();
+        String cqlFile = getCQLFileFromItem(claimItem);
+        String cql = getCQLFromFile(cqlFile);
+        Library library = createLibrary(cql);
+        Context context = new Context(library);
+        context.registerDataProvider("http://hl7.org/fhir", createDataProvider(bundle));
+
+        Disposition disposition;
+        if (executeRule(context, Rule.GRANTED))
+            disposition = Disposition.GRANTED;
+        else if (executeRule(context, Rule.PENDED))
+            disposition = Disposition.PENDING;
         else
-            return Disposition.DENIED;
+            disposition = Disposition.DENIED;
+
+        logger.info("PriorAuthRule::computeDisposition:" + disposition.value());
+
+        return disposition;
     }
 
     /**
@@ -97,9 +97,9 @@ public class PriorAuthRule {
      * @param rule - the CQL expression to execute
      * @return true if the PriorAuth is granted, false otherwise
      */
-    private boolean executeRule(Rule rule) {
+    private static boolean executeRule(Context context, Rule rule) {
         logger.info("PriorAuthRule::executing rule:" + rule.value());
-        Object rawValue = this.context.resolveExpressionRef(rule.value()).evaluate(this.context);
+        Object rawValue = context.resolveExpressionRef(rule.value()).evaluate(context);
         logger.fine("PriorAuthRule::executeRule:" + rule.value() + ":" + rawValue.toString());
         try {
             return (boolean) rawValue;
@@ -112,12 +112,23 @@ public class PriorAuthRule {
     }
 
     /**
+     * Get the CQL rule file name based on the requested item
+     * 
+     * @param claimItem - the item requested
+     * @return name of the CQL file
+     */
+    private static String getCQLFileFromItem(ItemComponent claimItem) {
+        // TODO: perform mapping here
+        return "HomeOxygenTherapyPriorAuthRule.cql";
+    }
+
+    /**
      * Read in the CQL file and return the contents
      * 
      * @param fileName - the name of the CQL file
      * @return string contents of the file or null if the file does not exist
      */
-    private String getCQLFromFile(String fileName) {
+    private static String getCQLFromFile(String fileName) {
         String cql = null;
         String path = "src/main/java/org/hl7/davinci/rules/" + fileName;
         try {
@@ -132,15 +143,15 @@ public class PriorAuthRule {
     /**
      * Helper method to create the Library for the constructor
      * 
+     * @param cql - the cql to create the library from
      * @return Library or null
-     * @throws UcumException
      */
-    private Library createLibrary() throws UcumException {
+    private static Library createLibrary(String cql) {
         logger.fine("PriorAuthRule::createLibrary");
         ModelManager modelManager = new ModelManager();
         LibraryManager libraryManager = new LibraryManager(modelManager);
         libraryManager.getLibrarySourceLoader().registerProvider(new FhirLibrarySourceProvider());
-        CqlTranslator translator = CqlTranslator.fromText(this.cql, modelManager, libraryManager);
+        CqlTranslator translator = CqlTranslator.fromText(cql, modelManager, libraryManager);
         if (translator.getErrors().size() > 0) {
             ArrayList<String> errors = new ArrayList<>();
             for (CqlTranslatorException error : translator.getErrors()) {
@@ -168,7 +179,7 @@ public class PriorAuthRule {
      * @param bundle - the request bundle for the CQL
      * @return a FHIR DataProvider
      */
-    private DataProvider createDataProvider(Bundle bundle) {
+    private static DataProvider createDataProvider(Bundle bundle) {
         logger.info("PriorAuthRule::createDataProvider:Bundle/" + FhirUtils.getIdFromResource(bundle));
         R4FhirModelResolver modelResolver = new R4FhirModelResolver();
         BundleRetrieveProvider bundleRetrieveProvider = new BundleRetrieveProvider(FhirContext.forR4(), bundle);
