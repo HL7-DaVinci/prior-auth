@@ -5,6 +5,8 @@ import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -25,8 +27,10 @@ import org.cqframework.cql.cql2elm.LibraryManager;
 import org.cqframework.cql.cql2elm.ModelManager;
 import org.cqframework.cql.elm.execution.Library;
 import org.cqframework.cql.elm.tracking.TrackBack;
+import org.hl7.davinci.priorauth.App;
 import org.hl7.davinci.priorauth.FhirUtils;
 import org.hl7.davinci.priorauth.PALogger;
+import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
@@ -118,8 +122,13 @@ public class PriorAuthRule {
      * @return name of the CQL file
      */
     private static String getCQLFileFromItem(ItemComponent claimItem) {
-        // TODO: perform mapping here
-        return "HomeOxygenTherapyPriorAuthRule.cql";
+        Map<String, Object> constraintParams = new HashMap<String, Object>();
+        constraintParams.put("system", FhirUtils.getCode(claimItem.getProductOrService()));
+        constraintParams.put("code", FhirUtils.getSystem(claimItem.getProductOrService()));
+        String topic = App.getDB().readString(Table.RULES, constraintParams, "topic");
+        String rule = App.getDB().readString(Table.RULES, constraintParams, "rule");
+        return topic + "/" + rule;
+        // return "HomeOxygenTherapyPriorAuthRule.cql";
     }
 
     /**

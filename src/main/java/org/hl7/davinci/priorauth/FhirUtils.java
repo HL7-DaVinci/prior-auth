@@ -11,6 +11,7 @@ import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
+import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Patient;
@@ -278,6 +279,26 @@ public class FhirUtils {
     if (resource.getIdElement().hasIdPart())
       return resource.getIdElement().getIdPart();
     return null;
+  }
+
+  /**
+   * Get the system from the first coding
+   * 
+   * @param codeableConcept - the codeable concept to get the system from
+   * @return the system of the first coding
+   */
+  public static String getSystem(CodeableConcept codeableConcept) {
+    return codeableConcept.getCoding().get(0).getSystem();
+  }
+
+  /**
+   * Get the code from the first coding
+   * 
+   * @param codeableConcept - the codeable concept to get the code from
+   * @return the code of the first coding
+   */
+  public static String getCode(CodeableConcept codeableConcept) {
+    return codeableConcept.getCoding().get(0).getCode();
   }
 
   /**
