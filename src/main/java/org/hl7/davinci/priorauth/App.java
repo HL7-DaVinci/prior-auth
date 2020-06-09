@@ -1,5 +1,6 @@
 package org.hl7.davinci.priorauth;
 
+import org.hl7.davinci.rules.PriorAuthRule;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -54,8 +55,10 @@ public class App {
   }
 
   public static void initializeAppDB() {
-    if (DB == null)
+    if (DB == null) {
       DB = new Database();
+      PriorAuthRule.populateRulesTable();
+    }
   }
 
   public static Database getDB() {

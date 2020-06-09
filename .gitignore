@@ -4,6 +4,9 @@
 # Ignore Gradle build output directory
 build
 
+# Ignore CDS-Library
+CDS-Library
+
 # Ignore prettierignore file
 .prettierignore
 

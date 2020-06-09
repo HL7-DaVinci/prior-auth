@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.hl7.davinci.priorauth.Database.Table;
+import org.hl7.davinci.rules.PriorAuthRule;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
@@ -55,12 +56,28 @@ public class DebugEndpoint {
     return query(Table.SUBSCRIPTION);
   }
 
+  @GetMapping("/Rules")
+  public ResponseEntity<String> getRules() {
+    return query(Table.RULES);
+  }
+
   @PostMapping("/PopulateDatabaseTestData")
   public ResponseEntity<String> populateDatabase() {
     if (App.debugMode)
       return populateDB();
     else {
       logger.warning("DebugEndpoint::populate datatbase with test data disabeled");
+      return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @PostMapping("/PopulateRules")
+  public ResponseEntity<String> populateRules() {
+    if (App.debugMode) {
+      PriorAuthRule.populateRulesTable();
+      return new ResponseEntity<>(HttpStatus.OK);
+    } else {
+      logger.warning("DebugEndpoint::populate datatbase disabeled");
       return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
   }

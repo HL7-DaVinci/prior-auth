@@ -1,16 +1,20 @@
 package org.hl7.davinci.rules;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.xml.bind.JAXBException;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.opencds.cqf.cql.data.DataProvider;
 import org.opencds.cqf.cql.data.CompositeDataProvider;
@@ -42,6 +46,16 @@ import org.hl7.fhir.r4.model.Claim.ItemComponent;
 public class PriorAuthRule {
 
     private static final Logger logger = PALogger.getLogger();
+
+    private static final Map<String, String> CODE_SYSTEM_SHORT_NAME_TO_FULL_NAME;
+    static {
+        Map<String, String> tempMap = new HashMap<String, String>();
+        tempMap.put("cpt", "http://www.ama-assn.org/go/cpt");
+        tempMap.put("hcpcs", "https://bluebutton.cms.gov/resources/codesystem/hcpcs");
+        tempMap.put("rxnorm", "http://www.nlm.nih.gov/research/umls/rxnorm");
+        tempMap.put("sct", "http://snomed.info/sct");
+        CODE_SYSTEM_SHORT_NAME_TO_FULL_NAME = Collections.unmodifiableMap(tempMap);
+    }
 
     /**
      * Enum to represent the different CQL rule names. All of the prior auth rule
@@ -96,6 +110,64 @@ public class PriorAuthRule {
     }
 
     /**
+     * Use the CDS Library Metadata to populate the table
+     * 
+     * @return true if all of the mappings were written successfully, false
+     *         otherwise
+     */
+    public static boolean populateRulesTable() {
+        String cdsLibraryPath = "CDS-Library";
+        File filePath = new File(cdsLibraryPath);
+
+        File[] topics = filePath.listFiles();
+        for (File topic : topics) {
+            if (topic.isDirectory()) {
+                String topicName = topic.getName();
+
+                // Ignore shared folder and hidden folder
+                if (!topicName.startsWith(".") && !topicName.equalsIgnoreCase("Shared")) {
+                    logger.fine("PriorAuthRule::populateRulesTable:Found topic " + topicName);
+
+                    // Get the metadata file
+                    for (File file : topic.listFiles()) {
+                        // Consume the metadata file and upload to db
+                        if (file.getName().equalsIgnoreCase("TopicMetadata.json")) {
+                            try {
+                                // Read the file
+                                String content = new String(Files.readAllBytes(file.toPath()));
+
+                                // Convert to object
+                                ObjectMapper objectMapper = new ObjectMapper();
+                                TopicMetadata metadata = objectMapper.readValue(content, TopicMetadata.class);
+
+                                // Add each system/code pait to the database
+                                for (Mapping mapping : metadata.getMappings()) {
+                                    for (String code : mapping.getCodes()) {
+                                        String mainCqlLibraryName = metadata.getTopic() + "PriorAuthRule.cql";
+                                        Map<String, Object> dataMap = new HashMap<String, Object>();
+                                        dataMap.put("system",
+                                                CODE_SYSTEM_SHORT_NAME_TO_FULL_NAME.get(mapping.getCodeSystem()));
+                                        dataMap.put("code", code);
+                                        dataMap.put("topic", topicName);
+                                        dataMap.put("rule", mainCqlLibraryName);
+                                        if (!App.getDB().write(Table.RULES, dataMap))
+                                            return false;
+                                    }
+                                }
+                            } catch (Exception e) {
+                                logger.log(Level.SEVERE, "PriorAuthRule::populateRulesTable", e);
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Execute the rule on a given bundle and determine the disposition
      * 
      * @param rule - the CQL expression to execute
@@ -123,12 +195,11 @@ public class PriorAuthRule {
      */
     private static String getCQLFileFromItem(ItemComponent claimItem) {
         Map<String, Object> constraintParams = new HashMap<String, Object>();
-        constraintParams.put("system", FhirUtils.getCode(claimItem.getProductOrService()));
-        constraintParams.put("code", FhirUtils.getSystem(claimItem.getProductOrService()));
+        constraintParams.put("code", FhirUtils.getCode(claimItem.getProductOrService()));
+        constraintParams.put("system", FhirUtils.getSystem(claimItem.getProductOrService()));
         String topic = App.getDB().readString(Table.RULES, constraintParams, "topic");
         String rule = App.getDB().readString(Table.RULES, constraintParams, "rule");
         return topic + "/" + rule;
-        // return "HomeOxygenTherapyPriorAuthRule.cql";
     }
 
     /**
