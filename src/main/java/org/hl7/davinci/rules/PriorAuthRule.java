@@ -121,7 +121,6 @@ public class PriorAuthRule {
         File filePath = new File(cdsLibraryPath);
 
         File[] topics = filePath.listFiles();
-        logger.info(filePath.listFiles().toString());
         for (File topic : topics) {
             if (topic.isDirectory()) {
                 String topicName = topic.getName();
