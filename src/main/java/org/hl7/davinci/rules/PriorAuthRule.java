@@ -34,6 +34,7 @@ import org.cqframework.cql.elm.tracking.TrackBack;
 import org.hl7.davinci.priorauth.App;
 import org.hl7.davinci.priorauth.FhirUtils;
 import org.hl7.davinci.priorauth.PALogger;
+import org.hl7.davinci.priorauth.PropertyProvider;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
 import org.hl7.fhir.r4.model.Bundle;
@@ -116,10 +117,11 @@ public class PriorAuthRule {
      *         otherwise
      */
     public static boolean populateRulesTable() {
-        String cdsLibraryPath = "CDS-Library";
+        String cdsLibraryPath = PropertyProvider.getProperty("CDS_library");
         File filePath = new File(cdsLibraryPath);
 
         File[] topics = filePath.listFiles();
+        logger.info(filePath.listFiles().toString());
         for (File topic : topics) {
             if (topic.isDirectory()) {
                 String topicName = topic.getName();
@@ -199,7 +201,7 @@ public class PriorAuthRule {
         constraintParams.put("system", FhirUtils.getSystem(claimItem.getProductOrService()));
         String topic = App.getDB().readString(Table.RULES, constraintParams, "topic");
         String rule = App.getDB().readString(Table.RULES, constraintParams, "rule");
-        return topic + "/" + rule;
+        return topic + "/R4/files/" + rule;
     }
 
     /**
@@ -210,7 +212,7 @@ public class PriorAuthRule {
      */
     private static String getCQLFromFile(String fileName) {
         String cql = null;
-        String path = "src/main/java/org/hl7/davinci/rules/" + fileName;
+        String path = PropertyProvider.getProperty("CDS_library") + fileName;
         try {
             cql = new String(Files.readAllBytes(Paths.get(path)));
             logger.fine("PriorAuthRule::getCQLFromFile:Read CQL file:" + path);

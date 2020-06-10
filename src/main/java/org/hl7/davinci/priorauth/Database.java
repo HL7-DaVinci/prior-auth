@@ -42,7 +42,6 @@ public class Database {
     }
   }
 
-  private static final String CREATE_SQL_FILE = "src/main/java/org/hl7/davinci/priorauth/CreateDatabase.sql";
   private String SQL_FILE;
 
   private static final String styleFile = "src/main/resources/style.html";
@@ -83,7 +82,7 @@ public class Database {
   public Database(String relativePath) {
     JDBC_STRING = JDBC_TYPE + relativePath + JDBC_FILE + JDBC_OPTIONS;
     logger.info("JDBC: " + JDBC_STRING);
-    SQL_FILE = relativePath + CREATE_SQL_FILE;
+    SQL_FILE = relativePath + PropertyProvider.getProperty("database_sql");
     try (Connection connection = getConnection()) {
       String sql = new String(Files.readAllBytes(Paths.get(SQL_FILE).toAbsolutePath()));
       connection.prepareStatement(sql.replace("\"", "")).execute();
