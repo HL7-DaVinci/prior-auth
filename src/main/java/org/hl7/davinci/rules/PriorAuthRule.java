@@ -200,7 +200,7 @@ public class PriorAuthRule {
         constraintParams.put("system", FhirUtils.getSystem(claimItem.getProductOrService()));
         String topic = App.getDB().readString(Table.RULES, constraintParams, "topic");
         String rule = App.getDB().readString(Table.RULES, constraintParams, "rule");
-        return topic + "/R4/files/" + rule;
+        return topic + "/" + rule;
     }
 
     /**
