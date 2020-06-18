@@ -35,7 +35,7 @@ public class DatabaseTest {
     Path modulesFolder = Paths.get("src/test/resources");
     Path fixture = modulesFolder.resolve("bundle-prior-auth.json");
     FileInputStream inputStream = new FileInputStream(fixture.toString());
-    Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(inputStream);
+    Bundle bundle = (Bundle) App.getFhirContext().newJsonParser().parseResource(inputStream);
     Map<String, Object> bundleMap = new HashMap<String, Object>();
     bundleMap.put("id", "minimal");
     bundleMap.put("patient", "pat013");
@@ -129,7 +129,7 @@ public class DatabaseTest {
     Path modulesFolder = Paths.get("src/test/resources");
     Path fixture = modulesFolder.resolve("bundle-prior-auth.json");
     FileInputStream inputStream = new FileInputStream(fixture.toString());
-    Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(inputStream);
+    Bundle bundle = (Bundle) App.getFhirContext().newJsonParser().parseResource(inputStream);
     Map<String, Object> bundleMap = new HashMap<String, Object>();
     bundleMap.put("id", "testWrite");
     bundleMap.put("patient", "pat013");

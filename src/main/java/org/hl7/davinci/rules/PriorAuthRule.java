@@ -20,8 +20,6 @@ import org.opencds.cqf.cql.data.DataProvider;
 import org.opencds.cqf.cql.data.CompositeDataProvider;
 import org.opencds.cqf.cql.model.R4FhirModelResolver;
 
-import ca.uhn.fhir.context.FhirContext;
-
 import org.opencds.cqf.cql.execution.Context;
 import org.opencds.cqf.cql.execution.CqlLibraryReader;
 import org.cqframework.cql.cql2elm.CqlTranslator;
@@ -263,7 +261,7 @@ public class PriorAuthRule {
     private static DataProvider createDataProvider(Bundle bundle) {
         logger.info("PriorAuthRule::createDataProvider:Bundle/" + FhirUtils.getIdFromResource(bundle));
         R4FhirModelResolver modelResolver = new R4FhirModelResolver();
-        BundleRetrieveProvider bundleRetrieveProvider = new BundleRetrieveProvider(FhirContext.forR4(), bundle);
+        BundleRetrieveProvider bundleRetrieveProvider = new BundleRetrieveProvider(App.getFhirContext(), bundle);
         return new CompositeDataProvider(modelResolver, bundleRetrieveProvider);
     }
 

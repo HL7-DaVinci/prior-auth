@@ -55,7 +55,7 @@ public class BundleEndpointTest {
     Path modulesFolder = Paths.get("src/test/resources");
     Path fixture = modulesFolder.resolve("bundle-minimal.json");
     FileInputStream inputStream = new FileInputStream(fixture.toString());
-    Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(inputStream);
+    Bundle bundle = (Bundle) App.getFhirContext().newJsonParser().parseResource(inputStream);
     Map<String, Object> bundleMap = new HashMap<String, Object>();
     bundleMap.put("id", "minimal");
     bundleMap.put("patient", "1");
@@ -82,7 +82,7 @@ public class BundleEndpointTest {
 
     // Test the response is a JSON Bundle
     String body = mvcresult.getResponse().getContentAsString();
-    Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
+    Bundle bundle = (Bundle) App.getFhirContext().newJsonParser().parseResource(body);
     Assert.assertNotNull(bundle);
 
     // Validate the response.
@@ -104,7 +104,7 @@ public class BundleEndpointTest {
 
     // Test the response is a XML Bundle
     String body = mvcresult.getResponse().getContentAsString();
-    Bundle bundle = (Bundle) App.FHIR_CTX.newXmlParser().parseResource(body);
+    Bundle bundle = (Bundle) App.getFhirContext().newXmlParser().parseResource(body);
     Assert.assertNotNull(bundle);
 
     // Validate the response.
@@ -135,7 +135,7 @@ public class BundleEndpointTest {
 
     // Test the response is a JSON Bundle
     String body = mvcresult.getResponse().getContentAsString();
-    Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
+    Bundle bundle = (Bundle) App.getFhirContext().newJsonParser().parseResource(body);
     Assert.assertNotNull(bundle);
 
     // Validate the response.
@@ -157,7 +157,7 @@ public class BundleEndpointTest {
 
     // Test the response is a XML Bundle
     String body = mvcresult.getResponse().getContentAsString();
-    Bundle bundle = (Bundle) App.FHIR_CTX.newXmlParser().parseResource(body);
+    Bundle bundle = (Bundle) App.getFhirContext().newXmlParser().parseResource(body);
     Assert.assertNotNull(bundle);
 
     // Validate the response.

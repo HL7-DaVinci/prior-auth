@@ -22,8 +22,6 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
 
-import ca.uhn.fhir.context.FhirContext;
-
 @CrossOrigin
 @RestController
 @RequestMapping("/debug")
@@ -123,7 +121,7 @@ public class DebugEndpoint {
     java.nio.file.Path modulesFolder = Paths.get("src/main/resources/DatabaseResources");
     java.nio.file.Path fixture = modulesFolder.resolve(fileName);
     FileInputStream inputStream = new FileInputStream(fixture.toString());
-    return (Bundle) FhirContext.forR4().newJsonParser().parseResource(inputStream);
+    return (Bundle) App.getFhirContext().newJsonParser().parseResource(inputStream);
   }
 
   private static boolean writeClaim(Bundle claimBundle, String related, String timestamp) {

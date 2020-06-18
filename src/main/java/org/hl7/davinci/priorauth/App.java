@@ -17,7 +17,7 @@ public class App {
    * HAPI FHIR Context. HAPI FHIR warns that the context creation is expensive,
    * and should be performed per-application, not per-record.
    */
-  public static final FhirContext FHIR_CTX = FhirContext.forR4();
+  private static final FhirContext FHIR_CTX = FhirContext.forR4();
 
   /**
    * Local database for FHIR resources.
@@ -82,5 +82,14 @@ public class App {
    */
   public static String getBaseUrl() {
     return baseUrl;
+  }
+
+  /**
+   * Get the FHIR Context for R4
+   * 
+   * @return the R4 fhir context
+   */
+  public static FhirContext getFhirContext() {
+    return FHIR_CTX;
   }
 }

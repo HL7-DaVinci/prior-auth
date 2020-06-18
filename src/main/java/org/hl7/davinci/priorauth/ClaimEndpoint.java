@@ -121,7 +121,8 @@ public class ClaimEndpoint {
     HttpStatus status = HttpStatus.BAD_REQUEST;
     String formattedData = null;
     try {
-      IParser parser = requestType == RequestType.JSON ? App.FHIR_CTX.newJsonParser() : App.FHIR_CTX.newXmlParser();
+      IParser parser = requestType == RequestType.JSON ? App.getFhirContext().newJsonParser()
+          : App.getFhirContext().newXmlParser();
       IBaseResource resource = parser.parseResource(body);
       if (resource instanceof Bundle) {
         Bundle bundle = (Bundle) resource;

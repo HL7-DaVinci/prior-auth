@@ -145,7 +145,8 @@ public class SubscriptionEndpointTest {
 
         // Test the response is a JSON Subscription
         String responseBody = mvcresult.getResponse().getContentAsString();
-        Subscription subscriptionResponse = (Subscription) App.FHIR_CTX.newJsonParser().parseResource(responseBody);
+        Subscription subscriptionResponse = (Subscription) App.getFhirContext().newJsonParser()
+                .parseResource(responseBody);
         Assert.assertNotNull(subscriptionResponse);
 
         // Test the Subscription has an ID and the status is active
@@ -177,7 +178,7 @@ public class SubscriptionEndpointTest {
 
         // Test the response is a JSON OperationOutcome
         String responseBody = mvcresult.getResponse().getContentAsString();
-        OperationOutcome subscriptionResponse = (OperationOutcome) App.FHIR_CTX.newJsonParser()
+        OperationOutcome subscriptionResponse = (OperationOutcome) App.getFhirContext().newJsonParser()
                 .parseResource(responseBody);
         Assert.assertNotNull(subscriptionResponse);
 
@@ -200,7 +201,7 @@ public class SubscriptionEndpointTest {
 
         // Test the response is a JSON OperationOutcome
         String responseBody = mvcresult.getResponse().getContentAsString();
-        OperationOutcome subscriptionResponse = (OperationOutcome) App.FHIR_CTX.newJsonParser()
+        OperationOutcome subscriptionResponse = (OperationOutcome) App.getFhirContext().newJsonParser()
                 .parseResource(responseBody);
         Assert.assertNotNull(subscriptionResponse);
 
@@ -223,7 +224,7 @@ public class SubscriptionEndpointTest {
 
         // Test the response is a JSON OperationOutcome
         String responseBody = mvcresult.getResponse().getContentAsString();
-        OperationOutcome subscriptionResponse = (OperationOutcome) App.FHIR_CTX.newJsonParser()
+        OperationOutcome subscriptionResponse = (OperationOutcome) App.getFhirContext().newJsonParser()
                 .parseResource(responseBody);
         Assert.assertNotNull(subscriptionResponse);
 
@@ -247,7 +248,7 @@ public class SubscriptionEndpointTest {
 
         // Test the response is a JSON OperationOutcome
         String responseBody = mvcresult.getResponse().getContentAsString();
-        OperationOutcome subscriptionResponse = (OperationOutcome) App.FHIR_CTX.newJsonParser()
+        OperationOutcome subscriptionResponse = (OperationOutcome) App.getFhirContext().newJsonParser()
                 .parseResource(responseBody);
         Assert.assertNotNull(subscriptionResponse);
 
@@ -276,7 +277,7 @@ public class SubscriptionEndpointTest {
 
         // Test the response is a JSON Bundle
         String body = mvcresult.getResponse().getContentAsString();
-        Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
+        Bundle bundle = (Bundle) App.getFhirContext().newJsonParser().parseResource(body);
         Assert.assertNotNull(bundle);
 
         // Validate the response.
@@ -298,7 +299,7 @@ public class SubscriptionEndpointTest {
 
         // Test the response is a XML Bundle
         String body = mvcresult.getResponse().getContentAsString();
-        Bundle bundle = (Bundle) App.FHIR_CTX.newXmlParser().parseResource(body);
+        Bundle bundle = (Bundle) App.getFhirContext().newXmlParser().parseResource(body);
         Assert.assertNotNull(bundle);
 
         // Validate the response.
@@ -330,7 +331,7 @@ public class SubscriptionEndpointTest {
 
         // Test the response is a JSON Bundle
         String body = mvcresult.getResponse().getContentAsString();
-        Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
+        Bundle bundle = (Bundle) App.getFhirContext().newJsonParser().parseResource(body);
         Assert.assertNotNull(bundle);
 
         // Validate the response.
@@ -353,7 +354,7 @@ public class SubscriptionEndpointTest {
 
         // Test the response is a XML Bundle
         String body = mvcresult.getResponse().getContentAsString();
-        Bundle bundle = (Bundle) App.FHIR_CTX.newXmlParser().parseResource(body);
+        Bundle bundle = (Bundle) App.getFhirContext().newXmlParser().parseResource(body);
         Assert.assertNotNull(bundle);
 
         // Validate the response.
@@ -376,7 +377,7 @@ public class SubscriptionEndpointTest {
 
         // Test the response is a JSON Bundle
         String body = mvcresult.getResponse().getContentAsString();
-        Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
+        Bundle bundle = (Bundle) App.getFhirContext().newJsonParser().parseResource(body);
         Assert.assertNotNull(bundle);
 
         // Validate the bundle is empty

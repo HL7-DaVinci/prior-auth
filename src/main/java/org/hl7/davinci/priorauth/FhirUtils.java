@@ -336,7 +336,7 @@ public class FhirUtils {
    * @return String - the JSON.
    */
   public static String json(IBaseResource resource) {
-    String json = App.FHIR_CTX.newJsonParser().setPrettyPrint(true).encodeResourceToString(resource);
+    String json = App.getFhirContext().newJsonParser().setPrettyPrint(true).encodeResourceToString(resource);
     return json;
   }
 
@@ -347,7 +347,7 @@ public class FhirUtils {
    * @return String - the XML.
    */
   public static String xml(IBaseResource resource) {
-    String xml = App.FHIR_CTX.newXmlParser().setPrettyPrint(true).encodeResourceToString(resource);
+    String xml = App.getFhirContext().newXmlParser().setPrettyPrint(true).encodeResourceToString(resource);
     return xml;
   }
 
