@@ -1,5 +1,18 @@
 language: java
 
+
+before_script:
+  - TERM=dumb groovy --version
+  - export GROOVY_VERSION=3.0.0-alpha-2
+  - wget http://dl.bintray.com/groovy/maven/apache-groovy-binary-$GROOVY_VERSION.zip -O /tmp/groovy.zip
+  - unzip /tmp/groovy.zip -d $PWD/.groovy
+  - export PATH=$PWD/.groovy/groovy-$GROOVY_VERSION/bin:$PATH
+  - echo "groovy installed ${GROOVY_VERSION}"
+
+script:
+  - TERM=dumb groovy --version
+  - TERM=dumb groovy script.groovy some-arg
+
 jdk:
   - openjdk12
 
@@ -11,3 +24,5 @@ cache:
   directories:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
+stage testing:
+
