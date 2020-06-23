@@ -99,6 +99,11 @@ public class App {
     return FHIR_CTX;
   }
 
+  /**
+   * Get the Model Resolver (for R4)
+   * 
+   * @return the FhirModelResolver
+   */
   public static ModelResolver getModelResolver() {
     return MODEL_RESOLVER;
   }
