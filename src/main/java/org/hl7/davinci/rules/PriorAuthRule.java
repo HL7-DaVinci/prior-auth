@@ -27,6 +27,7 @@ import org.cqframework.cql.cql2elm.CqlTranslatorException;
 import org.cqframework.cql.cql2elm.FhirLibrarySourceProvider;
 import org.cqframework.cql.cql2elm.LibraryManager;
 import org.cqframework.cql.cql2elm.ModelManager;
+import org.cqframework.cql.elm.execution.ExpressionDef;
 import org.cqframework.cql.elm.execution.Library;
 import org.cqframework.cql.elm.tracking.TrackBack;
 import org.hl7.davinci.priorauth.App;
@@ -174,8 +175,13 @@ public class PriorAuthRule {
      */
     private static boolean executeRule(Context context, Rule rule) {
         logger.info("PriorAuthRule::executing rule:" + rule.value());
-        Object rawValue = context.resolveExpressionRef(rule.value()).evaluate(context);
-        logger.fine("PriorAuthRule::executeRule:" + rule.value() + ":" + rawValue.toString());
+        ExpressionDef expression = context.resolveExpressionRef(rule.value());
+        Object rawValue = null;
+        synchronized (ExpressionDef.class) {
+            rawValue = expression.evaluate(context);
+            logger.fine("PriorAuthRule::executeRule:" + rule.value() + ":" + rawValue.toString());
+        }
+
         try {
             return (boolean) rawValue;
         } catch (Exception e) {
@@ -245,7 +251,9 @@ public class PriorAuthRule {
 
         Library library = null;
         try {
-            library = CqlLibraryReader.read(new StringReader(translator.toXml()));
+            synchronized (CqlLibraryReader.class) {
+                library = CqlLibraryReader.read(new StringReader(translator.toXml()));
+            }
         } catch (IOException | JAXBException e) {
             logger.log(Level.SEVERE, "PriorAuthRule::createLibrary:exception reading library", e);
         }
@@ -260,7 +268,7 @@ public class PriorAuthRule {
      */
     private static DataProvider createDataProvider(Bundle bundle) {
         logger.info("PriorAuthRule::createDataProvider:Bundle/" + FhirUtils.getIdFromResource(bundle));
-        R4FhirModelResolver modelResolver = new R4FhirModelResolver();
+        R4FhirModelResolver modelResolver = new R4FhirModelResolver(); // TODO: this call is creating a new fhir context
         BundleRetrieveProvider bundleRetrieveProvider = new BundleRetrieveProvider(App.getFhirContext(), bundle);
         return new CompositeDataProvider(modelResolver, bundleRetrieveProvider);
     }

@@ -285,6 +285,8 @@ public class ClaimEndpoint {
     boolean ret = true;
     Claim claim = FhirUtils.getClaimFromRequestBundle(bundle);
     String claimStatusStr = FhirUtils.getStatusFromResource(claim);
+
+    // Start all of the threads
     Map<Integer, ProcessClaimItemTask> threads = new HashMap<Integer, ProcessClaimItemTask>();
     for (ItemComponent item : claim.getItem()) {
       ProcessClaimItemTask itemTask = new ProcessClaimItemTask(bundle, item, id, relatedId, claimStatusStr);

@@ -43,15 +43,15 @@ public class ProcessClaimItemTask implements Runnable {
     }
 
     public void run() {
-        logger.info("ProcessClaimItem::run:ClaimItem " + this.getItemName());
+        logger.info("ProcessClaimItemTask::run:ClaimItem " + this.getItemName());
         boolean ret = process();
         this.threadStatus = ret ? 0 : 1; // 0 for success, 1 for error
-        logger.fine(
-                "ProcessClaimItem::run:Thread exiting for ClaimItem " + this.getItemName() + ":" + this.threadStatus);
+        logger.fine("ProcessClaimItemTask::run:Thread exiting for ClaimItem " + this.getItemName() + ":"
+                + this.threadStatus);
     }
 
     public void start() {
-        logger.fine("ProcessClaimItem::start:ClaimItem " + this.getItemName());
+        logger.fine("ProcessClaimItemTask::start:ClaimItem " + this.getItemName());
         if (this.thread == null) {
             this.thread = new Thread(this, this.getItemName());
             this.thread.start();
