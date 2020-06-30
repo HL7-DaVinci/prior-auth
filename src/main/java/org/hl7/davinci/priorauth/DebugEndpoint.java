@@ -8,6 +8,9 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.servlet.http.HttpServletRequest;
+
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +20,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.hl7.davinci.priorauth.Database.Table;
+import org.hl7.davinci.priorauth.Endpoint.RequestType;
+import org.hl7.davinci.rules.PreconvertCql;
 import org.hl7.davinci.rules.PriorAuthRule;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
@@ -76,6 +81,17 @@ public class DebugEndpoint {
       return new ResponseEntity<>(HttpStatus.OK);
     } else {
       logger.warning("DebugEndpoint::populate datatbase disabeled");
+      return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @PostMapping("/Convert")
+  public ResponseEntity<String> convertCqlToElm(HttpServletRequest request, HttpEntity<String> entity) {
+    if (App.debugMode) {
+      String elm = PreconvertCql.convert(entity.getBody(), RequestType.XML);
+      return ResponseEntity.status(HttpStatus.OK).body(elm);
+    } else {
+      logger.warning("DebugEndpoint::convert elm disabled");
       return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
   }

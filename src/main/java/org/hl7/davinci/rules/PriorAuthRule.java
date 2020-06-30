@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,14 +20,8 @@ import org.opencds.cqf.cql.data.CompositeDataProvider;
 
 import org.opencds.cqf.cql.execution.Context;
 import org.opencds.cqf.cql.execution.CqlLibraryReader;
-import org.cqframework.cql.cql2elm.CqlTranslator;
-import org.cqframework.cql.cql2elm.CqlTranslatorException;
-import org.cqframework.cql.cql2elm.FhirLibrarySourceProvider;
-import org.cqframework.cql.cql2elm.LibraryManager;
-import org.cqframework.cql.cql2elm.ModelManager;
 import org.cqframework.cql.elm.execution.ExpressionDef;
 import org.cqframework.cql.elm.execution.Library;
-import org.cqframework.cql.elm.tracking.TrackBack;
 import org.hl7.davinci.priorauth.App;
 import org.hl7.davinci.priorauth.FhirUtils;
 import org.hl7.davinci.priorauth.PALogger;
@@ -89,9 +82,9 @@ public class PriorAuthRule {
         Claim claim = FhirUtils.getClaimFromRequestBundle(bundle);
         ItemComponent claimItem = claim.getItem().stream().filter(item -> item.getSequence() == sequence).findFirst()
                 .get();
-        String cqlFile = getCQLFileFromItem(claimItem);
-        String cql = getCQLFromFile(cqlFile);
-        Library library = createLibrary(cql);
+        String elmFile = getRuleFileFromItem(claimItem);
+        String elm = getFileContent(elmFile);
+        Library library = createLibrary(elm);
         Context context = new Context(library);
         context.registerDataProvider("http://hl7.org/fhir", createDataProvider(bundle));
 
@@ -142,13 +135,13 @@ public class PriorAuthRule {
                                 // Add each system/code pait to the database
                                 for (Mapping mapping : metadata.getMappings()) {
                                     for (String code : mapping.getCodes()) {
-                                        String mainCqlLibraryName = metadata.getTopic() + "PriorAuthRule.cql";
+                                        String elmFileName = metadata.getTopic() + "PriorAuthRule.elm.xml";
                                         Map<String, Object> dataMap = new HashMap<String, Object>();
                                         dataMap.put("system",
                                                 CODE_SYSTEM_SHORT_NAME_TO_FULL_NAME.get(mapping.getCodeSystem()));
                                         dataMap.put("code", code);
                                         dataMap.put("topic", topicName);
-                                        dataMap.put("rule", mainCqlLibraryName);
+                                        dataMap.put("rule", elmFileName);
                                         if (!App.getDB().write(Table.RULES, dataMap))
                                             return false;
                                     }
@@ -192,12 +185,12 @@ public class PriorAuthRule {
     }
 
     /**
-     * Get the CQL rule file name based on the requested item
+     * Get the Rule rule file name based on the requested item
      * 
      * @param claimItem - the item requested
-     * @return name of the CQL file
+     * @return name of the rule file
      */
-    private static String getCQLFileFromItem(ItemComponent claimItem) {
+    private static String getRuleFileFromItem(ItemComponent claimItem) {
         Map<String, Object> constraintParams = new HashMap<String, Object>();
         constraintParams.put("code", FhirUtils.getCode(claimItem.getProductOrService()));
         constraintParams.put("system", FhirUtils.getSystem(claimItem.getProductOrService()));
@@ -207,51 +200,35 @@ public class PriorAuthRule {
     }
 
     /**
-     * Read in the CQL file and return the contents
+     * Read in the contents file and return the contents
      * 
-     * @param fileName - the name of the CQL file
+     * @param fileName - the name of the file
      * @return string contents of the file or null if the file does not exist
      */
-    private static String getCQLFromFile(String fileName) {
-        String cql = null;
+    private static String getFileContent(String fileName) {
+        String content = null;
         String path = PropertyProvider.getProperty("CDS_library") + fileName;
         try {
-            cql = new String(Files.readAllBytes(Paths.get(path)));
-            logger.fine("PriorAuthRule::getCQLFromFile:Read CQL file:" + path);
+            content = new String(Files.readAllBytes(Paths.get(path)));
+            logger.fine("PriorAuthRule::getFileContent:Read file:" + path);
         } catch (Exception e) {
-            logger.warning("PriorAuthRule::getCQLFromFile:CQL File does not exist:" + path);
+            logger.warning("PriorAuthRule::getFileContent:File does not exist:" + path);
         }
-        return cql;
+        return content;
     }
 
     /**
      * Helper method to create the Library for the constructor
      * 
-     * @param cql - the cql to create the library from
+     * @param elm - the elm to create the library from
      * @return Library or null
      */
-    private static Library createLibrary(String cql) {
+    private static Library createLibrary(String elm) {
         logger.fine("PriorAuthRule::createLibrary");
-        ModelManager modelManager = new ModelManager();
-        LibraryManager libraryManager = new LibraryManager(modelManager);
-        libraryManager.getLibrarySourceLoader().registerProvider(new FhirLibrarySourceProvider());
-        CqlTranslator translator = CqlTranslator.fromText(cql, modelManager, libraryManager);
-        if (translator.getErrors().size() > 0) {
-            ArrayList<String> errors = new ArrayList<>();
-            for (CqlTranslatorException error : translator.getErrors()) {
-                TrackBack tb = error.getLocator();
-                String lines = tb == null ? "[n/a]"
-                        : String.format("[%d:%d, %d:%d]", tb.getStartLine(), tb.getStartChar(), tb.getEndLine(),
-                                tb.getEndChar());
-                errors.add(lines + error.getMessage());
-            }
-            throw new IllegalArgumentException(errors.toString());
-        }
-
         Library library = null;
         try {
             synchronized (CqlLibraryReader.class) {
-                library = CqlLibraryReader.read(new StringReader(translator.toXml()));
+                library = CqlLibraryReader.read(new StringReader(elm));
             }
         } catch (IOException | JAXBException e) {
             logger.log(Level.SEVERE, "PriorAuthRule::createLibrary:exception reading library", e);
