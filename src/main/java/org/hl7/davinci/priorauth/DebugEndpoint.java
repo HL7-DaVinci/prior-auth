@@ -1,7 +1,10 @@
 package org.hl7.davinci.priorauth;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
@@ -90,6 +93,50 @@ public class DebugEndpoint {
     if (App.debugMode) {
       String elm = PreconvertCql.convert(entity.getBody(), RequestType.XML);
       return ResponseEntity.status(HttpStatus.OK).body(elm);
+    } else {
+      logger.warning("DebugEndpoint::convert elm disabled");
+      return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @PostMapping("/ConvertAll")
+  public ResponseEntity<String> convertAllCqlToElm() {
+    if (App.debugMode) {
+      String cdsLibraryPath = PropertyProvider.getProperty("CDS_library");
+      File filePath = new File(cdsLibraryPath);
+
+      File[] topics = filePath.listFiles();
+      for (File topic : topics) {
+        if (topic.isDirectory()) {
+          String topicName = topic.getName();
+
+          // Ignore shared folder and hidden folder
+          if (!topicName.startsWith(".") && !topicName.equalsIgnoreCase("Shared")) {
+            // Get the cql file(s)
+            for (File file : topic.listFiles()) {
+              // Consume the cql file and convert to elm
+              if (file.getName().endsWith(".cql")) {
+                try {
+                  // Read the file
+                  String cql = new String(Files.readAllBytes(file.toPath()));
+                  String elm = PreconvertCql.convert(cql, RequestType.XML);
+
+                  String elmFileName = file.toPath().toString().replaceAll(".cql", ".elm.xml");
+                  FileWriter writer = new FileWriter(elmFileName);
+                  writer.write(elm);
+                  writer.close();
+                  logger.info("DebugEndpoing::Converted elm:" + elmFileName);
+                } catch (Exception e) {
+                  logger.log(Level.SEVERE, "DebugEndpoint::convertAllCqlToElm", e);
+                  return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      return new ResponseEntity<>(HttpStatus.OK);
     } else {
       logger.warning("DebugEndpoint::convert elm disabled");
       return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
