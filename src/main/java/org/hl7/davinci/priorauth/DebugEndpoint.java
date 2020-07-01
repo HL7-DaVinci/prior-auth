@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,7 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
-import org.hl7.davinci.rules.PreconvertCql;
+import org.hl7.davinci.rules.CqlUtils;
 import org.hl7.davinci.rules.PriorAuthRule;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
@@ -91,7 +90,7 @@ public class DebugEndpoint {
   @PostMapping("/Convert")
   public ResponseEntity<String> convertCqlToElm(HttpServletRequest request, HttpEntity<String> entity) {
     if (App.debugMode) {
-      String elm = PreconvertCql.convert(entity.getBody(), RequestType.XML);
+      String elm = CqlUtils.cqlToElm(entity.getBody(), RequestType.XML);
       return ResponseEntity.status(HttpStatus.OK).body(elm);
     } else {
       logger.warning("DebugEndpoint::convert elm disabled");
@@ -118,8 +117,8 @@ public class DebugEndpoint {
               if (file.getName().endsWith(".cql")) {
                 try {
                   // Read the file
-                  String cql = new String(Files.readAllBytes(file.toPath()));
-                  String elm = PreconvertCql.convert(cql, RequestType.XML);
+                  String cql = CqlUtils.readFile(topicName + "/" + file.getName());
+                  String elm = CqlUtils.cqlToElm(cql, RequestType.XML);
 
                   String elmFileName = file.toPath().toString().replaceAll(".cql", ".elm.xml");
                   FileWriter writer = new FileWriter(elmFileName);

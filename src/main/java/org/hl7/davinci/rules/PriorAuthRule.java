@@ -1,26 +1,16 @@
 package org.hl7.davinci.rules;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.StringReader;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.xml.bind.JAXBException;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.opencds.cqf.cql.data.DataProvider;
-import org.opencds.cqf.cql.data.CompositeDataProvider;
-
 import org.opencds.cqf.cql.execution.Context;
-import org.opencds.cqf.cql.execution.CqlLibraryReader;
-import org.cqframework.cql.elm.execution.ExpressionDef;
 import org.cqframework.cql.elm.execution.Library;
 import org.hl7.davinci.priorauth.App;
 import org.hl7.davinci.priorauth.FhirUtils;
@@ -83,10 +73,10 @@ public class PriorAuthRule {
         ItemComponent claimItem = claim.getItem().stream().filter(item -> item.getSequence() == sequence).findFirst()
                 .get();
         String elmFile = getRuleFileFromItem(claimItem);
-        String elm = getFileContent(elmFile);
-        Library library = createLibrary(elm);
+        String elm = CqlUtils.readFile(elmFile);
+        Library library = CqlUtils.createLibrary(elm);
         Context context = new Context(library);
-        context.registerDataProvider("http://hl7.org/fhir", createDataProvider(bundle));
+        context.registerDataProvider("http://hl7.org/fhir", CqlUtils.createDataProvider(bundle));
 
         Disposition disposition;
         if (executeRule(context, Rule.GRANTED))
@@ -167,12 +157,7 @@ public class PriorAuthRule {
      */
     private static boolean executeRule(Context context, Rule rule) {
         logger.info("PriorAuthRule::executing rule:" + rule.value());
-        ExpressionDef expression = context.resolveExpressionRef(rule.value());
-        Object rawValue = null;
-        synchronized (ExpressionDef.class) {
-            rawValue = expression.evaluate(context);
-            logger.fine("PriorAuthRule::executeRule:" + rule.value() + ":" + rawValue.toString());
-        }
+        Object rawValue = CqlUtils.executeExpression(context, rule.value());
 
         try {
             return (boolean) rawValue;
@@ -197,55 +182,6 @@ public class PriorAuthRule {
         String topic = App.getDB().readString(Table.RULES, constraintParams, "topic");
         String rule = App.getDB().readString(Table.RULES, constraintParams, "rule");
         return topic + "/" + rule;
-    }
-
-    /**
-     * Read in the contents file and return the contents
-     * 
-     * @param fileName - the name of the file
-     * @return string contents of the file or null if the file does not exist
-     */
-    private static String getFileContent(String fileName) {
-        String content = null;
-        String path = PropertyProvider.getProperty("CDS_library") + fileName;
-        try {
-            content = new String(Files.readAllBytes(Paths.get(path)));
-            logger.fine("PriorAuthRule::getFileContent:Read file:" + path);
-        } catch (Exception e) {
-            logger.warning("PriorAuthRule::getFileContent:File does not exist:" + path);
-        }
-        return content;
-    }
-
-    /**
-     * Helper method to create the Library for the constructor
-     * 
-     * @param elm - the elm to create the library from
-     * @return Library or null
-     */
-    private static Library createLibrary(String elm) {
-        logger.fine("PriorAuthRule::createLibrary");
-        Library library = null;
-        try {
-            synchronized (CqlLibraryReader.class) {
-                library = CqlLibraryReader.read(new StringReader(elm));
-            }
-        } catch (IOException | JAXBException e) {
-            logger.log(Level.SEVERE, "PriorAuthRule::createLibrary:exception reading library", e);
-        }
-        return library;
-    }
-
-    /**
-     * Create a DataProvider from the request Bundle to execute the CQL against
-     * 
-     * @param bundle - the request bundle for the CQL
-     * @return a FHIR DataProvider
-     */
-    private static DataProvider createDataProvider(Bundle bundle) {
-        logger.info("PriorAuthRule::createDataProvider:Bundle/" + FhirUtils.getIdFromResource(bundle));
-        BundleRetrieveProvider bundleRetrieveProvider = new BundleRetrieveProvider(App.getFhirContext(), bundle);
-        return new CompositeDataProvider(App.getModelResolver(), bundleRetrieveProvider);
     }
 
 }
