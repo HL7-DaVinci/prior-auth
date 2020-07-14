@@ -22,7 +22,7 @@ cache:
   directories:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
-stage testing:
+
 
 script:
   - TERM=dumb groovy --version
