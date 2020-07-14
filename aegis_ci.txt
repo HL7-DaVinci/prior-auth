@@ -2,18 +2,17 @@ import groovyx.net.http.HTTPBuilder
 import static groovyx.net.http.ContentType.XML
 import static groovyx.net.http.Method.GET
 import static groovyx.net.http.Method.POST
-import static groovyx.net.http.RESTClient
 
 
 // Authenticate with the Touchstone Server and get an API Authorization Token
 String apiKey
 def httpAuth = new HTTPBuilder('http://touchstone.aegis.net/touchstone/api/authenticate')
 
-httpAuth.request(POST, XML){
-
-     headers.'Accept' = 'application/xml;charset=UTF-8'
+httpAuth.request(POST, XML) {
+    headers.'Accept' = 'application/xml;charset=UTF-8'
     headers.'Content-Type' = 'application/xml;charset=UTF-8'
-    body = '<?xml version="1.0" encoding="UTF-8"?><authenticateRequest xmlns="http://touchstone.aegis.net/api"><email>mriley@mitre.org</email><password>Ride4Kevin&</password></authenticateRequest>'
+    body = '<?xml version="1.0" encoding="UTF-8"?><authenticateRequest xmlns="http://touchstone.aegis.net/api"><email>mriley@mitre.org
+    </email><password>password</password></authenticateRequest>'
 
     response.success = { resp, authenticateResponse ->
         println "POST Response Status : ${resp.statusLine}"
@@ -39,7 +38,7 @@ httpExecute.request(POST, XML) {
     headers.'Accept' = 'application/xml;charset=UTF-8'
     headers.'Content-Type' = 'application/xml;charset=UTF-8'
     body = '<?xml version="1.0" encoding="UTF-8"?><executeTestRequest xmlns="http://touchstone.aegis.net/api"><testSetup>
-    FHIRSandbox-DaVinci-FHIR4-0-0-Test-PAS-01-ClaimScenario--tests</testSetup></executeTestRequest>'
+    FHIR3-2-0-Connectathon17-Patient-02-Formal-FHIRServer-03-PatientRead--All</testSetup></executeTestRequest>'
 
     response.success = { resp, executeTestResponse ->
         println "POST Response Status : ${resp.statusLine}"

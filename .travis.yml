@@ -9,9 +9,7 @@ before_script:
   - export PATH=$PWD/.groovy/groovy-$GROOVY_VERSION/bin:$PATH
   - echo "groovy installed ${GROOVY_VERSION}"
 
-script:
-  - TERM=dumb groovy --version
-  - TERM=dumb groovy script.groovy some-arg
+
 
 jdk:
   - openjdk12
@@ -26,3 +24,6 @@ cache:
     - $HOME/.gradle/wrapper/
 stage testing:
 
+script:
+  - TERM=dumb groovy --version
+  - TERM=dumb groovy aegis_ci.groovy some-arg

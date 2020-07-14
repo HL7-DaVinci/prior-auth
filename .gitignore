@@ -27,3 +27,5 @@ database.trace.db
 
 # Ignore Mac OS X
 **/.DS_Store
+.idea/misc.xml
+*.xml
