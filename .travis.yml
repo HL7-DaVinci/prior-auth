@@ -26,4 +26,4 @@ cache:
 
 script:
   - TERM=dumb groovy --version
-  - TERM=dumb groovy aegis_ci.groovy some-arg
+  - TERM=dumb groovy aegis_ci.groovy 
