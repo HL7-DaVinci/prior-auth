@@ -22,8 +22,6 @@ cache:
   directories:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
+ f
 
-
-script:
-  - TERM=dumb groovy --version
-  - TERM=dumb groovy aegis_ci.groovy 
+script: ./aegis_script.sh
