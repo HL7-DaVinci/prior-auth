@@ -11,13 +11,13 @@ import java.util.logging.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.opencds.cqf.cql.execution.Context;
-import org.cqframework.cql.elm.execution.Library;
 import org.hl7.davinci.priorauth.App;
 import org.hl7.davinci.priorauth.FhirUtils;
 import org.hl7.davinci.priorauth.PALogger;
 import org.hl7.davinci.priorauth.PropertyProvider;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
+import org.hl7.davinci.ruleutils.CqlUtils;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
@@ -74,9 +74,8 @@ public class PriorAuthRule {
                 .get();
         String elmFile = getRuleFileFromItem(claimItem);
         String elm = CqlUtils.readFile(elmFile);
-        Library library = CqlUtils.createLibrary(elm);
-        Context context = new Context(library);
-        context.registerDataProvider("http://hl7.org/fhir", CqlUtils.createDataProvider(bundle));
+        Context context = CqlUtils.createBundleContextFromElm(elm, bundle, App.getFhirContext(),
+                App.getModelResolver());
 
         Disposition disposition;
         if (executeRule(context, Rule.GRANTED))
@@ -181,7 +180,7 @@ public class PriorAuthRule {
         constraintParams.put("system", FhirUtils.getSystem(claimItem.getProductOrService()));
         String topic = App.getDB().readString(Table.RULES, constraintParams, "topic");
         String rule = App.getDB().readString(Table.RULES, constraintParams, "rule");
-        return topic + "/" + rule;
+        return PropertyProvider.getProperty("CDS_library") + topic + "/" + rule;
     }
 
 }

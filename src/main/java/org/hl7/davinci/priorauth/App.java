@@ -1,6 +1,6 @@
 package org.hl7.davinci.priorauth;
 
-import org.hl7.davinci.rules.ModelResolver;
+import org.hl7.davinci.ruleutils.ModelResolver;
 import org.hl7.davinci.rules.PriorAuthRule;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -23,7 +23,7 @@ public class App {
   /**
    * Create a singular model resolver to be used throughout the application
    */
-  private static final ModelResolver MODEL_RESOLVER = new ModelResolver();
+  private static final ModelResolver MODEL_RESOLVER = new ModelResolver(FHIR_CTX);
 
   /**
    * Local database for FHIR resources.
