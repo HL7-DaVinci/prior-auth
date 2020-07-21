@@ -1,42 +1,23 @@
 package org.hl7.davinci.rules;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.StringReader;
 import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.xml.bind.JAXBException;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.opencds.cqf.cql.data.DataProvider;
-import org.opencds.cqf.cql.data.CompositeDataProvider;
-import org.opencds.cqf.cql.model.R4FhirModelResolver;
-
-import ca.uhn.fhir.context.FhirContext;
-
 import org.opencds.cqf.cql.execution.Context;
-import org.opencds.cqf.cql.execution.CqlLibraryReader;
-import org.cqframework.cql.cql2elm.CqlTranslator;
-import org.cqframework.cql.cql2elm.CqlTranslatorException;
-import org.cqframework.cql.cql2elm.FhirLibrarySourceProvider;
-import org.cqframework.cql.cql2elm.LibraryManager;
-import org.cqframework.cql.cql2elm.ModelManager;
-import org.cqframework.cql.elm.execution.Library;
-import org.cqframework.cql.elm.tracking.TrackBack;
 import org.hl7.davinci.priorauth.App;
 import org.hl7.davinci.priorauth.FhirUtils;
 import org.hl7.davinci.priorauth.PALogger;
 import org.hl7.davinci.priorauth.PropertyProvider;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
+import org.hl7.davinci.ruleutils.CqlUtils;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
@@ -91,11 +72,10 @@ public class PriorAuthRule {
         Claim claim = FhirUtils.getClaimFromRequestBundle(bundle);
         ItemComponent claimItem = claim.getItem().stream().filter(item -> item.getSequence() == sequence).findFirst()
                 .get();
-        String cqlFile = getCQLFileFromItem(claimItem);
-        String cql = getCQLFromFile(cqlFile);
-        Library library = createLibrary(cql);
-        Context context = new Context(library);
-        context.registerDataProvider("http://hl7.org/fhir", createDataProvider(bundle));
+        String elmFile = getRuleFileFromItem(claimItem);
+        String elm = CqlUtils.readFile(elmFile);
+        Context context = CqlUtils.createBundleContextFromElm(elm, bundle, App.getFhirContext(),
+                App.getModelResolver());
 
         Disposition disposition;
         if (executeRule(context, Rule.GRANTED))
@@ -144,13 +124,13 @@ public class PriorAuthRule {
                                 // Add each system/code pait to the database
                                 for (Mapping mapping : metadata.getMappings()) {
                                     for (String code : mapping.getCodes()) {
-                                        String mainCqlLibraryName = metadata.getTopic() + "PriorAuthRule.cql";
+                                        String elmFileName = metadata.getTopic() + "PriorAuthRule.elm.xml";
                                         Map<String, Object> dataMap = new HashMap<String, Object>();
                                         dataMap.put("system",
                                                 CODE_SYSTEM_SHORT_NAME_TO_FULL_NAME.get(mapping.getCodeSystem()));
                                         dataMap.put("code", code);
                                         dataMap.put("topic", topicName);
-                                        dataMap.put("rule", mainCqlLibraryName);
+                                        dataMap.put("rule", elmFileName);
                                         if (!App.getDB().write(Table.RULES, dataMap))
                                             return false;
                                     }
@@ -176,8 +156,8 @@ public class PriorAuthRule {
      */
     private static boolean executeRule(Context context, Rule rule) {
         logger.info("PriorAuthRule::executing rule:" + rule.value());
-        Object rawValue = context.resolveExpressionRef(rule.value()).evaluate(context);
-        logger.fine("PriorAuthRule::executeRule:" + rule.value() + ":" + rawValue.toString());
+        Object rawValue = CqlUtils.executeExpression(context, rule.value());
+
         try {
             return (boolean) rawValue;
         } catch (Exception e) {
@@ -189,82 +169,18 @@ public class PriorAuthRule {
     }
 
     /**
-     * Get the CQL rule file name based on the requested item
+     * Get the Rule rule file name based on the requested item
      * 
      * @param claimItem - the item requested
-     * @return name of the CQL file
+     * @return name of the rule file
      */
-    private static String getCQLFileFromItem(ItemComponent claimItem) {
+    private static String getRuleFileFromItem(ItemComponent claimItem) {
         Map<String, Object> constraintParams = new HashMap<String, Object>();
         constraintParams.put("code", FhirUtils.getCode(claimItem.getProductOrService()));
         constraintParams.put("system", FhirUtils.getSystem(claimItem.getProductOrService()));
         String topic = App.getDB().readString(Table.RULES, constraintParams, "topic");
         String rule = App.getDB().readString(Table.RULES, constraintParams, "rule");
-        return topic + "/" + rule;
-    }
-
-    /**
-     * Read in the CQL file and return the contents
-     * 
-     * @param fileName - the name of the CQL file
-     * @return string contents of the file or null if the file does not exist
-     */
-    private static String getCQLFromFile(String fileName) {
-        String cql = null;
-        String path = PropertyProvider.getProperty("CDS_library") + fileName;
-        try {
-            cql = new String(Files.readAllBytes(Paths.get(path)));
-            logger.fine("PriorAuthRule::getCQLFromFile:Read CQL file:" + path);
-        } catch (Exception e) {
-            logger.warning("PriorAuthRule::getCQLFromFile:CQL File does not exist:" + path);
-        }
-        return cql;
-    }
-
-    /**
-     * Helper method to create the Library for the constructor
-     * 
-     * @param cql - the cql to create the library from
-     * @return Library or null
-     */
-    private static Library createLibrary(String cql) {
-        logger.fine("PriorAuthRule::createLibrary");
-        ModelManager modelManager = new ModelManager();
-        LibraryManager libraryManager = new LibraryManager(modelManager);
-        libraryManager.getLibrarySourceLoader().registerProvider(new FhirLibrarySourceProvider());
-        CqlTranslator translator = CqlTranslator.fromText(cql, modelManager, libraryManager);
-        if (translator.getErrors().size() > 0) {
-            ArrayList<String> errors = new ArrayList<>();
-            for (CqlTranslatorException error : translator.getErrors()) {
-                TrackBack tb = error.getLocator();
-                String lines = tb == null ? "[n/a]"
-                        : String.format("[%d:%d, %d:%d]", tb.getStartLine(), tb.getStartChar(), tb.getEndLine(),
-                                tb.getEndChar());
-                errors.add(lines + error.getMessage());
-            }
-            throw new IllegalArgumentException(errors.toString());
-        }
-
-        Library library = null;
-        try {
-            library = CqlLibraryReader.read(new StringReader(translator.toXml()));
-        } catch (IOException | JAXBException e) {
-            logger.log(Level.SEVERE, "PriorAuthRule::createLibrary:exception reading library", e);
-        }
-        return library;
-    }
-
-    /**
-     * Create a DataProvider from the request Bundle to execute the CQL against
-     * 
-     * @param bundle - the request bundle for the CQL
-     * @return a FHIR DataProvider
-     */
-    private static DataProvider createDataProvider(Bundle bundle) {
-        logger.info("PriorAuthRule::createDataProvider:Bundle/" + FhirUtils.getIdFromResource(bundle));
-        R4FhirModelResolver modelResolver = new R4FhirModelResolver();
-        BundleRetrieveProvider bundleRetrieveProvider = new BundleRetrieveProvider(FhirContext.forR4(), bundle);
-        return new CompositeDataProvider(modelResolver, bundleRetrieveProvider);
+        return PropertyProvider.getProperty("CDS_library") + topic + "/" + rule;
     }
 
 }

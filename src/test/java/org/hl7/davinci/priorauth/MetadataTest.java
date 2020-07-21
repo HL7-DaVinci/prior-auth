@@ -58,7 +58,8 @@ public class MetadataTest {
 
     // Test the response is a JSON Capability Statement
     String body = mvcresult.getResponse().getContentAsString();
-    CapabilityStatement capabilityStatement = (CapabilityStatement) App.FHIR_CTX.newJsonParser().parseResource(body);
+    CapabilityStatement capabilityStatement = (CapabilityStatement) App.getFhirContext().newJsonParser()
+        .parseResource(body);
     Assert.assertNotNull(capabilityStatement);
 
     // Test the websocket extension is included
@@ -89,7 +90,8 @@ public class MetadataTest {
 
     // Test the response is a XML Capability Statement
     String body = mvcresult.getResponse().getContentAsString();
-    CapabilityStatement capabilityStatement = (CapabilityStatement) App.FHIR_CTX.newXmlParser().parseResource(body);
+    CapabilityStatement capabilityStatement = (CapabilityStatement) App.getFhirContext().newXmlParser()
+        .parseResource(body);
     Assert.assertNotNull(capabilityStatement);
 
     // Test the websocket extension is included

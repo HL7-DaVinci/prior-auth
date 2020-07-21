@@ -98,7 +98,7 @@ public class ClaimSubmitTest {
 
   @Test
   public void completeClaimValidation() {
-    Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(completeClaim);
+    Bundle bundle = (Bundle) App.getFhirContext().newJsonParser().parseResource(completeClaim);
     Assert.assertNotNull(bundle);
     ValidationResult result = ValidationHelper.validate(bundle);
     Assert.assertTrue(result.isSuccessful());
@@ -127,12 +127,12 @@ public class ClaimSubmitTest {
 
     // Test the response is a JSON Bundle
     String responseBody = mvcresult.getResponse().getContentAsString();
-    Bundle bundleResponse = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(responseBody);
+    Bundle bundleResponse = (Bundle) App.getFhirContext().newJsonParser().parseResource(responseBody);
     Assert.assertNotNull(bundleResponse);
 
     // Make sure all fullUrls and identifiers on the bundleResponse are the same as
     // the submitted Claim
-    Bundle claimBundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(completeClaim);
+    Bundle claimBundle = (Bundle) App.getFhirContext().newJsonParser().parseResource(completeClaim);
     for (BundleEntryComponent responseEntry : bundleResponse.getEntry()) {
       if (responseEntry.getResource().getResourceType() != ResourceType.ClaimResponse) {
         String id = responseEntry.getResource().getId();
@@ -203,7 +203,7 @@ public class ClaimSubmitTest {
 
     // Test the response is a JSON Operation Outcome
     String responseBody = mvcresult.getResponse().getContentAsString();
-    OperationOutcome error = (OperationOutcome) App.FHIR_CTX.newJsonParser().parseResource(responseBody);
+    OperationOutcome error = (OperationOutcome) App.getFhirContext().newJsonParser().parseResource(responseBody);
     Assert.assertNotNull(error);
 
     // Validate the response.

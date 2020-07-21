@@ -208,7 +208,7 @@ public class Database {
         String patientOut = rs.getString("patient");
         String json = rs.getString("resource");
         logger.info("search: " + id + "/" + patientOut);
-        Resource resource = (Resource) App.FHIR_CTX.newJsonParser().parseResource(json);
+        Resource resource = (Resource) App.getFhirContext().newJsonParser().parseResource(json);
         resource.setId(id);
         BundleEntryComponent entry = new BundleEntryComponent();
         entry.setFullUrl(App.getBaseUrl() + "/" + table.value() + "/" + id);
@@ -248,7 +248,7 @@ public class Database {
           String json = rs.getString("resource");
           String patientOut = rs.getString("patient");
           logger.info("read: " + id + "/" + patientOut);
-          result = (Resource) App.FHIR_CTX.newJsonParser().parseResource(json);
+          result = (Resource) App.getFhirContext().newJsonParser().parseResource(json);
         }
       } catch (SQLException e) {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
@@ -283,7 +283,7 @@ public class Database {
           String json = rs.getString("resource");
           String patientOut = rs.getString("patient");
           logger.info("read: " + id + "/" + patientOut);
-          results.add((Resource) App.FHIR_CTX.newJsonParser().parseResource(json));
+          results.add((Resource) App.getFhirContext().newJsonParser().parseResource(json));
         }
       } catch (SQLException e) {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);

@@ -13,12 +13,13 @@ import ca.uhn.fhir.validation.ValidationResult;
 public class ValidationHelper {
   /**
    * Validate the FHIR resource and print (STDOUT) error messages.
+   * 
    * @param resource - the FHIR resource to validate.
    * @return ValidationResult - the validation results.
    */
   public static ValidationResult validate(IBaseResource resource) {
     // Test the response is VALID
-    FhirValidator validator = App.FHIR_CTX.newValidator();
+    FhirValidator validator = App.getFhirContext().newValidator();
     validator.setValidateAgainstStandardSchema(true);
     validator.setValidateAgainstStandardSchematron(true);
     ValidationResult result = validator.validateWithResult(resource);
@@ -26,8 +27,8 @@ public class ValidationHelper {
     // If the validation failed, print out the errors before we fail the test.
     if (!result.isSuccessful()) {
       try {
-        String body = App.FHIR_CTX.newJsonParser().setPrettyPrint(true).encodeResourceToString(resource);
-        System.out.println(body);        
+        String body = App.getFhirContext().newJsonParser().setPrettyPrint(true).encodeResourceToString(resource);
+        System.out.println(body);
       } catch (DataFormatException e) {
         System.out.println("ERROR Outputting JSON");
       }

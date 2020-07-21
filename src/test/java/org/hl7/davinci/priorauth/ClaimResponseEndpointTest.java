@@ -59,7 +59,7 @@ public class ClaimResponseEndpointTest {
 
     Path claimFixture = modulesFolder.resolve("claim-minimal.json");
     FileInputStream claimInputStream = new FileInputStream(claimFixture.toString());
-    Claim claim = (Claim) App.FHIR_CTX.newJsonParser().parseResource(claimInputStream);
+    Claim claim = (Claim) App.getFhirContext().newJsonParser().parseResource(claimInputStream);
     Map<String, Object> claimMap = new HashMap<String, Object>();
     claimMap.put("id", "minimal");
     claimMap.put("patient", "1");
@@ -67,7 +67,7 @@ public class ClaimResponseEndpointTest {
     claimMap.put("resource", claim);
     App.getDB().write(Table.CLAIM, claimMap);
 
-    Bundle claimResponse = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(inputStream);
+    Bundle claimResponse = (Bundle) App.getFhirContext().newJsonParser().parseResource(inputStream);
     Map<String, Object> claimResponseMap = new HashMap<String, Object>();
     claimResponseMap.put("id", "minimal");
     claimResponseMap.put("claimId", "minimal");
@@ -98,7 +98,7 @@ public class ClaimResponseEndpointTest {
 
     // Test the response is a JSON Bundle
     String body = mvcresult.getResponse().getContentAsString();
-    Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
+    Bundle bundle = (Bundle) App.getFhirContext().newJsonParser().parseResource(body);
     Assert.assertNotNull(bundle);
 
     // Validate the response.
@@ -120,7 +120,7 @@ public class ClaimResponseEndpointTest {
 
     // Test the response is a XML Bundle
     String body = mvcresult.getResponse().getContentAsString();
-    Bundle bundle = (Bundle) App.FHIR_CTX.newXmlParser().parseResource(body);
+    Bundle bundle = (Bundle) App.getFhirContext().newXmlParser().parseResource(body);
     Assert.assertNotNull(bundle);
 
     // Validate the response.
@@ -151,7 +151,7 @@ public class ClaimResponseEndpointTest {
 
     // Test the response is a JSON Bundle
     String body = mvcresult.getResponse().getContentAsString();
-    Bundle bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(body);
+    Bundle bundle = (Bundle) App.getFhirContext().newJsonParser().parseResource(body);
     Assert.assertNotNull(bundle);
 
     // Validate the response.
@@ -173,7 +173,7 @@ public class ClaimResponseEndpointTest {
 
     // Test the response is a XML Bundle
     String body = mvcresult.getResponse().getContentAsString();
-    Bundle bundle = (Bundle) App.FHIR_CTX.newXmlParser().parseResource(body);
+    Bundle bundle = (Bundle) App.getFhirContext().newXmlParser().parseResource(body);
     Assert.assertNotNull(bundle);
 
     // Validate the response.

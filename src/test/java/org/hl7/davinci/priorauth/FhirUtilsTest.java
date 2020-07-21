@@ -37,23 +37,23 @@ public class FhirUtilsTest {
         Path modulesFolder = Paths.get("src/test/resources");
         Path fixture = modulesFolder.resolve("claim-only.json");
         String fixtureStr = new String(Files.readAllBytes(fixture));
-        claim = (Claim) App.FHIR_CTX.newJsonParser().parseResource(fixtureStr);
+        claim = (Claim) App.getFhirContext().newJsonParser().parseResource(fixtureStr);
 
         fixture = modulesFolder.resolve("claim-update.json");
         fixtureStr = new String(Files.readAllBytes(fixture));
-        claimUpdate = (Claim) App.FHIR_CTX.newJsonParser().parseResource(fixtureStr);
+        claimUpdate = (Claim) App.getFhirContext().newJsonParser().parseResource(fixtureStr);
 
         fixture = modulesFolder.resolve("claimresponse-only.json");
         fixtureStr = new String(Files.readAllBytes(fixture));
-        claimResponse = (ClaimResponse) App.FHIR_CTX.newJsonParser().parseResource(fixtureStr);
+        claimResponse = (ClaimResponse) App.getFhirContext().newJsonParser().parseResource(fixtureStr);
 
         fixture = modulesFolder.resolve("bundle-request.json");
         fixtureStr = new String(Files.readAllBytes(fixture));
-        bundleRequest = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(fixtureStr);
+        bundleRequest = (Bundle) App.getFhirContext().newJsonParser().parseResource(fixtureStr);
 
         fixture = modulesFolder.resolve("bundle-response.json");
         fixtureStr = new String(Files.readAllBytes(fixture));
-        bundleResponse = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(fixtureStr);
+        bundleResponse = (Bundle) App.getFhirContext().newJsonParser().parseResource(fixtureStr);
     }
 
     @Test
@@ -184,11 +184,11 @@ public class FhirUtilsTest {
     public void testGetFormattedData() {
         // Validate data formatted in JSON correctly
         String json = FhirUtils.getFormattedData(claim, RequestType.JSON);
-        Assert.assertNotNull(App.FHIR_CTX.newJsonParser().parseResource(json));
+        Assert.assertNotNull(App.getFhirContext().newJsonParser().parseResource(json));
 
         // Validate data formatted in XML correctly
         String xml = FhirUtils.getFormattedData(claim, RequestType.XML);
-        Assert.assertNotNull(App.FHIR_CTX.newXmlParser().parseResource(xml));
+        Assert.assertNotNull(App.getFhirContext().newXmlParser().parseResource(xml));
     }
 
     @Test

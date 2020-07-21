@@ -2,10 +2,10 @@ package org.hl7.davinci.priorauth;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -25,18 +25,15 @@ import org.springframework.web.bind.annotation.RestController;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
-import org.hl7.davinci.rules.PriorAuthRule;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
-import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.ClaimResponse.ClaimResponseStatus;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.ResourceType;
-import org.hl7.fhir.r4.model.Type;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
 
@@ -121,7 +118,8 @@ public class ClaimEndpoint {
     HttpStatus status = HttpStatus.BAD_REQUEST;
     String formattedData = null;
     try {
-      IParser parser = requestType == RequestType.JSON ? App.FHIR_CTX.newJsonParser() : App.FHIR_CTX.newXmlParser();
+      IParser parser = requestType == RequestType.JSON ? App.getFhirContext().newJsonParser()
+          : App.getFhirContext().newXmlParser();
       IBaseResource resource = parser.parseResource(body);
       if (resource instanceof Bundle) {
         Bundle bundle = (Bundle) resource;
@@ -287,50 +285,26 @@ public class ClaimEndpoint {
     boolean ret = true;
     Claim claim = FhirUtils.getClaimFromRequestBundle(bundle);
     String claimStatusStr = FhirUtils.getStatusFromResource(claim);
+
+    // Start all of the threads
+    Map<Integer, ProcessClaimItemTask> threads = new HashMap<Integer, ProcessClaimItemTask>();
     for (ItemComponent item : claim.getItem()) {
-      boolean itemIsCancelled = false;
-      if (item.hasModifierExtension()) {
-        List<Extension> exts = item.getModifierExtension();
-        for (Extension ext : exts) {
-          if (ext.getUrl().equals(FhirUtils.ITEM_CANCELLED_EXTENSION_URL) && ext.hasValue()) {
-            Type type = ext.getValue();
-            itemIsCancelled = type.castToBoolean(type).booleanValue();
-          }
-        }
-      }
+      ProcessClaimItemTask itemTask = new ProcessClaimItemTask(bundle, item, id, relatedId, claimStatusStr);
+      threads.put(item.getSequence(), itemTask);
+      itemTask.start();
+    }
 
-      Disposition itemDisposition;
-      if (!itemIsCancelled) {
-        itemDisposition = PriorAuthRule.computeDisposition(bundle, item.getSequence());
-      } else
-        itemDisposition = Disposition.CANCELLED;
-
-      Map<String, Object> dataMap = new HashMap<String, Object>();
-      dataMap.put("id", id);
-      dataMap.put("sequence", item.getSequence());
-      dataMap.put("status", itemIsCancelled ? ClaimStatus.CANCELLED.getDisplay().toLowerCase() : claimStatusStr);
-      dataMap.put("outcome", FhirUtils.dispositionToReviewAction(itemDisposition).value());
-      if (relatedId != null) {
-        // This is an update
-        Map<String, Object> constraintMap = new HashMap<String, Object>();
-        constraintMap.put("id", relatedId);
-        constraintMap.put("sequence", item.getSequence());
-
-        // Update if item exists
-        if (App.getDB().readStatus(Table.CLAIM_ITEM, constraintMap) != null) {
-          if (!App.getDB().update(Table.CLAIM_ITEM, constraintMap, dataMap)) {
-            logger.warning(
-                "ClaimEndpoint::processClaimItems:unable to update claim item:" + id + "/" + item.getSequence());
-            ret = false;
-          }
-          continue;
-        }
-      }
-
-      // Add new item to the database
-      if (!App.getDB().write(Table.CLAIM_ITEM, dataMap)) {
-        logger.warning("ClaimEndpoint::processClaimItems:unable to write claim item:" + id + "/" + item.getSequence());
+    // Block until all of the threads are done
+    for (ProcessClaimItemTask itemTask : threads.values()) {
+      try {
+        itemTask.getThread().join();
+        if (itemTask.getStatus() != 0)
+          ret = false;
+        logger.fine("ClaimEndpoint::processClaimItems:finsihed processing " + itemTask.getItemName() + ":"
+            + itemTask.getStatus());
+      } catch (InterruptedException e) {
         ret = false;
+        logger.log(Level.SEVERE, "ClaimEndpoint::processClaimItems:Thread Interrutped:" + itemTask.getItemName(), e);
       }
     }
 
