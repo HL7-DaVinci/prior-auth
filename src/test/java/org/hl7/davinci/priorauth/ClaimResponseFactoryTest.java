@@ -42,7 +42,7 @@ public class ClaimResponseFactoryTest {
         Path modulesFolder = Paths.get("src/test/resources");
         Path fixture = modulesFolder.resolve("bundle-items.json");
         String fixtureStr = new String(Files.readAllBytes(fixture));
-        bundle = (Bundle) App.FHIR_CTX.newJsonParser().parseResource(fixtureStr);
+        bundle = (Bundle) App.getFhirContext().newJsonParser().parseResource(fixtureStr);
         claim = FhirUtils.getClaimFromRequestBundle(bundle);
     }
 

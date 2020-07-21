@@ -1,13 +1,18 @@
 package org.hl7.davinci.priorauth;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.servlet.http.HttpServletRequest;
+
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,11 +22,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.hl7.davinci.priorauth.Database.Table;
+import org.hl7.davinci.ruleutils.CqlUtils;
+import org.hl7.davinci.rules.PriorAuthRule;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
-
-import ca.uhn.fhir.context.FhirContext;
 
 @CrossOrigin
 @RestController
@@ -55,12 +60,83 @@ public class DebugEndpoint {
     return query(Table.SUBSCRIPTION);
   }
 
+  @GetMapping("/Rules")
+  public ResponseEntity<String> getRules() {
+    return query(Table.RULES);
+  }
+
   @PostMapping("/PopulateDatabaseTestData")
   public ResponseEntity<String> populateDatabase() {
     if (App.debugMode)
       return populateDB();
     else {
       logger.warning("DebugEndpoint::populate datatbase with test data disabeled");
+      return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @PostMapping("/PopulateRules")
+  public ResponseEntity<String> populateRules() {
+    if (App.debugMode) {
+      PriorAuthRule.populateRulesTable();
+      return new ResponseEntity<>(HttpStatus.OK);
+    } else {
+      logger.warning("DebugEndpoint::populate datatbase disabeled");
+      return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @PostMapping("/Convert")
+  public ResponseEntity<String> convertCqlToElm(HttpServletRequest request, HttpEntity<String> entity) {
+    if (App.debugMode) {
+      String elm = CqlUtils.cqlToElm(entity.getBody(), CqlUtils.RequestType.XML);
+      return ResponseEntity.status(HttpStatus.OK).body(elm);
+    } else {
+      logger.warning("DebugEndpoint::convert elm disabled");
+      return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @PostMapping("/ConvertAll")
+  public ResponseEntity<String> convertAllCqlToElm() {
+    if (App.debugMode) {
+      String cdsLibraryPath = PropertyProvider.getProperty("CDS_library");
+      File filePath = new File(cdsLibraryPath);
+
+      File[] topics = filePath.listFiles();
+      for (File topic : topics) {
+        if (topic.isDirectory()) {
+          String topicName = topic.getName();
+
+          // Ignore shared folder and hidden folder
+          if (!topicName.startsWith(".") && !topicName.equalsIgnoreCase("Shared")) {
+            // Get the cql file(s)
+            for (File file : topic.listFiles()) {
+              // Consume the cql file and convert to elm
+              if (file.getName().endsWith(".cql")) {
+                try {
+                  // Read the file
+                  String cql = CqlUtils.readFile(topicName + "/" + file.getName());
+                  String elm = CqlUtils.cqlToElm(cql, CqlUtils.RequestType.XML);
+
+                  String elmFileName = file.toPath().toString().replaceAll(".cql", ".elm.xml");
+                  FileWriter writer = new FileWriter(elmFileName);
+                  writer.write(elm);
+                  writer.close();
+                  logger.info("DebugEndpoing::Converted elm:" + elmFileName);
+                } catch (Exception e) {
+                  logger.log(Level.SEVERE, "DebugEndpoint::convertAllCqlToElm", e);
+                  return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      return new ResponseEntity<>(HttpStatus.OK);
+    } else {
+      logger.warning("DebugEndpoint::convert elm disabled");
       return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
   }
@@ -106,7 +182,7 @@ public class DebugEndpoint {
     java.nio.file.Path modulesFolder = Paths.get("src/main/resources/DatabaseResources");
     java.nio.file.Path fixture = modulesFolder.resolve(fileName);
     FileInputStream inputStream = new FileInputStream(fixture.toString());
-    return (Bundle) FhirContext.forR4().newJsonParser().parseResource(inputStream);
+    return (Bundle) App.getFhirContext().newJsonParser().parseResource(inputStream);
   }
 
   private static boolean writeClaim(Bundle claimBundle, String related, String timestamp) {

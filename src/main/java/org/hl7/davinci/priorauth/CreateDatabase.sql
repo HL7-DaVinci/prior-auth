@@ -52,4 +52,13 @@ BEGIN TRANSACTION;
         FOREIGN KEY ("claimResponseId") REFERENCES ClaimResponse("id") 
     );
 
+    CREATE TABLE IF NOT EXISTS Rules (
+        "system" varchar,
+        "code" varchar,
+        "topic" varchar,
+        "rule" varchar,
+        "timestamp" datetime DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT pk_rules PRIMARY KEY ("system", "code")
+    );
+
 COMMIT;

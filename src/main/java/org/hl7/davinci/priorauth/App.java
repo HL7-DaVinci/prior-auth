@@ -1,5 +1,7 @@
 package org.hl7.davinci.priorauth;
 
+import org.hl7.davinci.ruleutils.ModelResolver;
+import org.hl7.davinci.rules.PriorAuthRule;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -16,7 +18,12 @@ public class App {
    * HAPI FHIR Context. HAPI FHIR warns that the context creation is expensive,
    * and should be performed per-application, not per-record.
    */
-  public static final FhirContext FHIR_CTX = FhirContext.forR4();
+  private static final FhirContext FHIR_CTX = FhirContext.forR4();
+
+  /**
+   * Create a singular model resolver to be used throughout the application
+   */
+  private static final ModelResolver MODEL_RESOLVER = new ModelResolver(FHIR_CTX);
 
   /**
    * Local database for FHIR resources.
@@ -54,8 +61,10 @@ public class App {
   }
 
   public static void initializeAppDB() {
-    if (DB == null)
+    if (DB == null) {
       DB = new Database();
+      PriorAuthRule.populateRulesTable();
+    }
   }
 
   public static Database getDB() {
@@ -79,5 +88,23 @@ public class App {
    */
   public static String getBaseUrl() {
     return baseUrl;
+  }
+
+  /**
+   * Get the FHIR Context for R4
+   * 
+   * @return the R4 fhir context
+   */
+  public static FhirContext getFhirContext() {
+    return FHIR_CTX;
+  }
+
+  /**
+   * Get the Model Resolver (for R4)
+   * 
+   * @return the FhirModelResolver
+   */
+  public static ModelResolver getModelResolver() {
+    return MODEL_RESOLVER;
   }
 }

@@ -98,8 +98,8 @@ public class SubscriptionEndpoint {
         HttpStatus status = HttpStatus.OK;
         String formattedData = null;
         try {
-            IParser parser = requestType == RequestType.JSON ? App.FHIR_CTX.newJsonParser()
-                    : App.FHIR_CTX.newXmlParser();
+            IParser parser = requestType == RequestType.JSON ? App.getFhirContext().newJsonParser()
+                    : App.getFhirContext().newXmlParser();
             IBaseResource resource = parser.parseResource(body);
             if (resource instanceof Subscription) {
                 Subscription subscription = (Subscription) resource;
@@ -155,8 +155,8 @@ public class SubscriptionEndpoint {
         String patientIdentifierVarName = "patient.identifier";
         String criteria = subscription.getCriteria();
         String regex = "(.*)=(.*)&(.*)=(.*)&(.*)=(.*)";
-		String endVarName  = "end";
-		String end = "";
+        String endVarName = "end";
+        String end = "";
 
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(criteria);
@@ -182,7 +182,7 @@ public class SubscriptionEndpoint {
                 patient = criteriaMap.get(variableName);
             if (variableName.equals(statusVarName))
                 status = criteriaMap.get(variableName);
-			if (variableName.equals(endVarName))
+            if (variableName.equals(endVarName))
                 status = criteriaMap.get(variableName);
         }
 
@@ -204,7 +204,7 @@ public class SubscriptionEndpoint {
         dataMap.put("patient", patient);
         dataMap.put("status", status);
         dataMap.put("resource", subscription);
-		dataMap.put (endVarName, end);
+        dataMap.put(endVarName, end);
         if (App.getDB().write(Table.SUBSCRIPTION, dataMap))
             return subscription;
         else

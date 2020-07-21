@@ -81,6 +81,7 @@ If debug mode is enabled the following endpoints are available for use at `http:
 | `/debug/ClaimItem`                | `GET`   | HTML page to view the ClaimItem table in the database                                                                                                                  |
 | `/debug/Subscription`             | `GET`   | HTML page to view the Subscription table in the database                                                                                                               |
 | `/debug/PopulateDatabaseTestData` | `POST`  | Insert test data into the database. Remove any of the existing test data and insert a fresh copy. All test data has a timestamp in 2200 so it can easily be identifier |
+| `/debug/Convert`                  | `POST`  | Convert a CQL body (string) into Elm (xml)                                                                                                                             |
 | `/$expunge`                       | `POST`  | Delete all entried in all tables                                                                                                                                       |
 
 ## Contents of `/Claim/$submit` Submission
