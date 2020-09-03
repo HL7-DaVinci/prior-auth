@@ -67,23 +67,28 @@ public class PriorAuthRule {
      * @return the disposition of Granted, Pending, or Denied
      */
     public static Disposition computeDisposition(Bundle bundle, int sequence) {
-        logger.info("PriorAuthRule::computeDisposition:Bundle/" + FhirUtils.getIdFromResource(bundle));
+        logger.info("PriorAuthRule::computeDisposition:Bundle/" + FhirUtils.getIdFromResource(bundle) + "/" + sequence);
 
         Claim claim = FhirUtils.getClaimFromRequestBundle(bundle);
         ItemComponent claimItem = claim.getItem().stream().filter(item -> item.getSequence() == sequence).findFirst()
                 .get();
         String elmFile = getRuleFileFromItem(claimItem);
-        String elm = CqlUtils.readFile(elmFile);
-        Context context = CqlUtils.createBundleContextFromElm(elm, bundle, App.getFhirContext(),
-                App.getModelResolver());
-
         Disposition disposition;
-        if (executeRule(context, Rule.GRANTED))
-            disposition = Disposition.GRANTED;
-        else if (executeRule(context, Rule.PENDED))
+        if (elmFile == null) {
+            logger.warning("PriorAuthRule::getRuleFileFromItem:Code does not exist in rules table");
             disposition = Disposition.PENDING;
-        else
-            disposition = Disposition.DENIED;
+        } else {
+            String elm = CqlUtils.readFile(elmFile);
+            Context context = CqlUtils.createBundleContextFromElm(elm, bundle, App.getFhirContext(),
+                    App.getModelResolver());
+
+            if (executeRule(context, Rule.GRANTED))
+                disposition = Disposition.GRANTED;
+            else if (executeRule(context, Rule.PENDED))
+                disposition = Disposition.PENDING;
+            else
+                disposition = Disposition.DENIED;
+        }
 
         logger.info("PriorAuthRule::computeDisposition:" + disposition.value());
 
@@ -180,6 +185,8 @@ public class PriorAuthRule {
         constraintParams.put("system", FhirUtils.getSystem(claimItem.getProductOrService()));
         String topic = App.getDB().readString(Table.RULES, constraintParams, "topic");
         String rule = App.getDB().readString(Table.RULES, constraintParams, "rule");
+        if (topic == null || rule == null)
+            return null;
         return PropertyProvider.getProperty("CDS_library") + topic + "/" + rule;
     }
 
