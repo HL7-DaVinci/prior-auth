@@ -11,6 +11,7 @@ import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
+import org.hl7.fhir.r4.model.CodeType;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.OperationOutcome;
@@ -18,7 +19,6 @@ import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.ResourceType;
-import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.RelatedClaimComponent;
@@ -75,17 +75,17 @@ public class FhirUtils {
       this.value = value;
     }
 
-    public StringType value() {
-      return new StringType(this.value);
+    public CodeType valueCode() {
+      return new CodeType(this.value);
     }
 
-    public String asStringValue() {
+    public String value() {
       return this.value;
     }
 
     public static ReviewAction fromString(String value) {
       for (ReviewAction reviewAction : ReviewAction.values()) {
-        if (reviewAction.asStringValue().equals(value))
+        if (reviewAction.value().equals(value))
           return reviewAction;
       }
 
@@ -326,7 +326,7 @@ public class FhirUtils {
     String outcome = App.getDB().readString(Table.CLAIM_RESPONSE, Collections.singletonMap("claimId", id), "outcome");
     logger.fine("FhirUtils::isPended:Outcome " + outcome);
 
-    return outcome != null ? outcome.equals(ReviewAction.PENDED.asStringValue()) : false;
+    return outcome != null ? outcome.equals(ReviewAction.PENDED.value()) : false;
   }
 
   /**

@@ -15,7 +15,6 @@ import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
-import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Meta;
 import org.hl7.fhir.r4.model.Reference;
@@ -81,7 +80,7 @@ public class ClaimResponseFactory {
         response.setId(id);
 
         response.addExtension(FhirUtils.REVIEW_ACTION_EXTENSION_URL,
-                FhirUtils.dispositionToReviewAction(responseDisposition).value());
+                FhirUtils.dispositionToReviewAction(responseDisposition).valueCode());
 
         Identifier identifier = new Identifier();
         identifier.setSystem(App.getBaseUrl());
@@ -235,9 +234,7 @@ public class ClaimResponseFactory {
         } else if (action == ReviewAction.DENIED || action == ReviewAction.PENDED)
             itemComponent.addExtension(FhirUtils.REVIEW_ACTION_REASON_EXTENSION_URL, new StringType("X"));
 
-        Extension reviewActionExtension = new Extension(FhirUtils.REVIEW_ACTION_EXTENSION_URL);
-        reviewActionExtension.setValue(action.value());
-        itemComponent.addExtension(reviewActionExtension);
+        itemComponent.addExtension(FhirUtils.REVIEW_ACTION_EXTENSION_URL, action.valueCode());
 
         return itemComponent;
     }
