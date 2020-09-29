@@ -11,6 +11,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.xml.crypto.Data;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
@@ -21,12 +22,16 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.hl7.davinci.priorauth.Audit.AuditEventType;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.ruleutils.CqlUtils;
 import org.hl7.davinci.rules.PriorAuthRule;
+import org.hl7.fhir.r4.model.AuditEvent;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
+import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.AuditEvent.AuditEventAction;
 
 @CrossOrigin
 @RestController
@@ -63,6 +68,22 @@ public class DebugEndpoint {
   @GetMapping("/Rules")
   public ResponseEntity<String> getRules() {
     return query(Table.RULES);
+  }
+
+  @GetMapping("/Audit")
+  public ResponseEntity<String> getAudit() {
+    return query(Table.AUDIT);
+  }
+
+  @GetMapping("/TestAudit")
+  public ResponseEntity<String> testAudit(HttpServletRequest request) {
+    AuditEvent audit = Audit.AuditEventFactory(AuditEventType.QUERY, AuditEventAction.C,
+        new Reference(App.getBaseUrl() + "/Claim/1"), request);
+    Map<String, Object> data = new HashMap<String, Object>();
+    data.put("id", audit.getId());
+    data.put("resource", FhirUtils.json(audit));
+    App.getDB().write(Table.AUDIT, data);
+    return new ResponseEntity<>(FhirUtils.json(audit), HttpStatus.OK);
   }
 
   @PostMapping("/PopulateDatabaseTestData")

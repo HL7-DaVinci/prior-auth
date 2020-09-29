@@ -61,4 +61,10 @@ BEGIN TRANSACTION;
         CONSTRAINT pk_rules PRIMARY KEY ("system", "code")
     );
 
+    CREATE TABLE IF NOT EXISTS Audit (
+        "id" varchar,
+        "timestamp" datetime DEFAULT CURRENT_TIMESTAMP,
+        "resource" clob
+    );
+
 COMMIT;
