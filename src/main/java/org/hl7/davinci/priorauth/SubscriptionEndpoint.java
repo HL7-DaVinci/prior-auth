@@ -190,7 +190,7 @@ public class SubscriptionEndpoint {
         String outcome = App.getDB().readString(Table.CLAIM_RESPONSE, Collections.singletonMap("id", claimResponseId),
                 "outcome");
         logger.info("SubscriptionEndpoint::Outcome for desired resource is: " + outcome);
-        if (!outcome.equals(FhirUtils.ReviewAction.PENDED.asStringValue()))
+        if (!outcome.equals(FhirUtils.ReviewAction.PENDED.value()))
             return null;
 
         // Add to db

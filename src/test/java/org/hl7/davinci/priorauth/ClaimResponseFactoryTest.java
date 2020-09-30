@@ -15,7 +15,6 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.ClaimResponse.ClaimResponseStatus;
-import org.hl7.fhir.r4.model.ClaimResponse.ItemComponent;
 import org.hl7.fhir.r4.model.ClaimResponse.RemittanceOutcome;
 import org.junit.After;
 import org.junit.Assert;
@@ -124,7 +123,7 @@ public class ClaimResponseFactoryTest {
         Assert.assertNotNull(claimResponse);
         Assert.assertEquals(status, claimResponse.getStatus());
         Assert.assertEquals(disposition.value(), claimResponse.getDisposition());
-        Assert.assertEquals(reviewAction.asStringValue(),
+        Assert.assertEquals(reviewAction.value(),
                 claimResponse.getExtensionByUrl(FhirUtils.REVIEW_ACTION_EXTENSION_URL).getValue().primitiveValue());
         Assert.assertTrue(claimResponse.hasIdentifier());
 
