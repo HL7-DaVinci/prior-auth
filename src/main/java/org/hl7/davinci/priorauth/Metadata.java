@@ -2,8 +2,13 @@ package org.hl7.davinci.priorauth;
 
 import java.util.Calendar;
 
+import javax.servlet.http.HttpServletRequest;
+
+import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
+import org.hl7.davinci.priorauth.Audit.AuditEventType;
 import org.hl7.fhir.r4.model.CapabilityStatement;
 import org.hl7.fhir.r4.model.StringType;
+import org.hl7.fhir.r4.model.AuditEvent.AuditEventAction;
 import org.hl7.fhir.r4.model.CapabilityStatement.CapabilityStatementImplementationComponent;
 import org.hl7.fhir.r4.model.CapabilityStatement.CapabilityStatementKind;
 import org.hl7.fhir.r4.model.CapabilityStatement.CapabilityStatementRestComponent;
@@ -36,19 +41,23 @@ public class Metadata {
   private CapabilityStatement capabilityStatement = null;
 
   @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
-  public ResponseEntity<String> getMetadata() {
-    if (capabilityStatement == null) {
+  public ResponseEntity<String> getMetadata(HttpServletRequest request) {
+    if (capabilityStatement == null)
       capabilityStatement = buildCapabilityStatement();
-    }
+
+    String description = "Read metadata";
+    new Audit(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.SUCCESS, "/metadata", request, description);
     String json = FhirUtils.json(capabilityStatement);
     return new ResponseEntity<String>(json, HttpStatus.OK);
   }
 
   @GetMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
-  public ResponseEntity<String> getMetadataXml() {
-    if (capabilityStatement == null) {
+  public ResponseEntity<String> getMetadataXml(HttpServletRequest request) {
+    if (capabilityStatement == null)
       capabilityStatement = buildCapabilityStatement();
-    }
+
+    String description = "Read metadata";
+    new Audit(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.SUCCESS, "/metadata", request, description);
     String xml = FhirUtils.xml(capabilityStatement);
     return new ResponseEntity<String>(xml, HttpStatus.OK);
   }

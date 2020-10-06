@@ -5,11 +5,14 @@ import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
+import org.hl7.davinci.priorauth.Audit.AuditEventType;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.OperationOutcome;
+import org.hl7.fhir.r4.model.AuditEvent.AuditEventAction;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.springframework.http.HttpStatus;
@@ -41,11 +44,16 @@ public class Endpoint {
             HttpServletRequest request, RequestType requestType) {
         logger.info("GET /" + table.value() + ":" + constraintMap.toString() + " fhir+" + requestType.name());
         App.setBaseUrl(Endpoint.getServiceBaseUrl(request));
+        String referenceUrl = table.value() + "/" + constraintMap.get("id");
         if (!constraintMap.containsKey("patient")) {
             logger.warning("Endpoint::read:patient null");
+            String description = "Attempted to read " + table.value() + " but is unathorized";
+            new Audit(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.MINOR_FAILURE, referenceUrl, request,
+                    description);
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
         String formattedData = null;
+        String description = "Read " + referenceUrl;
         if ((!constraintMap.containsKey("id") || constraintMap.get("id") == null)
                 && (!constraintMap.containsKey("claimId") || constraintMap.get("claimId") == null)) {
             // Search
@@ -53,6 +61,7 @@ public class Endpoint {
             Bundle searchBundle;
             searchBundle = App.getDB().search(table, constraintMap);
             formattedData = FhirUtils.getFormattedData(searchBundle, requestType);
+            description = "Searched for " + referenceUrl;
         } else {
             // Read
             IBaseResource baseResource;
@@ -73,14 +82,20 @@ public class Endpoint {
                 formattedData = FhirUtils.getFormattedData(bundleResponse, requestType);
             } else {
                 logger.warning("Endpoint::read:invalid table: " + table.value());
+                description = "Attempted to read " + referenceUrl + " but is invalid";
+                new Audit(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.MINOR_FAILURE, referenceUrl,
+                        request, description);
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
         }
+
+        new Audit(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.MINOR_FAILURE, referenceUrl, request,
+                description);
         return new ResponseEntity<String>(formattedData, HttpStatus.OK);
     }
 
     /**
-     * Read a resource from an endpoint in either JSON or XML
+     * Delete a specific resource
      * 
      * @param id          - the ID of the resource.
      * @param patient     - the patient ID.
@@ -88,10 +103,14 @@ public class Endpoint {
      * @param requestType - the RequestType of the request.
      * @return status of the deleted resource
      */
-    public static ResponseEntity<String> delete(String id, String patient, Table table, RequestType requestType) {
+    public static ResponseEntity<String> delete(String id, String patient, Table table, HttpServletRequest request,
+            RequestType requestType) {
         logger.info("DELETE /" + table.value() + ":" + id + "/" + patient + " fhir+" + requestType.name());
         HttpStatus status = HttpStatus.OK;
         OperationOutcome outcome = null;
+        AuditEventOutcome auditOutcome = AuditEventOutcome.MINOR_FAILURE;
+        String referenceUrl = table.value() + "/" + id;
+        String description = "Attempted to delete " + referenceUrl;
         if (id == null) {
             // Do not delete everything
             // ID is required...
@@ -104,11 +123,16 @@ public class Endpoint {
             outcome = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.REQUIRED, REQUIRES_PATIENT);
         } else {
             // Delete the specified resource..
-            if (App.getDB().delete(table, id, patient))
+            if (App.getDB().delete(table, id, patient)) {
                 outcome = FhirUtils.buildOutcome(IssueSeverity.INFORMATION, IssueType.DELETED, DELETED_MSG);
-            else
+                auditOutcome = AuditEventOutcome.SUCCESS;
+            } else
                 outcome = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INCOMPLETE, SQL_ERROR);
         }
+
+        description = "Delete " + referenceUrl;
+        new Audit(AuditEventType.REST, AuditEventAction.D, auditOutcome, referenceUrl, request, description);
+
         String formattedData = FhirUtils.getFormattedData(outcome, requestType);
         return new ResponseEntity<>(formattedData, status);
     }

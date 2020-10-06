@@ -22,11 +22,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
+import org.hl7.davinci.priorauth.Audit.AuditEventType;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Subscription;
+import org.hl7.fhir.r4.model.AuditEvent.AuditEventAction;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionChannelType;
@@ -71,32 +74,34 @@ public class SubscriptionEndpoint {
     }
 
     @PostMapping(value = "", consumes = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
-    public ResponseEntity<String> addSubscriptionJSON(HttpEntity<String> entity) {
-        return addSubscription(entity.getBody(), RequestType.JSON);
+    public ResponseEntity<String> addSubscriptionJSON(HttpServletRequest request, HttpEntity<String> entity) {
+        return addSubscription(entity.getBody(), request, RequestType.JSON);
     }
 
     @PostMapping(value = "", consumes = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
-    public ResponseEntity<String> addSubscriptionXML(HttpEntity<String> entity) {
-        return addSubscription(entity.getBody(), RequestType.XML);
+    public ResponseEntity<String> addSubscriptionXML(HttpServletRequest request, HttpEntity<String> entity) {
+        return addSubscription(entity.getBody(), request, RequestType.XML);
     }
 
     @DeleteMapping(value = "", consumes = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
-    public ResponseEntity<String> deleteSubscriptionJSON(@RequestParam("identifier") String id,
-            @RequestParam("patient.identifier") String patient) {
-        return Endpoint.delete(id, patient, Table.SUBSCRIPTION, RequestType.JSON);
+    public ResponseEntity<String> deleteSubscriptionJSON(HttpServletRequest request,
+            @RequestParam("identifier") String id, @RequestParam("patient.identifier") String patient) {
+        return Endpoint.delete(id, patient, Table.SUBSCRIPTION, request, RequestType.JSON);
     }
 
     @DeleteMapping(value = "", consumes = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
-    public ResponseEntity<String> deleteSubscriptionXML(@RequestParam("identifier") String id,
-            @RequestParam("patient.identifier") String patient) {
-        return Endpoint.delete(id, patient, Table.SUBSCRIPTION, RequestType.XML);
+    public ResponseEntity<String> deleteSubscriptionXML(HttpServletRequest request,
+            @RequestParam("identifier") String id, @RequestParam("patient.identifier") String patient) {
+        return Endpoint.delete(id, patient, Table.SUBSCRIPTION, request, RequestType.XML);
     }
 
-    private ResponseEntity<String> addSubscription(String body, RequestType requestType) {
+    private ResponseEntity<String> addSubscription(String body, HttpServletRequest request, RequestType requestType) {
         logger.info("POST /Subscription fhir+" + requestType.name());
 
         HttpStatus status = HttpStatus.OK;
         String formattedData = null;
+        String description = "Subscribe to pended Claim";
+        AuditEventOutcome auditOutcome = AuditEventOutcome.SUCCESS;
         try {
             IParser parser = requestType == RequestType.JSON ? App.getFhirContext().newJsonParser()
                     : App.getFhirContext().newXmlParser();
@@ -104,6 +109,12 @@ public class SubscriptionEndpoint {
             if (resource instanceof Subscription) {
                 Subscription subscription = (Subscription) resource;
                 SubscriptionChannelType subscriptionType = subscription.getChannel().getType();
+                String criteria = subscription.getCriteria();
+                String restEndpoint = subscription.getChannel().getEndpoint();
+
+                description += "\nCriteria: " + criteria + "\nType: " + subscriptionType.toCode();
+                if (subscriptionType == SubscriptionChannelType.RESTHOOK)
+                    description += "\nEndpoint: " + restEndpoint;
 
                 // Check valid subscription type
                 if (subscriptionType == SubscriptionChannelType.RESTHOOK
@@ -116,6 +127,7 @@ public class SubscriptionEndpoint {
                         OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID,
                                 PROCESS_FAILED);
                         formattedData = FhirUtils.getFormattedData(error, requestType);
+                        auditOutcome = AuditEventOutcome.MINOR_FAILURE;
                     }
                 } else {
                     // Subscription must be rest-hook or websocket....
@@ -123,6 +135,7 @@ public class SubscriptionEndpoint {
                     OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID,
                             INVALID_CHANNEL_TYPE);
                     formattedData = FhirUtils.getFormattedData(error, requestType);
+                    auditOutcome = AuditEventOutcome.MINOR_FAILURE;
                 }
             } else {
                 // Subscription is required...
@@ -130,6 +143,7 @@ public class SubscriptionEndpoint {
                 OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID,
                         REQUIRES_SUBSCRIPTION);
                 formattedData = FhirUtils.getFormattedData(error, requestType);
+                auditOutcome = AuditEventOutcome.MINOR_FAILURE;
             }
         } catch (Exception e) {
             // The subscription failed so spectacularly that we need to
@@ -137,10 +151,11 @@ public class SubscriptionEndpoint {
             status = HttpStatus.BAD_REQUEST;
             OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.FATAL, IssueType.STRUCTURE, e.getMessage());
             formattedData = FhirUtils.getFormattedData(error, requestType);
+            auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
         }
+        new Audit(AuditEventType.REST, AuditEventAction.C, auditOutcome, null, request, description);
         MediaType contentType = requestType == RequestType.JSON ? MediaType.APPLICATION_JSON
                 : MediaType.APPLICATION_XML;
-
         return ResponseEntity.status(status).contentType(contentType).body(formattedData);
 
     }

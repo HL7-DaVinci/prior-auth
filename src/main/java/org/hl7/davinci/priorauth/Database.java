@@ -15,8 +15,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.h2.jdbc.JdbcSQLIntegrityConstraintViolationException;
+import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
+import org.hl7.davinci.priorauth.Audit.AuditEventType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.*;
+import org.hl7.fhir.r4.model.AuditEvent.AuditEventAction;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Bundle.BundleType;
 
@@ -191,6 +194,7 @@ public class Database {
    */
   public Bundle search(Table table, Map<String, Object> constraintMap) {
     logger.info("Database::search(" + table.value() + ", " + constraintMap.toString() + ")");
+    AuditEventOutcome auditOutcome = AuditEventOutcome.SUCCESS;
     Bundle results = new Bundle();
     results.setType(BundleType.SEARCHSET);
     results.setTimestamp(new Date());
@@ -218,8 +222,10 @@ public class Database {
       }
       results.setTotal(total);
     } catch (SQLException e) {
+      auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
       logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
     }
+    new Audit(AuditEventType.ACTIVITY, AuditEventAction.R, auditOutcome, null, null, "Search " + table.value());
     return results;
   }
 
@@ -232,6 +238,7 @@ public class Database {
    */
   public IBaseResource read(Table table, Map<String, Object> constraintParams) {
     logger.info("Database::read(" + table.value() + ", " + constraintParams.toString() + ")");
+    AuditEventOutcome auditOutcome = AuditEventOutcome.SUCCESS;
     IBaseResource result = null;
     if (table != null && constraintParams != null) {
       try (Connection connection = getConnection()) {
@@ -251,9 +258,11 @@ public class Database {
           result = (Resource) App.getFhirContext().newJsonParser().parseResource(json);
         }
       } catch (SQLException e) {
+        auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
+    new Audit(AuditEventType.ACTIVITY, AuditEventAction.R, auditOutcome, null, null, "Read from " + table.value());
     return result;
   }
 
@@ -267,6 +276,7 @@ public class Database {
    */
   public List<IBaseResource> readAll(Table table, Map<String, Object> constraintParams) {
     logger.info("Database::readAll(" + table.value() + ", " + constraintParams.toString() + ")");
+    AuditEventOutcome auditOutcome = AuditEventOutcome.SUCCESS;
     List<IBaseResource> results = new ArrayList<IBaseResource>();
     if (table != null && constraintParams != null) {
       try (Connection connection = getConnection()) {
@@ -286,9 +296,11 @@ public class Database {
           results.add((Resource) App.getFhirContext().newJsonParser().parseResource(json));
         }
       } catch (SQLException e) {
+        auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
+    new Audit(AuditEventType.ACTIVITY, AuditEventAction.R, auditOutcome, null, null, "Read all of " + table.value());
     return results;
   }
 
@@ -337,12 +349,16 @@ public class Database {
         ResultSet rs = stmt.executeQuery();
 
         if (rs.next()) {
+          new Audit(AuditEventType.ACTIVITY, AuditEventAction.R, AuditEventOutcome.SUCCESS, null, null,
+              "Read " + column + " from " + table.value());
           return rs.getString(column);
         }
       } catch (SQLException e) {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
+    new Audit(AuditEventType.ACTIVITY, AuditEventAction.R, AuditEventOutcome.SERIOUS_FAILURE, null, null,
+        "Read " + column + " from " + table.value());
     return null;
   }
 
@@ -355,6 +371,7 @@ public class Database {
    */
   public boolean write(Table table, Map<String, Object> data) {
     logger.info("Database::write(" + table.value() + ", " + data.toString() + ")");
+    AuditEventOutcome auditOutcome = AuditEventOutcome.SUCCESS;
     boolean result = false;
     if (data != null) {
       try (Connection connection = getConnection()) {
@@ -372,13 +389,18 @@ public class Database {
         logger.fine(stmt.toString());
         result = true;
       } catch (JdbcSQLIntegrityConstraintViolationException e) {
+        auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
         logger.log(Level.SEVERE,
             "Database::runQuery:JdbcSQLIntegrityConstraintViolationException(attempting to insert foreign key which does not exist)",
             e);
       } catch (SQLException e) {
+        auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
+    if (table != Table.AUDIT)
+      new Audit(AuditEventType.ACTIVITY, AuditEventAction.C, auditOutcome, null, null,
+          "Write to " + table.value() + "\n" + data.toString());
     return result;
   }
 
@@ -393,11 +415,12 @@ public class Database {
   public boolean update(Table table, Map<String, Object> constraintParams, Map<String, Object> data) {
     logger.info("Database::update(" + table.value() + ", WHERE " + constraintParams.toString() + ", SET"
         + data.toString() + ")");
+    AuditEventOutcome auditOutcome = AuditEventOutcome.SUCCESS;
     boolean result = false;
+    String sql = "UPDATE " + table.value() + " SET " + generateClause(data, SET_CONCAT)
+        + ", timestamp = CURRENT_TIMESTAMP WHERE " + generateClause(constraintParams, WHERE_CONCAT) + ";";
     if (table != null && constraintParams != null && data != null) {
       try (Connection connection = getConnection()) {
-        String sql = "UPDATE " + table.value() + " SET " + generateClause(data, SET_CONCAT)
-            + ", timestamp = CURRENT_TIMESTAMP WHERE " + generateClause(constraintParams, WHERE_CONCAT) + ";";
         Collection<Map<String, Object>> maps = new ArrayList<Map<String, Object>>();
         maps.add(data);
         maps.add(constraintParams);
@@ -406,9 +429,11 @@ public class Database {
         result = stmt.getUpdateCount() > 0 ? true : false;
         logger.fine(stmt.toString());
       } catch (SQLException e) {
+        auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
+    new Audit(AuditEventType.ACTIVITY, AuditEventAction.U, auditOutcome, null, null, sql);
     return result;
   }
 
@@ -489,6 +514,7 @@ public class Database {
    */
   public boolean delete(Table table, String id, String patient) {
     logger.info("Database::delete(" + table.value() + ", " + id + ", " + patient + ")");
+    AuditEventOutcome auditOutcome = AuditEventOutcome.SUCCESS;
     boolean result = false;
     if (table != null && id != null) {
       try (Connection connection = getConnection()) {
@@ -499,9 +525,12 @@ public class Database {
         stmt.execute();
         result = stmt.getUpdateCount() > 0 ? true : false;
       } catch (SQLException e) {
+        auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
+    new Audit(AuditEventType.ACTIVITY, AuditEventAction.D, auditOutcome, null, null,
+        "Delete " + table.value() + "/" + id + " for patient " + patient);
     return result;
   }
 
@@ -514,6 +543,7 @@ public class Database {
    */
   public boolean delete(Table table, String id) {
     logger.info("Database::delete(" + table.value() + ", " + id + ")");
+    AuditEventOutcome auditOutcome = AuditEventOutcome.SUCCESS;
     boolean result = false;
     if (table != null && id != null) {
       try (Connection connection = getConnection()) {
@@ -522,9 +552,12 @@ public class Database {
         stmt.execute();
         result = stmt.getUpdateCount() > 0 ? true : false;
       } catch (SQLException e) {
+        auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
+    new Audit(AuditEventType.ACTIVITY, AuditEventAction.D, auditOutcome, null, null,
+        "Delete " + id + "from " + table.value());
     return result;
   }
 
@@ -536,6 +569,7 @@ public class Database {
    */
   public boolean delete(Table table) {
     logger.info("Database::delete(" + table.value() + ")");
+    AuditEventOutcome auditOutcome = AuditEventOutcome.SUCCESS;
     boolean result = false;
     if (table != null) {
       try (Connection connection = getConnection()) {
@@ -543,9 +577,11 @@ public class Database {
         stmt.execute();
         result = stmt.getUpdateCount() > 0 ? true : false;
       } catch (SQLException e) {
+        auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
+    new Audit(AuditEventType.ACTIVITY, AuditEventAction.D, auditOutcome, null, null, "Delete " + table.value());
     return result;
   }
 

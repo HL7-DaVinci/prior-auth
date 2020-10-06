@@ -1,10 +1,13 @@
 package org.hl7.davinci.priorauth;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.fhir.r4.model.AuditEvent;
 import org.hl7.fhir.r4.model.BooleanType;
 import org.hl7.fhir.r4.model.Coding;
@@ -33,7 +36,8 @@ public class Audit {
             "4", "Application Server");
 
     public enum AuditEventType {
-        AUDIT("110101", "Audit Log Used"), QUERY("110112", "Query");
+        AUDIT("110101", "Audit Log Used"), REST("rest", "RESTful Operation"),
+        ACTIVITY("110100", "Application Activity"), QUERY("110112", "Query");
 
         private final String code;
         private final String display;
@@ -47,6 +51,29 @@ public class Audit {
         public Coding toCoding() {
             return new Coding(SYSTEM, this.code, this.display);
         }
+
+        public String toCode() {
+            return this.code;
+        }
+    }
+
+    public enum AuditEventOutcome {
+        SUCCESS("0"), MINOR_FAILURE("4"), SERIOUS_FAILURE("8"), MAJOR_FAILURE("12");
+
+        private final String code;
+
+        AuditEventOutcome(String code) {
+            this.code = code;
+        }
+
+        public AuditEvent.AuditEventOutcome getOutcome() {
+            return AuditEvent.AuditEventOutcome.fromCode(this.code);
+        }
+
+        public String toCode() {
+            return this.code;
+        }
+
     }
 
     /**
@@ -57,6 +84,8 @@ public class Audit {
      * @return the IP Address
      */
     private static String getIPAddress(HttpServletRequest request) {
+        if (request == null)
+            return null;
         String xffHeader = request.getHeader("X-Forwarded-For");
         if (xffHeader != null)
             return xffHeader;
@@ -70,19 +99,25 @@ public class Audit {
         return source;
     }
 
-    private static AuditEventEntityComponent createEntityComponent(Reference what, String query) {
+    private static AuditEventEntityComponent createEntityComponent(Reference what, String query, String description) {
         AuditEventEntityComponent entity = new AuditEventEntityComponent();
-        entity.setWhat(what);
-        entity.setQuery(query.getBytes());
+        entity.setDescription(description);
+        if (query != null)
+            entity.setQuery(query.getBytes());
+        if (what != null)
+            entity.setWhat(what);
         return entity;
     }
 
     private static AuditEventAgentComponent createAgentComponent(String ip) {
-        AuditEventAgentNetworkComponent network = new AuditEventAgentNetworkComponent();
-        network.setAddress(ip);
-        network.setType(AuditEventAgentNetworkType.fromCode("2"));
-        AuditEventAgentComponent agent = new AuditEventAgentComponent(new BooleanType(true));
-        agent.setNetwork(network);
+        AuditEventAgentComponent agent = new AuditEventAgentComponent(new BooleanType(ip != null));
+        if (ip != null) {
+            AuditEventAgentNetworkComponent network = new AuditEventAgentNetworkComponent();
+            network.setAddress(ip);
+            network.setType(AuditEventAgentNetworkType.fromCode("2"));
+            agent.setNetwork(network);
+        } else
+            agent.setName("MITRE PAS Reference Implementation");
         return agent;
     }
 
@@ -95,20 +130,39 @@ public class Audit {
      * @param request     - the servlet request
      * @return an AuditEvent resource for the action
      */
-    public static AuditEvent AuditEventFactory(AuditEventType eventType, AuditEventAction eventAction, Reference what,
-            HttpServletRequest request) {
+    private static AuditEvent AuditEventFactory(AuditEventType eventType, AuditEventAction eventAction,
+            AuditEventOutcome outcome, Reference what, String query, String ip, String description) {
         Coding type = eventType.toCoding();
         InstantType recorded = new InstantType(new Date());
         AuditEventSourceComponent source = createSourceComponent();
-        AuditEventEntityComponent entity = createEntityComponent(what, request.getRequestURL().toString());
-        AuditEventAgentComponent agent = createAgentComponent(getIPAddress(request));
+        AuditEventEntityComponent entity = createEntityComponent(what, query, description);
+        AuditEventAgentComponent agent = createAgentComponent(ip);
 
         // TODO: how to verify agent in PAS RI since IP can be spoofed
         AuditEvent auditEvent = new AuditEvent(type, recorded, source);
         auditEvent.addAgent(agent);
         auditEvent.addEntity(entity);
+        auditEvent.setOutcome(outcome.getOutcome());
         auditEvent.setId(UUID.randomUUID().toString());
 
         return auditEvent;
+    }
+
+    public Audit(AuditEventType eventType, AuditEventAction eventAction, AuditEventOutcome outcome, String referenceUrl,
+            HttpServletRequest request, String description) {
+        String ip = getIPAddress(request);
+        String query = request != null ? request.getRequestURL().toString() : null;
+        AuditEvent audit = AuditEventFactory(eventType, eventAction, outcome, new Reference(referenceUrl), query, ip,
+                description);
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("id", audit.getId());
+        data.put("type", eventType.toCode());
+        data.put("action", eventAction.getDisplay());
+        data.put("outcome", outcome.toCode());
+        data.put("what", referenceUrl);
+        data.put("query", query);
+        data.put("ip", ip);
+        data.put("resource", FhirUtils.json(audit));
+        App.getDB().write(Table.AUDIT, data);
     }
 }
