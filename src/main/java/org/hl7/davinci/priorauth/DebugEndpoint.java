@@ -73,6 +73,11 @@ public class DebugEndpoint {
     return query(Table.AUDIT, request);
   }
 
+  @GetMapping("/Client")
+  public ResponseEntity<String> getClient(HttpServletRequest request) {
+    return query(Table.CLIENT, request);
+  }
+
   @PostMapping("/PopulateDatabaseTestData")
   public ResponseEntity<String> populateDatabase(HttpServletRequest request) {
     if (App.debugMode) {

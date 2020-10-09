@@ -73,4 +73,12 @@ BEGIN TRANSACTION;
         "resource" clob
     );
 
+    CREATE TABLE IF NOT EXISTS Client (
+        "id" varchar PRIMARY KEY,
+        "jwks" varchar DEFAULT NULL,
+        "jwks_url" varchar DEFAULT NULL,
+        "token" varchar DEFAULT NULL,
+        "timestamp" datetime DEFAULT CURRENT_TIMESTAMP
+    );
+
 COMMIT;

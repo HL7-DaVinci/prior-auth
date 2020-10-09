@@ -84,6 +84,24 @@ If debug mode is enabled the following endpoints are available for use at `http:
 | `/debug/Convert`                  | `POST`  | Convert a CQL body (string) into Elm (xml)                                                                                                                             |
 | `/$expunge`                       | `POST`  | Delete all entried in all tables                                                                                                                                       |
 
+## Authorization
+
+### Server to Server OAuth
+The recommended way of authorization is server to server OAuth. The implementation details are provided in the [Bulk Data Transfer IG](https://build.fhir.org/ig/HL7/us-bulk-data/authorization/index.html).
+
+#### Register a new client `/auth/register`
+Registering a new client requires providing either the jwks or a public url to get the jwks. The URL is the preferrable way.
+```
+HTTP POST /auth/register
+Content-Type application/json
+{
+  "jwks_url": "http://example.com/jwks"
+}
+```
+The server will respond with a JSON object containing `client_id`. This will be required for the client to recieve a token
+
+#### Token request `/auth/token`
+
 ## Contents of `/Claim/$submit` Submission
 
 The body of the `/Claim/$submit` operation are as follows:

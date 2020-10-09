@@ -32,7 +32,7 @@ public class Database {
 
   public enum Table {
     BUNDLE("Bundle"), CLAIM("Claim"), CLAIM_ITEM("ClaimItem"), CLAIM_RESPONSE("ClaimResponse"),
-    SUBSCRIPTION("Subscription"), RULES("Rules"), AUDIT("Audit");
+    SUBSCRIPTION("Subscription"), RULES("Rules"), AUDIT("Audit"), CLIENT("Client");
 
     private final String value;
 
