@@ -55,6 +55,7 @@ public class AuthEndpoint {
 
     @PostMapping(value = "/register", consumes = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
     public ResponseEntity<String> registerClient(HttpServletRequest request, HttpEntity<String> entity) {
+        App.setBaseUrl(Endpoint.getServiceBaseUrl(request));
         HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
         String body = entity.getBody();
         String clientId = UUID.randomUUID().toString();
@@ -86,6 +87,7 @@ public class AuthEndpoint {
             @RequestParam(name = "grant_type", required = true) String grantType,
             @RequestParam(name = "client_assertion_type", required = true) String clientAssertionType,
             @RequestParam(name = "client_assertion", required = true) String token) {
+        App.setBaseUrl(Endpoint.getServiceBaseUrl(request));
         // TODO create audit event
         logger.info("AuthEndpoint::token:scope=" + scope + "&grant_type=" + grantType + "&client_assertion_type="
                 + clientAssertionType + "&client_assertion=" + token);
@@ -275,6 +277,7 @@ public class AuthEndpoint {
      * @return true if the token is valid, false otherwise
      */
     private static boolean tokenIsValid(String token, RSAPublicKey publicKey, String clientId) {
+        logger.info(App.getBaseUrl() + "/auth");
         try {
             Algorithm algorithm = Algorithm.RSA384(publicKey, null);
             JWTVerifier verifier = JWT.require(algorithm).withSubject(clientId)
