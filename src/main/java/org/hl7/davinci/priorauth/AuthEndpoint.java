@@ -171,6 +171,15 @@ public class AuthEndpoint {
                 .body(JSONObject.toJSONString(response));
     }
 
+    public static void PopulateClientTable() {
+        // Auto register DTR RI
+        HashMap<String, Object> dataMap = new HashMap<String, Object>();
+        dataMap.put("id", "797da153-9a36-4493-9910-10648a4deb03");
+        dataMap.put("jwks", "{\"keys\":[{\"ext\":true,\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"3ab8b05b64d799e289e10a201786b38c\",\"key_ops\":[\"verify\"],\"alg\":\"RS384\",\"n\":\"52tcPrGJgzyGqjcUiHsbSk_PxQ7Uovz4saGxva3iyBoidsekonigJJ3LnFlHYb3vBa2NA-0GpX2E1KhNNcYWAWQFcu069zi0YZ_wWGn6PWZURuonUoKH4dGHggym3xxVUxuA8OPubGe5ji56eic4RPINg0z-TtPlS-H9dnDIVznRUTXf3fy2dqWMuTY4D2e4fXGII6OpFAsEyrOqIoR8pLWGu7AiQkothunopp9q_Gu2xqB6l8BNulsbiwsQMeRE-9SGfeFpyblHiizHDwSqeZ3iv49Ellk4yjmrf6wOaFA2IXRqL1cCLj86B6KIDrjdzOL4lOSiES-PclNpioG2rQ\"}]}");
+        dataMap.put("jwks_url", null);
+        App.getDB().write(Table.CLIENT, dataMap);
+    }
+
     /**
      * Generate a new auth token using SecureRandom
      * 

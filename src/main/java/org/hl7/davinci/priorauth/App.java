@@ -64,6 +64,7 @@ public class App {
     if (DB == null) {
       DB = new Database();
       PriorAuthRule.populateRulesTable();
+      AuthEndpoint.PopulateClientTable();
     }
   }
 
