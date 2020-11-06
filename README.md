@@ -4,7 +4,7 @@ The Da Vinci Prior Authorization Reference Implementation (RI) is a software pro
 
 ## Requirements
 
-- Java JDK 8
+- Java JDK 11
 
 ## Getting Started
 
@@ -86,11 +86,33 @@ If debug mode is enabled the following endpoints are available for use at `http:
 
 ## Authorization
 
+### SSL Certificates
+
+This Reference Implementation expects a certificate to be used to enable SSL traffic. Configuration details are in `src/main/resources/application.properties`. The default SSL configurations are
+
+```
+server.ssl.key-store=pas_keystore.p12
+server.ssl.key-store-password=password
+server.ssl.keyStoreType=PKCS12
+server.ssl.keyAlias=pas
+```
+
+To create your own certificate run the following from the root directory of this project:
+
+```
+$ keytool -genkey -alias pas -keystore pas_keystore.p12 -keyalg RSA -storetype PKCS12
+```
+
+You will be prompted to create a password for the keystore and then enter details about the certificate. Be sure to update `server.ssl.key-store-password` above with the new password you just created.
+
 ### Server to Server OAuth
+
 The recommended way of authorization is server to server OAuth. The implementation details are provided in the [Bulk Data Transfer IG](https://build.fhir.org/ig/HL7/us-bulk-data/authorization/index.html).
 
 #### Register a new client `/auth/register`
+
 Registering a new client requires providing either the jwks or a public url to get the jwks. The URL is the preferrable way.
+
 ```
 HTTP POST /auth/register
 Content-Type application/json
@@ -98,6 +120,7 @@ Content-Type application/json
   "jwks_url": "http://example.com/jwks"
 }
 ```
+
 The server will respond with a JSON object containing `client_id`. This will be required for the client to recieve a token
 
 #### Token request `/auth/token`
