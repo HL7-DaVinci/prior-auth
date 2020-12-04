@@ -83,12 +83,14 @@ public class ClaimEndpoint {
     return Endpoint.read(Table.CLAIM, constraintMap, request, RequestType.XML);
   }
 
+  @CrossOrigin
   @DeleteMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> deleteClaimJson(HttpServletRequest request,
       @RequestParam(name = "identifier") String id, @RequestParam(name = "patient.identifier") String patient) {
     return Endpoint.delete(id, patient, Table.CLAIM, request, RequestType.JSON);
   }
 
+  @CrossOrigin
   @DeleteMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
   public ResponseEntity<String> deleteClaimXml(HttpServletRequest request, @RequestParam(name = "identifier") String id,
       @RequestParam(name = "patient.identifier") String patient) {
@@ -115,6 +117,9 @@ public class ClaimEndpoint {
   private ResponseEntity<String> submitOperation(String body, RequestType requestType, HttpServletRequest request) {
     logger.info("POST /Claim/$submit fhir+" + requestType.name());
     App.setBaseUrl(Endpoint.getServiceBaseUrl(request));
+
+    if (!AuthEndpoint.validateAccessToken(request)) 
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).contentType(MediaType.APPLICATION_JSON).body("{ error: \"Invalid access token. Make sure to use Authorization: Bearer (token)\" }");
 
     String id = null;
     String patient = null;

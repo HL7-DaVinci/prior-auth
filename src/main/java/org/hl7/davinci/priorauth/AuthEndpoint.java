@@ -7,15 +7,19 @@ import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPublicKeySpec;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.naming.directory.InvalidAttributeValueException;
 import javax.servlet.http.HttpServletRequest;
@@ -52,6 +56,8 @@ public class AuthEndpoint {
 
     static final String INVALID_REQUEST = "invalid_request";
     static final String INVALID_CLIENT = "invalid_client";
+
+    static final int TOKEN_LIFE_MIN = 5;
 
     @PostMapping(value = "/register", consumes = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
     public ResponseEntity<String> registerClient(HttpServletRequest request, HttpEntity<String> entity) {
@@ -164,7 +170,7 @@ public class AuthEndpoint {
         Map<String, Object> response = new HashMap<String, Object>();
         response.put("access_token", authToken);
         response.put("token_type", "bearer");
-        response.put("expires_in", 300);
+        response.put("expires_in", TOKEN_LIFE_MIN * 60);
         response.put("scope", "system/*.read");
         return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.APPLICATION_JSON)
                 .cacheControl(CacheControl.noStore()).header("Pragma", "no-cache")
@@ -177,7 +183,58 @@ public class AuthEndpoint {
         dataMap.put("id", "797da153-9a36-4493-9910-10648a4deb03");
         dataMap.put("jwks", "{\"keys\":[{\"ext\":true,\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"3ab8b05b64d799e289e10a201786b38c\",\"key_ops\":[\"verify\"],\"alg\":\"RS384\",\"n\":\"52tcPrGJgzyGqjcUiHsbSk_PxQ7Uovz4saGxva3iyBoidsekonigJJ3LnFlHYb3vBa2NA-0GpX2E1KhNNcYWAWQFcu069zi0YZ_wWGn6PWZURuonUoKH4dGHggym3xxVUxuA8OPubGe5ji56eic4RPINg0z-TtPlS-H9dnDIVznRUTXf3fy2dqWMuTY4D2e4fXGII6OpFAsEyrOqIoR8pLWGu7AiQkothunopp9q_Gu2xqB6l8BNulsbiwsQMeRE-9SGfeFpyblHiizHDwSqeZ3iv49Ellk4yjmrf6wOaFA2IXRqL1cCLj86B6KIDrjdzOL4lOSiES-PclNpioG2rQ\"}]}");
         dataMap.put("jwks_url", null);
+        dataMap.put("token", "Y3YWq2l08kvFqy50fQJY");
         App.getDB().write(Table.CLIENT, dataMap);
+    }
+
+    public static boolean validateAccessToken(HttpServletRequest request) {
+        String accessToken = getAccessToken(request);
+        if (accessToken == null) return false;
+
+        // Admin token is Y3YWq2l08kvFqy50fQJY
+        if (accessToken.equals("Y3YWq2l08kvFqy50fQJY")) {
+            logger.fine("AuthEndpoint::validateAccessToken:Admin token used");
+            return true;
+        }
+
+        String timestamp = App.getDB().readString(Table.CLIENT, Collections.singletonMap("token", accessToken), "timestamp");
+        if (timestamp == null) return false;
+
+        // Validate token age
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date issuedAt;
+		try {
+			issuedAt = formatter.parse(timestamp);
+		} catch (java.text.ParseException e) {
+            e.printStackTrace();
+            logger.log(Level.SEVERE, "AuthEndpoint::validateAccessToken:Error parsing date", e);
+            return false;
+        }
+        
+        Date now = new Date();
+        long tokenAgeMs = now.getTime() - issuedAt.getTime();
+
+        if (tokenAgeMs > TOKEN_LIFE_MIN * 60000) {
+            logger.severe("AuthEndpoint::validateAccessToken:Access Token expired. Max Age " + TOKEN_LIFE_MIN*60000 + " but token age is " + tokenAgeMs);
+            return false;
+        }
+
+        return true;
+    }
+
+    private static String getAccessToken(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        logger.log(Level.FINE, "AuthEndpoint::getAccessToken:Authorization header: " + authHeader);
+        if (authHeader != null) {
+            String regex = "Bearer (.*)";
+            Pattern pattern = Pattern.compile(regex);
+            Matcher accessTokenMatcher = pattern.matcher(authHeader);
+            if (accessTokenMatcher.find() && accessTokenMatcher.groupCount() == 1) {
+                return accessTokenMatcher.group(1);
+            }
+        }
+
+        return null;
     }
 
     /**

@@ -69,12 +69,14 @@ public class ClaimResponseEndpoint {
     return Endpoint.read(Table.CLAIM_RESPONSE, constraintMap, request, requestType);
   }
 
+  @CrossOrigin
   @DeleteMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> deleteClaimResponse(HttpServletRequest request,
       @RequestParam(name = "identifier") String id, @RequestParam(name = "patient.identifier") String patient) {
     return Endpoint.delete(id, patient, Table.CLAIM_RESPONSE, request, RequestType.JSON);
   }
 
+  @CrossOrigin
   @DeleteMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
   public ResponseEntity<String> deleteClaimResponseXml(HttpServletRequest request,
       @RequestParam(name = "identifier") String id, @RequestParam(name = "patient.identifier") String patient) {

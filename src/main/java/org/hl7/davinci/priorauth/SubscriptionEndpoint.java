@@ -48,16 +48,16 @@ public class SubscriptionEndpoint {
 
     static final Logger logger = PALogger.getLogger();
 
-    String REQUIRES_SUBSCRIPTION = "Prior Authorization Subscription Operation requires a Subscription resource";
-    String SUBSCRIPTION_ADDED_SUCCESS = "Subscription successful";
-    String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
-    String INVALID_CHANNEL_TYPE = "Invalid channel type. Must be rest-hook or websocket";
+    static final String REQUIRES_SUBSCRIPTION = "Prior Authorization Subscription Operation requires a Subscription resource";
+    static final String SUBSCRIPTION_ADDED_SUCCESS = "Subscription successful";
+    static final String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
+    static final String INVALID_CHANNEL_TYPE = "Invalid channel type. Must be rest-hook or websocket";
 
     @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
     public ResponseEntity<String> readSubscriptionJSON(HttpServletRequest request,
             @RequestParam(name = "identifier", required = false) String id,
             @RequestParam(name = "patient.identifier") String patient) {
-        Map<String, Object> constraintMap = new HashMap<String, Object>();
+        Map<String, Object> constraintMap = new HashMap<>();
         constraintMap.put("claimResponseId", id);
         constraintMap.put("patient", patient);
         return Endpoint.read(Table.SUBSCRIPTION, constraintMap, request, RequestType.JSON);
@@ -67,7 +67,7 @@ public class SubscriptionEndpoint {
     public ResponseEntity<String> readSubscriptionXML(HttpServletRequest request,
             @RequestParam(name = "identifier", required = false) String id,
             @RequestParam(name = "patient.identifier") String patient) {
-        Map<String, Object> constraintMap = new HashMap<String, Object>();
+        Map<String, Object> constraintMap = new HashMap<>();
         constraintMap.put("claimResponseId", id);
         constraintMap.put("patient", patient);
         return Endpoint.read(Table.SUBSCRIPTION, constraintMap, request, RequestType.XML);
@@ -83,13 +83,15 @@ public class SubscriptionEndpoint {
         return addSubscription(entity.getBody(), request, RequestType.XML);
     }
 
-    @DeleteMapping(value = "", consumes = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
-    public ResponseEntity<String> deleteSubscriptionJSON(HttpServletRequest request,
+    @CrossOrigin()
+    @DeleteMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
+    public ResponseEntity<String> deleteSubscription(HttpServletRequest request,
             @RequestParam("identifier") String id, @RequestParam("patient.identifier") String patient) {
         return Endpoint.delete(id, patient, Table.SUBSCRIPTION, request, RequestType.JSON);
     }
 
-    @DeleteMapping(value = "", consumes = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
+    @CrossOrigin()
+    @DeleteMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
     public ResponseEntity<String> deleteSubscriptionXML(HttpServletRequest request,
             @RequestParam("identifier") String id, @RequestParam("patient.identifier") String patient) {
         return Endpoint.delete(id, patient, Table.SUBSCRIPTION, request, RequestType.XML);
@@ -175,7 +177,7 @@ public class SubscriptionEndpoint {
 
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(criteria);
-        Map<String, String> criteriaMap = new HashMap<String, String>();
+        Map<String, String> criteriaMap = new HashMap<>();
 
         if (matcher.find() && matcher.groupCount() == 6) {
             criteriaMap.put(matcher.group(1), matcher.group(2));
@@ -213,7 +215,7 @@ public class SubscriptionEndpoint {
         subscription.setId(id);
         subscription.setStatus(SubscriptionStatus.ACTIVE);
         logger.fine("SubscriptionEndpoint::Subscription given uuid " + id);
-        Map<String, Object> dataMap = new HashMap<String, Object>();
+        Map<String, Object> dataMap = new HashMap<>();
         dataMap.put("id", id);
         dataMap.put("claimResponseId", claimResponseId);
         dataMap.put("patient", patient);
