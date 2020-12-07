@@ -7,7 +7,9 @@ import javax.servlet.http.HttpServletRequest;
 import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
 import org.hl7.davinci.priorauth.Audit.AuditEventType;
 import org.hl7.fhir.r4.model.CapabilityStatement;
+import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.StringType;
+import org.hl7.fhir.r4.model.UriType;
 import org.hl7.fhir.r4.model.AuditEvent.AuditEventAction;
 import org.hl7.fhir.r4.model.CapabilityStatement.CapabilityStatementImplementationComponent;
 import org.hl7.fhir.r4.model.CapabilityStatement.CapabilityStatementKind;
@@ -96,6 +98,10 @@ public class Metadata {
     rest.setMode(RestfulCapabilityMode.SERVER);
     CapabilityStatementRestSecurityComponent security = new CapabilityStatementRestSecurityComponent();
     security.setCors(true);
+    Extension oauthUris = new Extension("http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris");
+    Extension tokenUri = new Extension("token", new UriType("https://davinci-prior-auth.logicahealth.org/fhir/auth/token"));
+    oauthUris.addExtension(tokenUri);
+    security.addExtension(oauthUris);
     rest.setSecurity(security);
 
     // Claim Resource
