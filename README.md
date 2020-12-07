@@ -125,6 +125,22 @@ The server will respond with a JSON object containing `client_id`. This will be 
 
 #### Token request `/auth/token`
 
+A registered client must obtain an access token before making any requests to the server. This is used to validate where the request is coming from and is used in the AuditEvent for creating an audit trail of all requests.
+
+Following the `client_credentials` OAuth 2.0 grant flow the process is:
+
+```
+HTTP POST
+/auth/token?scope={launch scope}
+&grant_type=client_credentials
+&client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer
+&client_assertion={signed JWT token}
+```
+
+Th client_assertion is a signed JWT token following [this structure](https://build.fhir.org/ig/HL7/us-bulk-data/authorization/index.html#obtaining-an-access-token).
+
+The response will be a JSON object containing the `access_token`. This token will only be valid for 5 minutes. In all requests to the server you must add the `Authorization: Bearer {access_token}` header to the HTTP request.
+
 ## Contents of `/Claim/$submit` Submission
 
 The body of the `/Claim/$submit` operation are as follows:
