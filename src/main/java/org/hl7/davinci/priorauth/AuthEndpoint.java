@@ -124,7 +124,7 @@ public class AuthEndpoint {
 
             if (!alg.equals("RS384")) {
                 // if (!alg.equals("RS384") || !alg.equals("EC384")) {
-                return sendError(INVALID_REQUEST, "JWT algorithm not supported. Must be RS384 or EC384.");
+                return sendError(INVALID_REQUEST, "JWT algorithm not supported. Must be RS384 or EC384 (currently unsupported).");
             }
 
             // Get keys and validate signature
@@ -343,11 +343,10 @@ public class AuthEndpoint {
      * @return true if the token is valid, false otherwise
      */
     private static boolean tokenIsValid(String token, RSAPublicKey publicKey, String clientId) {
-        logger.info(App.getBaseUrl() + "/auth");
         try {
             Algorithm algorithm = Algorithm.RSA384(publicKey, null);
             JWTVerifier verifier = JWT.require(algorithm).withSubject(clientId)
-                    .withAudience(App.getBaseUrl() + "/auth").build();
+                    .withAudience(App.getBaseUrl() + "/auth/token").build();
             verifier.verify(token);
         } catch (Exception e) {
             return false;
