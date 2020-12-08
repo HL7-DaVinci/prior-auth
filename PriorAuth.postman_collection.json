@@ -124,6 +124,16 @@
 						{
 							"name": "Claim: Post new $submit",
 							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "Y3YWq2l08kvFqy50fQJY",
+											"type": "string"
+										}
+									]
+								},
 								"method": "POST",
 								"header": [
 									{
@@ -166,6 +176,16 @@
 						{
 							"name": "Claim: Post update $submit",
 							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "Y3YWq2l08kvFqy50fQJY",
+											"type": "string"
+										}
+									]
+								},
 								"method": "POST",
 								"header": [
 									{
@@ -208,6 +228,16 @@
 						{
 							"name": "Claim: DTR 1/20",
 							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "Y3YWq2l08kvFqy50fQJY",
+											"type": "string"
+										}
+									]
+								},
 								"method": "POST",
 								"header": [
 									{
@@ -249,6 +279,16 @@
 						{
 							"name": "Claim: JSON PA Referral Request Example",
 							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "Y3YWq2l08kvFqy50fQJY",
+											"type": "string"
+										}
+									]
+								},
 								"method": "POST",
 								"header": [
 									{
@@ -280,6 +320,16 @@
 						{
 							"name": "Claim: XML PA Referral Request Example",
 							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "Y3YWq2l08kvFqy50fQJY",
+											"type": "string"
+										}
+									]
+								},
 								"method": "POST",
 								"header": [
 									{
@@ -310,6 +360,16 @@
 						{
 							"name": "Claim: JSON PA Home Healthcare Request Example",
 							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "Y3YWq2l08kvFqy50fQJY",
+											"type": "string"
+										}
+									]
+								},
 								"method": "POST",
 								"header": [
 									{
@@ -341,6 +401,16 @@
 						{
 							"name": "Claim: XML PA Home Healthcare Request Example",
 							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "Y3YWq2l08kvFqy50fQJY",
+											"type": "string"
+										}
+									]
+								},
 								"method": "POST",
 								"header": [
 									{
@@ -374,6 +444,16 @@
 				{
 					"name": "Claim: Post new items $submit ",
 					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "Y3YWq2l08kvFqy50fQJY",
+									"type": "string"
+								}
+							]
+						},
 						"method": "POST",
 						"header": [
 							{
@@ -408,6 +488,16 @@
 				{
 					"name": "Claim: Post $submit (diff items)",
 					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "Y3YWq2l08kvFqy50fQJY",
+									"type": "string"
+								}
+							]
+						},
 						"method": "POST",
 						"header": [
 							{
@@ -442,6 +532,16 @@
 				{
 					"name": "Claim: Post $submit (diff items) Copy",
 					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "Y3YWq2l08kvFqy50fQJY",
+									"type": "string"
+								}
+							]
+						},
 						"method": "POST",
 						"header": [
 							{
@@ -476,6 +576,16 @@
 				{
 					"name": "Claim: Post R4 $submit",
 					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "Y3YWq2l08kvFqy50fQJY",
+									"type": "string"
+								}
+							]
+						},
 						"method": "POST",
 						"header": [
 							{
@@ -507,6 +617,16 @@
 				{
 					"name": "Claim: Post update items $submit",
 					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "Y3YWq2l08kvFqy50fQJY",
+									"type": "string"
+								}
+							]
+						},
 						"method": "POST",
 						"header": [
 							{
@@ -538,6 +658,16 @@
 				{
 					"name": "Claim: Post cancel $submit",
 					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "Y3YWq2l08kvFqy50fQJY",
+									"type": "string"
+								}
+							]
+						},
 						"method": "POST",
 						"header": [
 							{
@@ -569,6 +699,16 @@
 				{
 					"name": "Claim: Post update differential $submit",
 					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "Y3YWq2l08kvFqy50fQJY",
+									"type": "string"
+								}
+							]
+						},
 						"method": "POST",
 						"header": [
 							{
@@ -603,6 +743,16 @@
 				{
 					"name": "Subscription: Get All",
 					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "Y3YWq2l08kvFqy50fQJY",
+									"type": "string"
+								}
+							]
+						},
 						"method": "GET",
 						"header": [
 							{
@@ -634,6 +784,16 @@
 				{
 					"name": "Subscription: Get by ID",
 					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "Y3YWq2l08kvFqy50fQJY",
+									"type": "string"
+								}
+							]
+						},
 						"method": "GET",
 						"header": [
 							{
@@ -673,6 +833,16 @@
 				{
 					"name": "Subscription: Post rest-hook",
 					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "Y3YWq2l08kvFqy50fQJY",
+									"type": "string"
+								}
+							]
+						},
 						"method": "POST",
 						"header": [
 							{
@@ -703,6 +873,16 @@
 				{
 					"name": "Subscription: Post websocket",
 					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "Y3YWq2l08kvFqy50fQJY",
+									"type": "string"
+								}
+							]
+						},
 						"method": "POST",
 						"header": [
 							{
@@ -733,6 +913,16 @@
 				{
 					"name": "Subscription: Delete",
 					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "Y3YWq2l08kvFqy50fQJY",
+									"type": "string"
+								}
+							]
+						},
 						"method": "DELETE",
 						"header": [
 							{
@@ -784,7 +974,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"jwks\": {\n  \"keys\": [\n    {\n      \"kty\": \"RSA\",\n      \"alg\": \"RS384\",\n      \"n\": \"52tcPrGJgzyGqjcUiHsbSk_PxQ7Uovz4saGxva3iyBoidsekonigJJ3LnFlHYb3vBa2NA-0GpX2E1KhNNcYWAWQFcu069zi0YZ_wWGn6PWZURuonUoKH4dGHggym3xxVUxuA8OPubGe5ji56eic4RPINg0z-TtPlS-H9dnDIVznRUTXf3fy2dqWMuTY4D2e4fXGII6OpFAsEyrOqIoR8pLWGu7AiQkothunopp9q_Gu2xqB6l8BNulsbiwsQMeRE-9SGfeFpyblHiizHDwSqeZ3iv49Ellk4yjmrf6wOaFA2IXRqL1cCLj86B6KIDrjdzOL4lOSiES-PclNpioG2rQ\",\n      \"e\": \"AQAB\",\n      \"key_ops\": [\"verify\"],\n      \"ext\": true,\n      \"kid\": \"3ab8b05b64d799e289e10a201786b38c\"\n    }\n  ]\n}\n}"
+							"raw": "{\n    \"jwks\": {\n        \"keys\": [\n            {\n                \"kty\": \"RSA\",\n                \"alg\": \"RS384\",\n                \"n\": \"52tcPrGJgzyGqjcUiHsbSk_PxQ7Uovz4saGxva3iyBoidsekonigJJ3LnFlHYb3vBa2NA-0GpX2E1KhNNcYWAWQFcu069zi0YZ_wWGn6PWZURuonUoKH4dGHggym3xxVUxuA8OPubGe5ji56eic4RPINg0z-TtPlS-H9dnDIVznRUTXf3fy2dqWMuTY4D2e4fXGII6OpFAsEyrOqIoR8pLWGu7AiQkothunopp9q_Gu2xqB6l8BNulsbiwsQMeRE-9SGfeFpyblHiizHDwSqeZ3iv49Ellk4yjmrf6wOaFA2IXRqL1cCLj86B6KIDrjdzOL4lOSiES-PclNpioG2rQ\",\n                \"e\": \"AQAB\",\n                \"key_ops\": [\"verify\"],\n                \"ext\": true,\n                \"kid\": \"3ab8b05b64d799e289e10a201786b38c\"\n            }\n        ]\n    },\n    \"organization_name\": \"MITRE\",\n    \"organization_contact\": \"contact@example.com\"\n}"
 						},
 						"url": {
 							"raw": "{{rest-root}}/fhir/auth/register",
@@ -906,6 +1096,9 @@
 		{
 			"name": "metadata",
 			"request": {
+				"auth": {
+					"type": "noauth"
+				},
 				"method": "GET",
 				"header": [
 					{
