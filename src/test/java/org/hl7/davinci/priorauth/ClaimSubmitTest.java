@@ -111,7 +111,7 @@ public class ClaimSubmitTest {
     MockMvc mockMvc = builder.build();
     MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.post("/Claim/$submit").content(completeClaim)
         .header("Content-Type", "application/fhir+json").header("Access-Control-Request-Method", "POST")
-        .header("Origin", "http://localhost:" + port);
+        .header("Origin", "https://localhost:" + port).header("Authorization", "Bearer Y3YWq2l08kvFqy50fQJY");
 
     // Test the response has CORS headers and returned status 201 (created)
     MvcResult mvcresult = mockMvc.perform(requestBuilder).andExpect(created).andExpect(cors).andReturn();
@@ -196,7 +196,7 @@ public class ClaimSubmitTest {
     MockMvc mockMvc = builder.build();
     MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.post("/Claim/$submit").content(body)
         .header("Content-Type", "application/fhir+json").header("Access-Control-Request-Method", "POST")
-        .header("Origin", "http://localhost:" + port);
+        .header("Origin", "https://localhost:" + port).header("Authorization", "Bearer Y3YWq2l08kvFqy50fQJY");
 
     // Test the response has CORS headers and returned status 400
     MvcResult mvcresult = mockMvc.perform(requestBuilder).andExpect(badRequest).andExpect(cors).andReturn();
