@@ -41,7 +41,7 @@ public class Audit {
 
         private final String code;
         private final String display;
-        private final String SYSTEM = "http://dicom.nema.org/resources/ontology/DCM";
+        private static final String SYSTEM = "http://dicom.nema.org/resources/ontology/DCM";
 
         AuditEventType(String code, String display) {
             this.code = code;
@@ -109,15 +109,24 @@ public class Audit {
         return entity;
     }
 
-    private static AuditEventAgentComponent createAgentComponent(String ip) {
-        AuditEventAgentComponent agent = new AuditEventAgentComponent(new BooleanType(ip != null));
+    private static AuditEventAgentComponent createAgentComponent(HttpServletRequest request) {
+        String ip = getIPAddress(request);
+        AuditEventAgentComponent agent = new AuditEventAgentComponent(new BooleanType(request != null));
         if (ip != null) {
             AuditEventAgentNetworkComponent network = new AuditEventAgentNetworkComponent();
             network.setAddress(ip);
             network.setType(AuditEventAgentNetworkType.fromCode("2"));
             agent.setNetwork(network);
+        }
+
+        if (request != null) {
+            String clientId = AuthEndpoint.getClientId(request);
+            if (!clientId.contains("Unknown"))
+                agent.setWho(new Reference(App.getBaseUrl() + "/Organization/" + clientId));
+            agent.setAltId(clientId);
         } else
             agent.setName("MITRE PAS Reference Implementation");
+
         return agent;
     }
 
@@ -131,17 +140,17 @@ public class Audit {
      * @return an AuditEvent resource for the action
      */
     private static AuditEvent AuditEventFactory(AuditEventType eventType, AuditEventAction eventAction,
-            AuditEventOutcome outcome, Reference what, String query, String ip, String description) {
+            AuditEventOutcome outcome, HttpServletRequest request, Reference what, String query, String description) {
         Coding type = eventType.toCoding();
         InstantType recorded = new InstantType(new Date());
         AuditEventSourceComponent source = createSourceComponent();
         AuditEventEntityComponent entity = createEntityComponent(what, query, description);
-        AuditEventAgentComponent agent = createAgentComponent(ip);
+        AuditEventAgentComponent agent = createAgentComponent(request);
 
-        // TODO: how to verify agent in PAS RI since IP can be spoofed
         AuditEvent auditEvent = new AuditEvent(type, recorded, source);
         auditEvent.addAgent(agent);
         auditEvent.addEntity(entity);
+        auditEvent.setAction(eventAction);
         auditEvent.setOutcome(outcome.getOutcome());
         auditEvent.setId(UUID.randomUUID().toString());
 
@@ -150,18 +159,17 @@ public class Audit {
 
     public Audit(AuditEventType eventType, AuditEventAction eventAction, AuditEventOutcome outcome, String referenceUrl,
             HttpServletRequest request, String description) {
-        String ip = getIPAddress(request);
         String query = request != null ? request.getRequestURL().toString() : null;
-        AuditEvent audit = AuditEventFactory(eventType, eventAction, outcome, new Reference(referenceUrl), query, ip,
+        AuditEvent audit = AuditEventFactory(eventType, eventAction, outcome, request, new Reference(referenceUrl), query, 
                 description);
-        Map<String, Object> data = new HashMap<String, Object>();
+        Map<String, Object> data = new HashMap<>();
         data.put("id", audit.getId());
         data.put("type", eventType.toCode());
         data.put("action", eventAction.getDisplay());
         data.put("outcome", outcome.toCode());
         data.put("what", referenceUrl);
         data.put("query", query);
-        data.put("ip", ip);
+        data.put("ip", getIPAddress(request));
         data.put("resource", FhirUtils.json(audit));
         App.getDB().write(Table.AUDIT, data);
     }

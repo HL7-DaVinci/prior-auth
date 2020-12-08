@@ -30,7 +30,12 @@ import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 
+import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
+import org.hl7.davinci.priorauth.Audit.AuditEventType;
 import org.hl7.davinci.priorauth.Database.Table;
+import org.hl7.fhir.r4.model.ContactPoint;
+import org.hl7.fhir.r4.model.Organization;
+import org.hl7.fhir.r4.model.AuditEvent.AuditEventAction;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -56,6 +61,7 @@ public class AuthEndpoint {
 
     static final String INVALID_REQUEST = "invalid_request";
     static final String INVALID_CLIENT = "invalid_client";
+    static final String ADMIN_TOKEN = "Y3YWq2l08kvFqy50fQJY";
 
     static final int TOKEN_LIFE_MIN = 5;
 
@@ -70,14 +76,24 @@ public class AuthEndpoint {
             JSONObject jsonObject = (JSONObject) new JSONParser().parse(body);
             status = HttpStatus.BAD_REQUEST;
             JSONObject jwks = (JSONObject) jsonObject.get("jwks");
-            String jwks_url = (String) jsonObject.get("jwks_url");
+            String jwksUrl = (String) jsonObject.get("jwks_url");
+            String name = (String) jsonObject.get("organization_name");
+            String contact = (String) jsonObject.get("organization_contact");
             status = HttpStatus.OK;
 
+            Organization organization = new Organization();
+            organization.setId(clientId);
+            organization.setName(name);
+            ContactPoint telecom = new ContactPoint();
+            telecom.setValue(contact);
+            organization.setTelecom(Collections.singletonList(telecom));
+
             // Add the new client to the database
-            HashMap<String, Object> dataMap = new HashMap<String, Object>();
+            HashMap<String, Object> dataMap = new HashMap<>();
             dataMap.put("id", clientId);
-            dataMap.put("jwks", jwks.toJSONString());
-            dataMap.put("jwks_url", jwks_url);
+            dataMap.put("jwks", jwks != null ? jwks.toJSONString() : null);
+            dataMap.put("jwks_url", jwksUrl);
+            dataMap.put("organization", organization);
             App.getDB().write(Table.CLIENT, dataMap);
         } catch (ParseException e) {
             logger.log(Level.SEVERE, "AuthEndpoint::registerClient:Unable to parse body\n" + body, e);
@@ -94,19 +110,21 @@ public class AuthEndpoint {
             @RequestParam(name = "client_assertion_type", required = true) String clientAssertionType,
             @RequestParam(name = "client_assertion", required = true) String token) {
         App.setBaseUrl(Endpoint.getServiceBaseUrl(request));
-        // TODO create audit event
-        logger.info("AuthEndpoint::token:scope=" + scope + "&grant_type=" + grantType + "&client_assertion_type="
-                + clientAssertionType + "&client_assertion=" + token);
+        final String requestQueryParams = "scope=" + scope + "&grant_type=" + grantType + "&client_assertion_type="
+                + clientAssertionType + "&client_assertion=" + token;
+        logger.info("AuthEndpoint::token:" + requestQueryParams);
         // Check client_credentials and client_assertion_type
         if (!grantType.equals("client_credentials")
                 && !clientAssertionType.equals("urn:ietf:params:oauth:client-assertion-type:jwt-bearer")) {
             String message = "AuthEndpoint::token:Invalid grant_type or client_assertion_type";
             logger.warning(message);
+            new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             return sendError(INVALID_REQUEST, message);
         }
 
         String[] jwtParts = token.split("\\.");
         if (jwtParts.length != 3) {
+            new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             return sendError(INVALID_REQUEST, "client_assertion is not a valid jwt token");
         }
 
@@ -141,20 +159,27 @@ public class AuthEndpoint {
                 throw new JWTVerificationException("None of the provided jwk validated the client_assertion");
         } catch (ParseException e) {
             logger.log(Level.SEVERE, "AuthEndpoint::Parse Exception decoding jwt", e);
+            new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             return sendFailure();
         } catch (NoSuchAlgorithmException e) {
             logger.log(Level.SEVERE, "AuthEndpoint::No Such Algorithm Exception verifying jwt", e);
+            new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             return sendFailure();
         } catch (InvalidKeySpecException e) {
             logger.log(Level.SEVERE, "AuthEndpoint::Invalid Key Spec Exception verifying jwt", e);
+            new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             return sendFailure();
         } catch (InvalidAttributeValueException e) {
+            new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             return sendError(INVALID_CLIENT, "No client registered with that id. Please register first");
         } catch (NotSupportedException e) {
+            new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             return sendError(INVALID_REQUEST, "Only supports jwks and not jwks_url");
         } catch (JWTVerificationException e) {
+            new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             return sendError(INVALID_CLIENT, "Could not verify client using any of the keys in the jwk set");
         } catch (Exception e) {
+            new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             logger.log(Level.SEVERE, "Unknown exception occurred", e);
             return sendError(INVALID_CLIENT, "Could not verify client.");
         }
@@ -166,8 +191,10 @@ public class AuthEndpoint {
             App.getDB().update(Table.CLIENT, Collections.singletonMap("id", clientId),
                     Collections.singletonMap("token", authToken));
 
+        new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.SUCCESS, null, request, "POST /token" + requestQueryParams);
+
         // Create response
-        Map<String, Object> response = new HashMap<String, Object>();
+        Map<String, Object> response = new HashMap<>();
         response.put("access_token", authToken);
         response.put("token_type", "bearer");
         response.put("expires_in", TOKEN_LIFE_MIN * 60);
@@ -177,22 +204,39 @@ public class AuthEndpoint {
                 .body(JSONObject.toJSONString(response));
     }
 
+    /**
+     * Populate the Client table with default data
+     */
     public static void PopulateClientTable() {
         // Auto register DTR RI
-        HashMap<String, Object> dataMap = new HashMap<String, Object>();
-        dataMap.put("id", "797da153-9a36-4493-9910-10648a4deb03");
+        String clientId = "797da153-9a36-4493-9910-10648a4deb03";
+        Organization organization = new Organization();
+        organization.setId(clientId);
+        organization.setName("MITRE");
+        ContactPoint telecom = new ContactPoint();
+        telecom.setValue("blangley@example.com");
+        organization.setTelecom(Collections.singletonList(telecom));
+
+        HashMap<String, Object> dataMap = new HashMap<>();
+        dataMap.put("id", clientId);
         dataMap.put("jwks", "{\"keys\":[{\"ext\":true,\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"3ab8b05b64d799e289e10a201786b38c\",\"key_ops\":[\"verify\"],\"alg\":\"RS384\",\"n\":\"52tcPrGJgzyGqjcUiHsbSk_PxQ7Uovz4saGxva3iyBoidsekonigJJ3LnFlHYb3vBa2NA-0GpX2E1KhNNcYWAWQFcu069zi0YZ_wWGn6PWZURuonUoKH4dGHggym3xxVUxuA8OPubGe5ji56eic4RPINg0z-TtPlS-H9dnDIVznRUTXf3fy2dqWMuTY4D2e4fXGII6OpFAsEyrOqIoR8pLWGu7AiQkothunopp9q_Gu2xqB6l8BNulsbiwsQMeRE-9SGfeFpyblHiizHDwSqeZ3iv49Ellk4yjmrf6wOaFA2IXRqL1cCLj86B6KIDrjdzOL4lOSiES-PclNpioG2rQ\"}]}");
         dataMap.put("jwks_url", null);
         dataMap.put("token", "Y3YWq2l08kvFqy50fQJY");
+        dataMap.put("organization", organization);
         App.getDB().write(Table.CLIENT, dataMap);
     }
 
+    /**
+     * Determine whether or not the access token in the Authorization header is authorized
+     * 
+     * @param request HttpServletRequest
+     * @return true if the access token is valid, false if invalid or no bearer token provided
+     */
     public static boolean validateAccessToken(HttpServletRequest request) {
         String accessToken = getAccessToken(request);
         if (accessToken == null) return false;
 
-        // Admin token is Y3YWq2l08kvFqy50fQJY
-        if (accessToken.equals("Y3YWq2l08kvFqy50fQJY")) {
+        if (accessToken.equals(ADMIN_TOKEN)) {
             logger.fine("AuthEndpoint::validateAccessToken:Admin token used");
             return true;
         }
@@ -222,6 +266,28 @@ public class AuthEndpoint {
         return true;
     }
 
+    /**
+     * Helper method to get client id via the access token from the request
+     * 
+     * @param request HttpServletRequest
+     * @return clientId if it exists or a string explaining why it does not
+     */
+    public static String getClientId(HttpServletRequest request) {
+        String accessToken = getAccessToken(request);
+        if (accessToken == null) return "Unknown Client: No Access Token";
+
+        if (accessToken.equals(ADMIN_TOKEN)) return "Admin";
+
+        String clientId = App.getDB().readString(Table.CLIENT, Collections.singletonMap("token", accessToken), "id");
+        return clientId == null ? "Unknown Client: Invalid Access Token" : clientId;
+    }
+
+    /**
+     * Helper method to read the access token from the Authorization: Bearer {token} header
+     * 
+     * @param request request to get the token from
+     * @return access token if it was included, otherwise null
+     */
     private static String getAccessToken(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         logger.log(Level.FINE, "AuthEndpoint::getAccessToken:Authorization header: " + authHeader);
@@ -257,7 +323,7 @@ public class AuthEndpoint {
      * @return BAD REQUEST error response
      */
     private static ResponseEntity<String> sendError(String error, String description) {
-        Map<String, String> map = new HashMap<String, String>();
+        Map<String, String> map = new HashMap<>();
         map.put("error", error);
         map.put("error_description", description);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
@@ -287,10 +353,10 @@ public class AuthEndpoint {
             throws ParseException, InvalidAttributeValueException, NotSupportedException {
         String jwks = App.getDB().readString(Table.CLIENT, Collections.singletonMap("id", clientId), "jwks");
         if (jwks == null) {
-            String jwks_url = App.getDB().readString(Table.CLIENT, Collections.singletonMap("id", clientId),
+            String jwksUrl = App.getDB().readString(Table.CLIENT, Collections.singletonMap("id", clientId),
                     "jwks_url");
             // TODO: get the jwks
-            if (jwks_url == null)
+            if (jwksUrl == null)
                 throw new InvalidAttributeValueException();
             else
                 throw new NotSupportedException("Only jwks is supported right now");
@@ -314,7 +380,7 @@ public class AuthEndpoint {
         // TODO: Support EC384 keys
         RSAPublicKeySpec publicKeySpec;
         KeyFactory kf = KeyFactory.getInstance("RSA");
-        List<RSAPublicKey> validKeys = new ArrayList<RSAPublicKey>();
+        List<RSAPublicKey> validKeys = new ArrayList<>();
 
         // Iterate over all the keys in the jwk set
         JSONArray keys = (JSONArray) jwks.get("keys");

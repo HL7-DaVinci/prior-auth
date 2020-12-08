@@ -78,7 +78,8 @@ BEGIN TRANSACTION;
         "jwks" varchar DEFAULT NULL,
         "jwks_url" varchar DEFAULT NULL,
         "token" varchar DEFAULT NULL,
-        "timestamp" datetime DEFAULT CURRENT_TIMESTAMP
+        "timestamp" datetime DEFAULT CURRENT_TIMESTAMP,
+        "organization" clob
     );
 
 COMMIT;

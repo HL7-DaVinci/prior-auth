@@ -370,7 +370,7 @@ public class Database {
    * @return boolean - whether or not the resource was written.
    */
   public boolean write(Table table, Map<String, Object> data) {
-    logger.info("Database::write(" + table.value() + ", " + data.toString() + ")");
+    logger.info("Database::write(" + table.value() + ", " + printMap(data) + ")");
     AuditEventOutcome auditOutcome = AuditEventOutcome.SUCCESS;
     boolean result = false;
     if (data != null) {
@@ -617,6 +617,19 @@ public class Database {
   private String setColumns(Set<String> keys) {
     Optional<String> reducedArr = Arrays.stream(keys.toArray(new String[0])).reduce((str1, str2) -> str1 + ", " + str2);
     return reducedArr.get();
+  }
+
+  private String printMap(Map<String, Object> data) {
+    StringBuilder string = new StringBuilder("{ ");
+
+    for (Map.Entry<String, Object> entry : data.entrySet()) {
+      if (entry.getKey().equals("resource")) string.append("resource, ");
+      else if (entry.getKey().equals("organization")) string.append("organization, ");
+      else string.append(entry.getValue() != null ? entry.getValue().toString() : "null, ");
+    }
+
+    string.append(" }");
+    return string.toString();
   }
 
 }
