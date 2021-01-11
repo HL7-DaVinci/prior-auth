@@ -144,8 +144,11 @@ public class Endpoint {
      * @return the base url for the service
      */
     public static String getServiceBaseUrl(HttpServletRequest request) {
-        return request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort()
+        if (request.getServerPort() != 80)
+            return request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort()
                 + request.getContextPath();
+        else 
+            return request.getScheme() + "://" + request.getServerName() + request.getContextPath();
     }
 
 }
