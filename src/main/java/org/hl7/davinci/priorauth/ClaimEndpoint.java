@@ -22,6 +22,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
+import org.hl7.davinci.priorauth.Audit.AuditEventType;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.Endpoint.RequestType;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
@@ -34,6 +36,7 @@ import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.ResourceType;
+import org.hl7.fhir.r4.model.AuditEvent.AuditEventAction;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
 
@@ -80,16 +83,18 @@ public class ClaimEndpoint {
     return Endpoint.read(Table.CLAIM, constraintMap, request, RequestType.XML);
   }
 
+  @CrossOrigin
   @DeleteMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
-  public ResponseEntity<String> deleteClaimJson(@RequestParam(name = "identifier") String id,
-      @RequestParam(name = "patient.identifier") String patient) {
-    return Endpoint.delete(id, patient, Table.CLAIM, RequestType.JSON);
+  public ResponseEntity<String> deleteClaimJson(HttpServletRequest request,
+      @RequestParam(name = "identifier") String id, @RequestParam(name = "patient.identifier") String patient) {
+    return Endpoint.delete(id, patient, Table.CLAIM, request, RequestType.JSON);
   }
 
+  @CrossOrigin
   @DeleteMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
-  public ResponseEntity<String> deleteClaimXml(@RequestParam(name = "identifier") String id,
+  public ResponseEntity<String> deleteClaimXml(HttpServletRequest request, @RequestParam(name = "identifier") String id,
       @RequestParam(name = "patient.identifier") String patient) {
-    return Endpoint.delete(id, patient, Table.CLAIM, RequestType.XML);
+    return Endpoint.delete(id, patient, Table.CLAIM, request, RequestType.XML);
   }
 
   @PostMapping(value = "/$submit", consumes = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
@@ -113,10 +118,14 @@ public class ClaimEndpoint {
     logger.info("POST /Claim/$submit fhir+" + requestType.name());
     App.setBaseUrl(Endpoint.getServiceBaseUrl(request));
 
+    if (!AuthEndpoint.validateAccessToken(request)) 
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).contentType(MediaType.APPLICATION_JSON).body("{ error: \"Invalid access token. Make sure to use Authorization: Bearer (token)\" }");
+
     String id = null;
     String patient = null;
     HttpStatus status = HttpStatus.BAD_REQUEST;
     String formattedData = null;
+    AuditEventOutcome auditOutcome = AuditEventOutcome.MINOR_FAILURE;
     try {
       IParser parser = requestType == RequestType.JSON ? App.getFhirContext().newJsonParser()
           : App.getFhirContext().newXmlParser();
@@ -131,12 +140,14 @@ public class ClaimEndpoint {
             OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, PROCESS_FAILED);
             formattedData = FhirUtils.getFormattedData(error, requestType);
             logger.severe("ClaimEndpoint::SubmitOperation:Failed to process Bundle:" + bundle.getId());
+            auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
           } else {
             ClaimResponse response = FhirUtils.getClaimResponseFromResponseBundle(responseBundle);
             id = FhirUtils.getIdFromResource(response);
             patient = FhirUtils.getPatientIdentifierFromBundle(responseBundle);
             formattedData = FhirUtils.getFormattedData(responseBundle, requestType);
             status = HttpStatus.CREATED;
+            auditOutcome = AuditEventOutcome.SUCCESS;
           }
         } else {
           // Claim is required...
@@ -155,7 +166,9 @@ public class ClaimEndpoint {
       // catch an exception and send back an error message...
       OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.FATAL, IssueType.STRUCTURE, e.getMessage());
       formattedData = FhirUtils.getFormattedData(error, requestType);
+      auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
     }
+    new Audit(AuditEventType.REST, AuditEventAction.E, auditOutcome, null, request, "POST /Claim/$submit");
     MediaType contentType = requestType == RequestType.JSON ? MediaType.APPLICATION_JSON : MediaType.APPLICATION_XML;
     return ResponseEntity.status(status).contentType(contentType)
         .header(HttpHeaders.LOCATION,

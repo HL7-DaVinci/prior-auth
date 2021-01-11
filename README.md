@@ -4,7 +4,7 @@ The Da Vinci Prior Authorization Reference Implementation (RI) is a software pro
 
 ## Requirements
 
-- Java JDK 8
+- Java JDK 11
 
 ## Getting Started
 
@@ -83,6 +83,63 @@ If debug mode is enabled the following endpoints are available for use at `http:
 | `/debug/PopulateDatabaseTestData` | `POST`  | Insert test data into the database. Remove any of the existing test data and insert a fresh copy. All test data has a timestamp in 2200 so it can easily be identifier |
 | `/debug/Convert`                  | `POST`  | Convert a CQL body (string) into Elm (xml)                                                                                                                             |
 | `/$expunge`                       | `POST`  | Delete all entried in all tables                                                                                                                                       |
+
+## Authorization
+
+### SSL Certificates
+
+This Reference Implementation can be configured to enable SSL traffic. By default this is disabled. Configuration details are in `src/main/resources/application.properties`. The enable the default SSL configurations, remove the comments from the following lines:
+
+```
+server.ssl.key-store=pas_keystore.p12
+server.ssl.key-store-password=password
+server.ssl.keyStoreType=PKCS12
+server.ssl.keyAlias=pas
+```
+
+To create your own certificate run the following from the root directory of this project:
+
+```
+$ keytool -genkey -alias pas -keystore pas_keystore.p12 -keyalg RSA -storetype PKCS12
+```
+
+You will be prompted to create a password for the keystore and then enter details about the certificate. Be sure to update `server.ssl.key-store-password` above with the new password you just created.
+
+### Server to Server OAuth
+
+The recommended way of authorization is server to server OAuth. The implementation details are provided in the [Bulk Data Transfer IG](https://build.fhir.org/ig/HL7/us-bulk-data/authorization/index.html).
+
+#### Register a new client `/auth/register`
+
+Registering a new client requires providing either the jwks or a public url to get the jwks. The URL is the preferrable way.
+
+```
+HTTP POST /auth/register
+Content-Type application/json
+{
+  "jwks_url": "http://example.com/jwks"
+}
+```
+
+The server will respond with a JSON object containing `client_id`. This will be required for the client to recieve a token
+
+#### Token request `/auth/token`
+
+A registered client must obtain an access token before making any requests to the server. This is used to validate where the request is coming from and is used in the AuditEvent for creating an audit trail of all requests.
+
+Following the `client_credentials` OAuth 2.0 grant flow the process is:
+
+```
+HTTP POST
+/auth/token?scope={launch scope}
+&grant_type=client_credentials
+&client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer
+&client_assertion={signed JWT token}
+```
+
+Th client_assertion is a signed JWT token following [this structure](https://build.fhir.org/ig/HL7/us-bulk-data/authorization/index.html#obtaining-an-access-token).
+
+The response will be a JSON object containing the `access_token`. This token will only be valid for 5 minutes. In all requests to the server you must add the `Authorization: Bearer {access_token}` header to the HTTP request.
 
 ## Contents of `/Claim/$submit` Submission
 

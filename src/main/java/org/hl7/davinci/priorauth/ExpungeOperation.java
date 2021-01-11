@@ -1,12 +1,16 @@
 package org.hl7.davinci.priorauth;
 
-
 import java.util.*;
 import java.util.logging.Logger;
 
+import javax.servlet.http.HttpServletRequest;
+
+import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
+import org.hl7.davinci.priorauth.Audit.AuditEventType;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.fhir.dstu3.model.Subscription;
 import org.hl7.fhir.instance.model.api.IBaseResource;
+import org.hl7.fhir.r4.model.AuditEvent.AuditEventAction;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -22,8 +26,8 @@ public class ExpungeOperation {
     static final Logger logger = PALogger.getLogger();
 
     @PostMapping("")
-    public ResponseEntity<String> postExpunge() {
-        return expungeDatabase();
+    public ResponseEntity<String> postExpunge(HttpServletRequest request) {
+        return expungeDatabase(request);
     }
 
     /**
@@ -32,7 +36,7 @@ public class ExpungeOperation {
      *
      * @return - HTTP 200
      */
-    private ResponseEntity<String> expungeDatabase() {
+    private ResponseEntity<String> expungeDatabase(HttpServletRequest request) {
         logger.info("POST /$expunge");
         if (App.debugMode) {
             // Cascading delete of everything...
@@ -41,26 +45,35 @@ public class ExpungeOperation {
             App.getDB().delete(Table.CLAIM);
             App.getDB().delete(Table.CLAIM_ITEM);
             App.getDB().delete(Table.CLAIM_RESPONSE);
+
+            new Audit(AuditEventType.REST, AuditEventAction.D, AuditEventOutcome.SUCCESS, null, request,
+                    "$expunge everything (debug mode)");
             return ResponseEntity.ok().body("Expunge success!");
         } else {
             logger.warning("ExpungeOperation::expungeDatabase:query enabled");
-            return expungeAllowedEntries();
+            return expungeAllowedEntries(request);
         }
     }
 
-    private ResponseEntity<String> expungeAllowedEntries() {
+    private ResponseEntity<String> expungeAllowedEntries(HttpServletRequest request) {
         boolean results = false;
         results = expungeSubscriptions("active");
         results = expungeSubscriptions("off");
         results = expungeSubscriptions("error");
-        if (results)
+        if (results) {
+            new Audit(AuditEventType.REST, AuditEventAction.D, AuditEventOutcome.SUCCESS, null, request,
+                    "Expunge only allowed entries");
             return ResponseEntity.ok().body("Expunge success!");
-        else
+        } else {
+            new Audit(AuditEventType.REST, AuditEventAction.D, AuditEventOutcome.MINOR_FAILURE, null, request,
+                    "Attempted to expunge only allowed entries but something went wrong");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Expunge operation failed");
+        }
     }
 
     private boolean expungeSubscriptions(String status) {
-        //if the time of the deletion is after the noted end date of the subscription it should be expunged
+        // if the time of the deletion is after the noted end date of the subscription
+        // it should be expunged
         Map<String, Object> constraintMap = new Map<String, Object>() {
             @Override
             public int size() {
@@ -142,6 +155,5 @@ public class ExpungeOperation {
         }
         return false;
     }
-
 
 }

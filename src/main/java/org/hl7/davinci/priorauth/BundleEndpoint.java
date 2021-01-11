@@ -44,15 +44,17 @@ public class BundleEndpoint {
     return Endpoint.read(Table.BUNDLE, constraintMap, request, RequestType.XML);
   }
 
+  @CrossOrigin
   @DeleteMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
-  public ResponseEntity<String> deleteBundle(@RequestParam(name = "identifier") String id,
+  public ResponseEntity<String> deleteBundle(HttpServletRequest request, @RequestParam(name = "identifier") String id,
       @RequestParam(name = "patient.identifier") String patient) {
-    return Endpoint.delete(id, patient, Table.BUNDLE, RequestType.JSON);
+    return Endpoint.delete(id, patient, Table.BUNDLE, request, RequestType.JSON);
   }
 
+  @CrossOrigin
   @DeleteMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
-  public ResponseEntity<String> deleteBundleXml(@RequestParam(name = "identifier") String id,
-      @RequestParam(name = "patient.identifier") String patient) {
-    return Endpoint.delete(id, patient, Table.BUNDLE, RequestType.XML);
+  public ResponseEntity<String> deleteBundleXml(HttpServletRequest request,
+      @RequestParam(name = "identifier") String id, @RequestParam(name = "patient.identifier") String patient) {
+    return Endpoint.delete(id, patient, Table.BUNDLE, request, RequestType.XML);
   }
 }
