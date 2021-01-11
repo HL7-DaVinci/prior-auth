@@ -145,10 +145,10 @@ public class Endpoint {
      */
     public static String getServiceBaseUrl(HttpServletRequest request) {
         if (request.getServerPort() != 80)
-            return request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort()
+            return "https://" + request.getServerName() + ":" + request.getServerPort()
                 + request.getContextPath();
         else 
-            return request.getScheme() + "://" + request.getServerName() + request.getContextPath();
+            return "https://" + request.getServerName() + request.getContextPath();
     }
 
 }

@@ -88,7 +88,7 @@ If debug mode is enabled the following endpoints are available for use at `http:
 
 ### SSL Certificates
 
-This Reference Implementation can be configured to enable SSL traffic. By default this is disabled. Configuration details are in `src/main/resources/application.properties`. The enable the default SSL configurations, remove the comments from the following lines:
+This Reference Implementation requires certificates for SSL traffic. By default this is disabled since the hosted version on Logica Health adds its own certificated. When running on localhost you must enable https traffic. Configuration details are in `src/main/resources/application.properties`. The enable the default SSL configurations, remove the comments from the following lines:
 
 ```
 server.ssl.key-store=pas_keystore.p12
