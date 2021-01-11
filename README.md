@@ -88,7 +88,7 @@ If debug mode is enabled the following endpoints are available for use at `http:
 
 ### SSL Certificates
 
-This Reference Implementation expects a certificate to be used to enable SSL traffic. Configuration details are in `src/main/resources/application.properties`. The default SSL configurations are
+This Reference Implementation can be configured to enable SSL traffic. By default this is disabled. Configuration details are in `src/main/resources/application.properties`. The enable the default SSL configurations, remove the comments from the following lines:
 
 ```
 server.ssl.key-store=pas_keystore.p12
