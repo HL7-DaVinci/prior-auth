@@ -85,7 +85,7 @@ public class DebugEndpoint {
 
   @PostMapping("/PopulateDatabaseTestData")
   public ResponseEntity<String> populateDatabase(HttpServletRequest request) {
-    if (App.debugMode) {
+    if (App.isDebugModeEnabled()) {
       String description = "Populate database with test data in debug mode";
       Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.SUCCESS, null, request, description);
       return populateDB();
@@ -99,7 +99,7 @@ public class DebugEndpoint {
 
   @PostMapping("/PopulateRules")
   public ResponseEntity<String> populateRules(HttpServletRequest request) {
-    if (App.debugMode) {
+    if (App.isDebugModeEnabled()) {
       PriorAuthRule.populateRulesTable();
       String description = "Populate database with sample rules in debug mode";
       Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.SUCCESS, null, request, description);
@@ -114,7 +114,7 @@ public class DebugEndpoint {
 
   @PostMapping("/Convert")
   public ResponseEntity<String> convertCqlToElm(HttpServletRequest request, HttpEntity<String> entity) {
-    if (App.debugMode) {
+    if (App.isDebugModeEnabled()) {
       String elm = CqlUtils.cqlToElm(entity.getBody(), CqlUtils.RequestType.XML);
       String description = "Convert cql into elm in debug mode";
       Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.SUCCESS, null, request, description);
@@ -129,7 +129,7 @@ public class DebugEndpoint {
 
   @PostMapping("/ConvertAll")
   public ResponseEntity<String> convertAllCqlToElm(HttpServletRequest request) {
-    if (App.debugMode) {
+    if (App.isDebugModeEnabled()) {
       String cdsLibraryPath = PropertyProvider.getProperty("CDS_library");
       File filePath = new File(cdsLibraryPath);
 
@@ -267,7 +267,7 @@ public class DebugEndpoint {
 
   private ResponseEntity<String> query(Table table, HttpServletRequest request) {
     logger.info("GET /debug/" + table.value());
-    if (App.debugMode) {
+    if (App.isDebugModeEnabled()) {
       String description = "Read " + table.value() + " table in debug mode.";
       Audit.createAuditEvent(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.SUCCESS, null, request, description);
       return new ResponseEntity<>(App.getDB().generateAndRunQuery(table), HttpStatus.OK);

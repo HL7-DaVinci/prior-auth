@@ -38,7 +38,7 @@ public class ExpungeOperation {
      */
     private ResponseEntity<String> expungeDatabase(HttpServletRequest request) {
         logger.info("POST /$expunge");
-        if (App.debugMode) {
+        if (App.isDebugModeEnabled()) {
             // Cascading delete of everything...
             App.getDB().delete(Table.SUBSCRIPTION);
             App.getDB().delete(Table.BUNDLE);
