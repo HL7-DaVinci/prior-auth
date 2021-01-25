@@ -1,4 +1,4 @@
-package org.hl7.davinci.priorauth;
+package org.hl7.davinci.priorauth.endpoint;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -6,6 +6,7 @@ import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.hl7.davinci.priorauth.PALogger;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;

@@ -1,10 +1,14 @@
-package org.hl7.davinci.priorauth;
+package org.hl7.davinci.priorauth.endpoint;
 
 import java.util.Map;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.hl7.davinci.priorauth.App;
+import org.hl7.davinci.priorauth.Audit;
+import org.hl7.davinci.priorauth.FhirUtils;
+import org.hl7.davinci.priorauth.PALogger;
 import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
 import org.hl7.davinci.priorauth.Audit.AuditEventType;
 import org.hl7.davinci.priorauth.Database.Table;
@@ -48,7 +52,7 @@ public class Endpoint {
         if (!constraintMap.containsKey("patient")) {
             logger.warning("Endpoint::read:patient null");
             String description = "Attempted to read " + table.value() + " but is unathorized";
-            new Audit(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.MINOR_FAILURE, referenceUrl, request,
+            Audit.createAuditEvent(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.MINOR_FAILURE, referenceUrl, request,
                     description);
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
@@ -83,15 +87,15 @@ public class Endpoint {
             } else {
                 logger.warning("Endpoint::read:invalid table: " + table.value());
                 description = "Attempted to read " + referenceUrl + " but is invalid";
-                new Audit(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.MINOR_FAILURE, referenceUrl,
+                Audit.createAuditEvent(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.MINOR_FAILURE, referenceUrl,
                         request, description);
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
         }
 
-        new Audit(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.MINOR_FAILURE, referenceUrl, request,
+        Audit.createAuditEvent(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.MINOR_FAILURE, referenceUrl, request,
                 description);
-        return new ResponseEntity<String>(formattedData, HttpStatus.OK);
+        return new ResponseEntity<>(formattedData, HttpStatus.OK);
     }
 
     /**
@@ -110,7 +114,6 @@ public class Endpoint {
         OperationOutcome outcome = null;
         AuditEventOutcome auditOutcome = AuditEventOutcome.MINOR_FAILURE;
         String referenceUrl = table.value() + "/" + id;
-        String description = "Attempted to delete " + referenceUrl;
         if (id == null) {
             // Do not delete everything
             // ID is required...
@@ -130,8 +133,8 @@ public class Endpoint {
                 outcome = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INCOMPLETE, SQL_ERROR);
         }
 
-        description = "Delete " + referenceUrl;
-        new Audit(AuditEventType.REST, AuditEventAction.D, auditOutcome, referenceUrl, request, description);
+        String description = "Delete " + referenceUrl;
+        Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.D, auditOutcome, referenceUrl, request, description);
 
         String formattedData = FhirUtils.getFormattedData(outcome, requestType);
         return new ResponseEntity<>(formattedData, status);

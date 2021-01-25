@@ -140,7 +140,7 @@ public class Audit {
      * @param request     - the servlet request
      * @return an AuditEvent resource for the action
      */
-    private static AuditEvent AuditEventFactory(AuditEventType eventType, AuditEventAction eventAction,
+    private static AuditEvent auditEventFactory(AuditEventType eventType, AuditEventAction eventAction,
             AuditEventOutcome outcome, HttpServletRequest request, Reference what, String query, String description) {
         Coding type = eventType.toCoding();
         InstantType recorded = new InstantType(new Date());
@@ -158,10 +158,10 @@ public class Audit {
         return auditEvent;
     }
 
-    public Audit(AuditEventType eventType, AuditEventAction eventAction, AuditEventOutcome outcome, String referenceUrl,
+    public static void createAuditEvent(AuditEventType eventType, AuditEventAction eventAction, AuditEventOutcome outcome, String referenceUrl,
             HttpServletRequest request, String description) {
         String query = request != null ? request.getRequestURL().toString() : null;
-        AuditEvent audit = AuditEventFactory(eventType, eventAction, outcome, request, new Reference(referenceUrl), query, 
+        AuditEvent audit = auditEventFactory(eventType, eventAction, outcome, request, new Reference(referenceUrl), query, 
                 description);
         Map<String, Object> data = new HashMap<>();
         data.put("id", audit.getId());

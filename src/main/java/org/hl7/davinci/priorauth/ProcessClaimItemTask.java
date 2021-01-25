@@ -33,7 +33,7 @@ public class ProcessClaimItemTask implements Runnable {
      */
     private volatile int threadStatus = 2; // Not yet started
 
-    ProcessClaimItemTask(Bundle bundle, ItemComponent item, String id, String relatedId, String status) {
+    public ProcessClaimItemTask(Bundle bundle, ItemComponent item, String id, String relatedId, String status) {
         this.id = id;
         this.item = item;
         this.bundle = bundle;
@@ -112,14 +112,14 @@ public class ProcessClaimItemTask implements Runnable {
         } else
             itemDisposition = Disposition.CANCELLED;
 
-        Map<String, Object> dataMap = new HashMap<String, Object>();
+        Map<String, Object> dataMap = new HashMap<>();
         dataMap.put("id", id);
         dataMap.put("sequence", this.item.getSequence());
         dataMap.put("status", itemIsCancelled ? ClaimStatus.CANCELLED.getDisplay().toLowerCase() : this.status);
         dataMap.put("outcome", FhirUtils.dispositionToReviewAction(itemDisposition).value());
         if (this.relatedId != null) {
             // This is an update
-            Map<String, Object> constraintMap = new HashMap<String, Object>();
+            Map<String, Object> constraintMap = new HashMap<>();
             constraintMap.put("id", this.relatedId);
             constraintMap.put("sequence", this.item.getSequence());
 

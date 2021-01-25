@@ -7,7 +7,7 @@ import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 
 import org.hl7.davinci.priorauth.App;
-import org.hl7.davinci.priorauth.Endpoint;
+import org.hl7.davinci.priorauth.endpoint.Endpoint;
 import org.hl7.davinci.priorauth.PALogger;
 import org.json.simple.JSONObject;
 import org.springframework.http.HttpStatus;

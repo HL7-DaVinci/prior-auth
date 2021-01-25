@@ -1,4 +1,4 @@
-package org.hl7.davinci.priorauth;
+package org.hl7.davinci.priorauth.endpoint;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,10 +22,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.hl7.davinci.priorauth.App;
+import org.hl7.davinci.priorauth.Audit;
+import org.hl7.davinci.priorauth.FhirUtils;
+import org.hl7.davinci.priorauth.PALogger;
 import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
 import org.hl7.davinci.priorauth.Audit.AuditEventType;
 import org.hl7.davinci.priorauth.Database.Table;
-import org.hl7.davinci.priorauth.Endpoint.RequestType;
+import org.hl7.davinci.priorauth.endpoint.Endpoint.RequestType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Subscription;
@@ -155,7 +159,7 @@ public class SubscriptionEndpoint {
             formattedData = FhirUtils.getFormattedData(error, requestType);
             auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
         }
-        new Audit(AuditEventType.REST, AuditEventAction.C, auditOutcome, null, request, description);
+        Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.C, auditOutcome, null, request, description);
         MediaType contentType = requestType == RequestType.JSON ? MediaType.APPLICATION_JSON
                 : MediaType.APPLICATION_XML;
         return ResponseEntity.status(status).contentType(contentType).body(formattedData);

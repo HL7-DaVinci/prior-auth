@@ -1,9 +1,12 @@
-package org.hl7.davinci.priorauth;
+package org.hl7.davinci.priorauth.endpoint;
 
 import java.util.Calendar;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.hl7.davinci.priorauth.App;
+import org.hl7.davinci.priorauth.Audit;
+import org.hl7.davinci.priorauth.FhirUtils;
 import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
 import org.hl7.davinci.priorauth.Audit.AuditEventType;
 import org.hl7.fhir.r4.model.CapabilityStatement;
@@ -48,9 +51,9 @@ public class Metadata {
       capabilityStatement = buildCapabilityStatement();
 
     String description = "Read metadata";
-    new Audit(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.SUCCESS, "/metadata", request, description);
+    Audit.createAuditEvent(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.SUCCESS, "/metadata", request, description);
     String json = FhirUtils.json(capabilityStatement);
-    return new ResponseEntity<String>(json, HttpStatus.OK);
+    return new ResponseEntity<>(json, HttpStatus.OK);
   }
 
   @GetMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
@@ -59,9 +62,9 @@ public class Metadata {
       capabilityStatement = buildCapabilityStatement();
 
     String description = "Read metadata";
-    new Audit(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.SUCCESS, "/metadata", request, description);
+    Audit.createAuditEvent(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.SUCCESS, "/metadata", request, description);
     String xml = FhirUtils.xml(capabilityStatement);
-    return new ResponseEntity<String>(xml, HttpStatus.OK);
+    return new ResponseEntity<>(xml, HttpStatus.OK);
   }
 
   /**
