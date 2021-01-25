@@ -113,13 +113,32 @@ public class AuthEndpoint {
         final String requestQueryParams = "scope=" + scope + "&grant_type=" + grantType + "&client_assertion_type="
                 + clientAssertionType + "&client_assertion=" + token;
         logger.info("AuthEndpoint::token:" + requestQueryParams);
-        // Check client_credentials and client_assertion_type
-        if (!grantType.equals("client_credentials")
-                && !clientAssertionType.equals("urn:ietf:params:oauth:client-assertion-type:jwt-bearer")) {
-            String message = "AuthEndpoint::token:Invalid grant_type or client_assertion_type";
-            logger.warning(message);
+
+        // Check client_credentials
+        if (!grantType.equals("client_credentials")) {
+            String message = "Invalid grant_type " + grantType + ". Must be client_credentials";
+            logger.warning("AuthEndpoint::token:" + message);
             new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             return sendError(INVALID_REQUEST, message);
+        }
+
+        // Check client_assertion_type
+        if (!clientAssertionType.equals("urn:ietf:params:oauth:client-assertion-type:jwt-bearer")) {
+            String message = "Invalid client_assertion_type " + clientAssertionType + ". Must be urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
+            logger.warning("AuthEndpoint::token:" + message);
+            new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
+            return sendError(INVALID_REQUEST, message);
+        }
+
+        // Check scope
+        String[] requestedScopes = scope.split(" ");
+        for(String requestedScope : requestedScopes) {
+            if (!getSupportedScopes().contains(requestedScope)) {
+                String message = "requested scope " + requestedScope + " is not supported";
+                logger.warning("AuthEndpoint::token:" + message);
+                new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
+                return sendError(INVALID_REQUEST, message);
+            }
         }
 
         String[] jwtParts = token.split("\\.");
@@ -280,6 +299,18 @@ public class AuthEndpoint {
 
         String clientId = App.getDB().readString(Table.CLIENT, Collections.singletonMap("token", accessToken), "id");
         return clientId == null ? "Unknown Client: Invalid Access Token" : clientId;
+    }
+
+    /**
+     * Helper method to get a list of all the supported scopes
+     * 
+     * @return list of scopes supported
+     */
+    public static List<String> getSupportedScopes() {
+        ArrayList<String> scopes = new ArrayList<>();
+        scopes.add("system/*.read");
+        scopes.add("offline_access");
+        return scopes;
     }
 
     /**

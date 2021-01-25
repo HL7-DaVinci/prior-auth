@@ -1,5 +1,6 @@
 package org.hl7.davinci.priorauth;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -30,6 +31,8 @@ public class WellKnownEndpoint {
         Map<String, Object> response = new HashMap<>();
         response.put("registration_endpoint", App.getBaseUrl() + "/auth/register");
         response.put("token_endpoint", App.getBaseUrl() + "/auth/token");
+        response.put("response_types_supported", "token");
+        response.put("scopes_supported", AuthEndpoint.getSupportedScopes());
 
         return ResponseEntity.status(HttpStatus.OK).body(JSONObject.toJSONString(response));
     }
