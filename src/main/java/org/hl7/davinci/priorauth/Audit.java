@@ -7,7 +7,7 @@ import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.hl7.davinci.authorization.AuthUtils;
+import org.hl7.davinci.priorauth.authorization.AuthUtils;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.fhir.r4.model.AuditEvent;
 import org.hl7.fhir.r4.model.BooleanType;

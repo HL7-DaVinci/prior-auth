@@ -1,4 +1,4 @@
-package org.hl7.davinci.authorization;
+package org.hl7.davinci.priorauth.authorization;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;

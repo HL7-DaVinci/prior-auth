@@ -1,12 +1,10 @@
 package org.hl7.davinci.priorauth;
 
 import org.hl7.davinci.ruleutils.ModelResolver;
-import org.hl7.davinci.authorization.AuthUtils;
+import org.hl7.davinci.priorauth.authorization.AuthUtils;
 import org.hl7.davinci.rules.PriorAuthRule;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.ComponentScan;
-
 import ca.uhn.fhir.context.FhirContext;
 
 /**
@@ -14,7 +12,6 @@ import ca.uhn.fhir.context.FhirContext;
  * launched with this App.
  */
 @SpringBootApplication
-@ComponentScan(basePackages = {"org.hl7.davinci.authorization"})
 public class App {
 
   /**
