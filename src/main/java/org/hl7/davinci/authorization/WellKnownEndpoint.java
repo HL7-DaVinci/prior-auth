@@ -1,12 +1,14 @@
-package org.hl7.davinci.priorauth;
+package org.hl7.davinci.authorization;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.hl7.davinci.priorauth.App;
+import org.hl7.davinci.priorauth.Endpoint;
+import org.hl7.davinci.priorauth.PALogger;
 import org.json.simple.JSONObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -32,7 +34,7 @@ public class WellKnownEndpoint {
         response.put("registration_endpoint", App.getBaseUrl() + "/auth/register");
         response.put("token_endpoint", App.getBaseUrl() + "/auth/token");
         response.put("response_types_supported", "token");
-        response.put("scopes_supported", AuthEndpoint.getSupportedScopes());
+        response.put("scopes_supported", AuthUtils.getSupportedScopes());
 
         return ResponseEntity.status(HttpStatus.OK).body(JSONObject.toJSONString(response));
     }

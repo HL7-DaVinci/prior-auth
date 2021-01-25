@@ -1,6 +1,7 @@
 package org.hl7.davinci.priorauth;
 
 import org.hl7.davinci.ruleutils.ModelResolver;
+import org.hl7.davinci.authorization.AuthUtils;
 import org.hl7.davinci.rules.PriorAuthRule;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -64,7 +65,7 @@ public class App {
     if (DB == null) {
       DB = new Database();
       PriorAuthRule.populateRulesTable();
-      AuthEndpoint.PopulateClientTable();
+      AuthUtils.populateClientTable();
     }
   }
 

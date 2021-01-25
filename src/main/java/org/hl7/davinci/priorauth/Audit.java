@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.hl7.davinci.authorization.AuthUtils;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.fhir.r4.model.AuditEvent;
 import org.hl7.fhir.r4.model.BooleanType;
@@ -120,7 +121,7 @@ public class Audit {
         }
 
         if (request != null) {
-            String clientId = AuthEndpoint.getClientId(request);
+            String clientId = AuthUtils.getClientId(request);
             if (!clientId.contains("Unknown"))
                 agent.setWho(new Reference(App.getBaseUrl() + "/Organization/" + clientId));
             agent.setAltId(clientId);

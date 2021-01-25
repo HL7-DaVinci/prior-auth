@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.hl7.davinci.authorization.AuthUtils;
 import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
 import org.hl7.davinci.priorauth.Audit.AuditEventType;
 import org.hl7.davinci.priorauth.Database.Table;
@@ -118,7 +119,7 @@ public class ClaimEndpoint {
     logger.info("POST /Claim/$submit fhir+" + requestType.name());
     App.setBaseUrl(Endpoint.getServiceBaseUrl(request));
 
-    if (!AuthEndpoint.validateAccessToken(request)) 
+    if (!AuthUtils.validateAccessToken(request)) 
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).contentType(MediaType.APPLICATION_JSON).body("{ error: \"Invalid access token. Make sure to use Authorization: Bearer (token)\" }");
 
     String id = null;
