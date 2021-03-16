@@ -40,6 +40,14 @@ curl -X POST
      http://localhost:9000/fhir/Claim/\$submit
 ```
 
+## Configuration Notes
+
+The server on the `dev` branch is always configured to run on Logicahealth. If you are running locally or on another cloud server there are a few extra configuration steps:
+
+1. This server expects to be running on HTTPS. If you are not using SSL the authorization will fail. Either follow the steps under "SSL Certificates" below to add SSL to your local version, or modify `getServiceBaseUrl()` in `Endpoint.java` to use `http`.
+1. The default tokenUri points to LogicaHealth. Update `tokenUri` in `Metadata.java` to be the correct host.
+1. If using the MITRE DTR Reference Implementation there are is a PAS config under src/components/PriorAuth which must be updated.
+
 ## FHIR Services
 
 The service endpoints in the table below are relative to `http://localhost:9000/fhir`. `patient` is the first `identifier.value` on the `Patient` referenced in the submitted `Claim`.
