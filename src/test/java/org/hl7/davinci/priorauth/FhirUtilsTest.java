@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.hl7.davinci.priorauth.Database.Table;
-import org.hl7.davinci.priorauth.Endpoint.RequestType;
+import org.hl7.davinci.priorauth.endpoint.Endpoint.RequestType;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;

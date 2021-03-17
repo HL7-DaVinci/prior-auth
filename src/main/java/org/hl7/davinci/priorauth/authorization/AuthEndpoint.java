@@ -28,7 +28,7 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 
 import org.hl7.davinci.priorauth.App;
 import org.hl7.davinci.priorauth.Audit;
-import org.hl7.davinci.priorauth.Endpoint;
+import org.hl7.davinci.priorauth.endpoint.Endpoint;
 import org.hl7.davinci.priorauth.PALogger;
 import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
 import org.hl7.davinci.priorauth.Audit.AuditEventType;
@@ -115,7 +115,7 @@ public class AuthEndpoint {
         if (!grantType.equals("client_credentials")) {
             String message = "Invalid grant_type " + grantType + ". Must be client_credentials";
             logger.warning("AuthEndpoint::token:" + message);
-            new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
+            Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             return sendError(INVALID_REQUEST, message);
         }
 
@@ -123,7 +123,7 @@ public class AuthEndpoint {
         if (!clientAssertionType.equals("urn:ietf:params:oauth:client-assertion-type:jwt-bearer")) {
             String message = "Invalid client_assertion_type " + clientAssertionType + ". Must be urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
             logger.warning("AuthEndpoint::token:" + message);
-            new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
+            Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             return sendError(INVALID_REQUEST, message);
         }
 
@@ -133,14 +133,14 @@ public class AuthEndpoint {
             if (!AuthUtils.getSupportedScopes().contains(requestedScope)) {
                 String message = "requested scope " + requestedScope + " is not supported";
                 logger.warning("AuthEndpoint::token:" + message);
-                new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
+                Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
                 return sendError(INVALID_REQUEST, message);
             }
         }
 
         String[] jwtParts = token.split("\\.");
         if (jwtParts.length != 3) {
-            new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
+            Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             return sendError(INVALID_REQUEST, "client_assertion is not a valid jwt token");
         }
 
@@ -175,27 +175,27 @@ public class AuthEndpoint {
                 throw new JWTVerificationException("None of the provided jwk validated the client_assertion");
         } catch (ParseException e) {
             logger.log(Level.SEVERE, "AuthEndpoint::Parse Exception decoding jwt", e);
-            new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
+            Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             return sendFailure();
         } catch (NoSuchAlgorithmException e) {
             logger.log(Level.SEVERE, "AuthEndpoint::No Such Algorithm Exception verifying jwt", e);
-            new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
+            Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             return sendFailure();
         } catch (InvalidKeySpecException e) {
             logger.log(Level.SEVERE, "AuthEndpoint::Invalid Key Spec Exception verifying jwt", e);
-            new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
+            Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             return sendFailure();
         } catch (InvalidAttributeValueException e) {
-            new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
+            Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             return sendError(INVALID_CLIENT, "No client registered with that id. Please register first");
         } catch (NotSupportedException e) {
-            new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
+            Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             return sendError(INVALID_REQUEST, "Only supports jwks and not jwks_url");
         } catch (JWTVerificationException e) {
-            new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
+            Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             return sendError(INVALID_CLIENT, "Could not verify client using any of the keys in the jwk set");
         } catch (Exception e) {
-            new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
+            Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             logger.log(Level.SEVERE, "Unknown exception occurred", e);
             return sendError(INVALID_CLIENT, "Could not verify client.");
         }
@@ -207,7 +207,7 @@ public class AuthEndpoint {
             App.getDB().update(Table.CLIENT, Collections.singletonMap("id", clientId),
                     Collections.singletonMap("token", authToken));
 
-        new Audit(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.SUCCESS, null, request, "POST /token" + requestQueryParams);
+        Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.SUCCESS, null, request, "POST /token" + requestQueryParams);
 
         // Create response
         Map<String, Object> response = new HashMap<>();

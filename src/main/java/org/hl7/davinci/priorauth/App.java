@@ -30,7 +30,7 @@ public class App {
    */
   private static Database DB;
 
-  public static boolean debugMode = false;
+  private static boolean debugMode = false;
 
   private static String baseUrl;
 
@@ -40,16 +40,9 @@ public class App {
    * @param args - ignored.
    */
   public static void main(String[] args) {
-    if (args.length > 0) {
-      if (args[0].equalsIgnoreCase("debug")) {
+    if ((args.length > 0 && args[0].equalsIgnoreCase("debug")) || 
+      (System.getenv("debug") != null && System.getenv("debug").equalsIgnoreCase("true"))) {
         debugMode = true;
-      }
-    }
-
-    if (System.getenv("debug") != null) {
-      if (System.getenv("debug").equalsIgnoreCase("true")) {
-        debugMode = true;
-      }
     }
 
     // Set the DB
@@ -107,5 +100,14 @@ public class App {
    */
   public static ModelResolver getModelResolver() {
     return MODEL_RESOLVER;
+  }
+
+  /**
+   * Check if debugMode is enabled
+   * 
+   * @return true if debugMode is true, false otherwise
+   */
+  public static boolean isDebugModeEnabled() {
+    return debugMode;
   }
 }

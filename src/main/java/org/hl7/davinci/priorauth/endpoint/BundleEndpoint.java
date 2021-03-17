@@ -1,4 +1,4 @@
-package org.hl7.davinci.priorauth;
+package org.hl7.davinci.priorauth.endpoint;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.hl7.davinci.priorauth.Database.Table;
-import org.hl7.davinci.priorauth.Endpoint.RequestType;
+import org.hl7.davinci.priorauth.endpoint.Endpoint.RequestType;
 
 /**
  * The Bundle endpoint to READ, SEARCH for, and DELETE submitted Bundles.
@@ -28,7 +28,7 @@ public class BundleEndpoint {
   public ResponseEntity<String> readBundle(HttpServletRequest request,
       @RequestParam(name = "identifier", required = false) String id,
       @RequestParam(name = "patient.identifier") String patient) {
-    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    Map<String, Object> constraintMap = new HashMap<>();
     constraintMap.put("id", id);
     constraintMap.put("patient", patient);
     return Endpoint.read(Table.BUNDLE, constraintMap, request, RequestType.JSON);
@@ -38,7 +38,7 @@ public class BundleEndpoint {
   public ResponseEntity<String> readBundleXml(HttpServletRequest request,
       @RequestParam(name = "identifier", required = false) String id,
       @RequestParam(name = "patient.identifier") String patient) {
-    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    Map<String, Object> constraintMap = new HashMap<>();
     constraintMap.put("id", id);
     constraintMap.put("patient", patient);
     return Endpoint.read(Table.BUNDLE, constraintMap, request, RequestType.XML);
