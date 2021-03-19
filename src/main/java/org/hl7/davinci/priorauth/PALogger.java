@@ -26,7 +26,7 @@ public class PALogger {
             SimpleFormatter formatter = new SimpleFormatter();
             fh.setFormatter(formatter);
 
-            if (App.debugMode)
+            if (App.isDebugModeEnabled())
                 this.setLevel(Level.FINEST);
             else
                 this.setLevel(Level.INFO);

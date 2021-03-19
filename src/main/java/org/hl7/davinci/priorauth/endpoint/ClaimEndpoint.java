@@ -1,4 +1,4 @@
-package org.hl7.davinci.priorauth;
+package org.hl7.davinci.priorauth.endpoint;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,10 +22,18 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.hl7.davinci.priorauth.authorization.AuthUtils;
+import org.hl7.davinci.priorauth.App;
+import org.hl7.davinci.priorauth.Audit;
+import org.hl7.davinci.priorauth.ClaimResponseFactory;
+import org.hl7.davinci.priorauth.FhirUtils;
+import org.hl7.davinci.priorauth.PALogger;
+import org.hl7.davinci.priorauth.ProcessClaimItemTask;
+import org.hl7.davinci.priorauth.UpdateClaimTask;
 import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
 import org.hl7.davinci.priorauth.Audit.AuditEventType;
 import org.hl7.davinci.priorauth.Database.Table;
-import org.hl7.davinci.priorauth.Endpoint.RequestType;
+import org.hl7.davinci.priorauth.endpoint.Endpoint.RequestType;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
@@ -55,14 +63,14 @@ public class ClaimEndpoint {
   static final String REQUIRES_BUNDLE = "Prior Authorization Claim/$submit Operation requires a Bundle with a single Claim as the first entry and supporting resources.";
   static final String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
 
-  static final HashMap<String, Timer> pendedTimers = new HashMap<String, Timer>();
+  static final HashMap<String, Timer> pendedTimers = new HashMap<>();
 
   @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> readClaimJson(HttpServletRequest request,
       @RequestParam(name = "identifier", required = false) String id,
       @RequestParam(name = "patient.identifier") String patient,
       @RequestParam(name = "status", required = false) String status) {
-    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    Map<String, Object> constraintMap = new HashMap<>();
     constraintMap.put("id", id);
     constraintMap.put("patient", patient);
     if (status != null)
@@ -75,7 +83,7 @@ public class ClaimEndpoint {
       @RequestParam(name = "identifier", required = false) String id,
       @RequestParam(name = "patient.identifier") String patient,
       @RequestParam(name = "status", required = false) String status) {
-    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    Map<String, Object> constraintMap = new HashMap<>();
     constraintMap.put("id", id);
     constraintMap.put("patient", patient);
     if (status != null)
@@ -118,7 +126,7 @@ public class ClaimEndpoint {
     logger.info("POST /Claim/$submit fhir+" + requestType.name());
     App.setBaseUrl(Endpoint.getServiceBaseUrl(request));
 
-    if (!AuthEndpoint.validateAccessToken(request)) 
+    if (!AuthUtils.validateAccessToken(request)) 
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).contentType(MediaType.APPLICATION_JSON).body("{ error: \"Invalid access token. Make sure to use Authorization: Bearer (token)\" }");
 
     String id = null;
@@ -132,7 +140,7 @@ public class ClaimEndpoint {
       IBaseResource resource = parser.parseResource(body);
       if (resource instanceof Bundle) {
         Bundle bundle = (Bundle) resource;
-        if (bundle.hasEntry() && (bundle.getEntry().size() >= 1) && bundle.getEntry().get(0).hasResource()
+        if (bundle.hasEntry() && (!bundle.getEntry().isEmpty()) && bundle.getEntry().get(0).hasResource()
             && bundle.getEntry().get(0).getResource().getResourceType() == ResourceType.Claim) {
           Bundle responseBundle = processBundle(bundle);
           if (responseBundle == null) {
@@ -168,7 +176,7 @@ public class ClaimEndpoint {
       formattedData = FhirUtils.getFormattedData(error, requestType);
       auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
     }
-    new Audit(AuditEventType.REST, AuditEventAction.E, auditOutcome, null, request, "POST /Claim/$submit");
+    Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, auditOutcome, null, request, "POST /Claim/$submit");
     MediaType contentType = requestType == RequestType.JSON ? MediaType.APPLICATION_JSON : MediaType.APPLICATION_XML;
     return ResponseEntity.status(status).contentType(contentType)
         .header(HttpHeaders.LOCATION,
@@ -215,7 +223,7 @@ public class ClaimEndpoint {
     } else {
       // Store the claim...
       claim.setId(id);
-      Map<String, Object> claimMap = new HashMap<String, Object>();
+      Map<String, Object> claimMap = new HashMap<>();
       claimMap.put("isDifferential", FhirUtils.isDifferential(bundle));
       claimMap.put("id", id);
       claimMap.put("patient", patient);
@@ -255,18 +263,16 @@ public class ClaimEndpoint {
 
       // Store the bundle...
       bundle.setId(id);
-      Map<String, Object> bundleMap = new HashMap<String, Object>();
+      Map<String, Object> bundleMap = new HashMap<>();
       bundleMap.put("id", id);
       bundleMap.put("patient", patient);
       bundleMap.put("resource", bundle);
       App.getDB().write(Table.BUNDLE, bundleMap);
 
       // Store the claim items...
-      if (claim.hasItem()) {
-        if (!processClaimItems(bundle, id, relatedId)) {
-          logger.severe("ClaimEndpoint::processBundle:unable to process claim items successfully");
-          return null;
-        }
+      if (claim.hasItem() && !processClaimItems(bundle, id, relatedId)) {
+        logger.severe("ClaimEndpoint::processBundle:unable to process claim items successfully");
+        return null;
       }
 
       responseDisposition = ClaimResponseFactory.determineDisposition(bundle);
@@ -300,7 +306,7 @@ public class ClaimEndpoint {
     String claimStatusStr = FhirUtils.getStatusFromResource(claim);
 
     // Start all of the threads
-    Map<Integer, ProcessClaimItemTask> threads = new HashMap<Integer, ProcessClaimItemTask>();
+    Map<Integer, ProcessClaimItemTask> threads = new HashMap<>();
     for (ItemComponent item : claim.getItem()) {
       ProcessClaimItemTask itemTask = new ProcessClaimItemTask(bundle, item, id, relatedId, claimStatusStr);
       threads.put(item.getSequence(), itemTask);
@@ -334,7 +340,7 @@ public class ClaimEndpoint {
    */
   private boolean cancelClaim(String claimId, String patient) {
     boolean result;
-    Map<String, Object> claimConstraintMap = new HashMap<String, Object>();
+    Map<String, Object> claimConstraintMap = new HashMap<>();
     claimConstraintMap.put("id", claimId);
     claimConstraintMap.put("patient", patient);
     Claim initialClaim = (Claim) App.getDB().read(Table.CLAIM, claimConstraintMap);
@@ -342,8 +348,8 @@ public class ClaimEndpoint {
       if (initialClaim.getStatus() != ClaimStatus.CANCELLED) {
         // Cancel the claim...
         initialClaim.setStatus(ClaimStatus.CANCELLED);
-        Map<String, Object> dataMap = new HashMap<String, Object>();
-        Map<String, Object> constraintMap = new HashMap<String, Object>();
+        Map<String, Object> dataMap = new HashMap<>();
+        Map<String, Object> constraintMap = new HashMap<>();
         constraintMap.put("id", claimId);
         dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
         dataMap.put("resource", initialClaim);
@@ -352,8 +358,8 @@ public class ClaimEndpoint {
         cascadeCancel(claimId);
 
         // Cancel items...
-        dataMap = new HashMap<String, Object>();
-        constraintMap = new HashMap<String, Object>();
+        dataMap = new HashMap<>();
+        constraintMap = new HashMap<>();
         constraintMap.put("id", App.getDB().getMostRecentId(claimId));
         dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
         App.getDB().update(Table.CLAIM_ITEM, constraintMap, dataMap);
@@ -380,14 +386,14 @@ public class ClaimEndpoint {
    */
   private void cascadeCancel(String claimId) {
     // Cascade delete shared maps
-    Map<String, Object> dataMap = new HashMap<String, Object>();
+    Map<String, Object> dataMap = new HashMap<>();
     dataMap.put("status", ClaimStatus.CANCELLED.getDisplay().toLowerCase());
     dataMap.put("resource", null);
-    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    Map<String, Object> constraintMap = new HashMap<>();
     constraintMap.put("id", null);
 
     // Cascade up to all the Claims submitted after this which reference this Claim
-    Map<String, Object> readConstraintMap = new HashMap<String, Object>();
+    Map<String, Object> readConstraintMap = new HashMap<>();
     readConstraintMap.put("related", claimId);
     Claim referencingClaim = (Claim) App.getDB().read(Table.CLAIM, readConstraintMap);
     String referencingId;

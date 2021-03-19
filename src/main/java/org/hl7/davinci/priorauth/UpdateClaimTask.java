@@ -27,14 +27,14 @@ import okhttp3.RequestBody;
 /**
  * A TimerTask for updating claims.
  */
-class UpdateClaimTask extends TimerTask {
-    public Bundle bundle;
-    public String claimId;
-    public String patient;
+public class UpdateClaimTask extends TimerTask {
+    private Bundle bundle;
+    private String claimId;
+    private String patient;
 
     static final Logger logger = PALogger.getLogger();
 
-    UpdateClaimTask(Bundle bundle, String claimId, String patient) {
+    public UpdateClaimTask(Bundle bundle, String claimId, String patient) {
         this.bundle = bundle;
         this.claimId = claimId;
         this.patient = patient;
@@ -67,7 +67,7 @@ class UpdateClaimTask extends TimerTask {
     public void run() {
         if (updatePendedClaim(bundle, claimId, patient) != null) {
             // Check for subscription
-            Map<String, Object> constraintMap = new HashMap<String, Object>();
+            Map<String, Object> constraintMap = new HashMap<>();
             constraintMap.put("claimResponseId", claimId);
             constraintMap.put("patient", patient);
             List<IBaseResource> subscriptions = App.getDB().readAll(Table.SUBSCRIPTION, constraintMap);

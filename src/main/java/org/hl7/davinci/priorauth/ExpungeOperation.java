@@ -38,7 +38,7 @@ public class ExpungeOperation {
      */
     private ResponseEntity<String> expungeDatabase(HttpServletRequest request) {
         logger.info("POST /$expunge");
-        if (App.debugMode) {
+        if (App.isDebugModeEnabled()) {
             // Cascading delete of everything...
             App.getDB().delete(Table.SUBSCRIPTION);
             App.getDB().delete(Table.BUNDLE);
@@ -46,7 +46,7 @@ public class ExpungeOperation {
             App.getDB().delete(Table.CLAIM_ITEM);
             App.getDB().delete(Table.CLAIM_RESPONSE);
 
-            new Audit(AuditEventType.REST, AuditEventAction.D, AuditEventOutcome.SUCCESS, null, request,
+            Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.D, AuditEventOutcome.SUCCESS, null, request,
                     "$expunge everything (debug mode)");
             return ResponseEntity.ok().body("Expunge success!");
         } else {
@@ -61,11 +61,11 @@ public class ExpungeOperation {
         results = expungeSubscriptions("off");
         results = expungeSubscriptions("error");
         if (results) {
-            new Audit(AuditEventType.REST, AuditEventAction.D, AuditEventOutcome.SUCCESS, null, request,
+            Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.D, AuditEventOutcome.SUCCESS, null, request,
                     "Expunge only allowed entries");
             return ResponseEntity.ok().body("Expunge success!");
         } else {
-            new Audit(AuditEventType.REST, AuditEventAction.D, AuditEventOutcome.MINOR_FAILURE, null, request,
+            Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.D, AuditEventOutcome.MINOR_FAILURE, null, request,
                     "Attempted to expunge only allowed entries but something went wrong");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Expunge operation failed");
         }

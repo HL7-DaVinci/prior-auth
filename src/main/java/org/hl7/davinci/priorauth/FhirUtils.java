@@ -6,7 +6,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hl7.davinci.priorauth.Database.Table;
-import org.hl7.davinci.priorauth.Endpoint.RequestType;
+import org.hl7.davinci.priorauth.endpoint.Endpoint.RequestType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
@@ -134,7 +134,7 @@ public class FhirUtils {
       patientReference = claim.getPatient();
 
     // Obtain the identifier based on how the reference is defined
-    if (patientReference.hasReference()) {
+    if (patientReference != null && patientReference.hasReference()) {
       // Get the patient through the reference
       String reference = patientReference.getReference();
       logger.info("FhirUtils::getPatientIdentifier:patientReference:" + reference);
@@ -169,7 +169,7 @@ public class FhirUtils {
 
       // If could not find the resource locally or has no identifier set null
       return null;
-    } else if (patientReference.hasIdentifier())
+    } else if (patientReference != null && patientReference.hasIdentifier())
       return patientReference.getIdentifier().getValue();
     else
       return null;
@@ -336,8 +336,7 @@ public class FhirUtils {
    * @return String - the JSON.
    */
   public static String json(IBaseResource resource) {
-    String json = App.getFhirContext().newJsonParser().setPrettyPrint(true).encodeResourceToString(resource);
-    return json;
+    return App.getFhirContext().newJsonParser().setPrettyPrint(true).encodeResourceToString(resource);
   }
 
   /**
@@ -347,8 +346,7 @@ public class FhirUtils {
    * @return String - the XML.
    */
   public static String xml(IBaseResource resource) {
-    String xml = App.getFhirContext().newXmlParser().setPrettyPrint(true).encodeResourceToString(resource);
-    return xml;
+    return App.getFhirContext().newXmlParser().setPrettyPrint(true).encodeResourceToString(resource);
   }
 
   /**

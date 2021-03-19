@@ -225,7 +225,7 @@ public class Database {
       auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
       logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
     }
-    new Audit(AuditEventType.ACTIVITY, AuditEventAction.R, auditOutcome, null, null, "Search " + table.value());
+    Audit.createAuditEvent(AuditEventType.ACTIVITY, AuditEventAction.R, auditOutcome, null, null, "Search " + table.value());
     return results;
   }
 
@@ -262,7 +262,7 @@ public class Database {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
-    new Audit(AuditEventType.ACTIVITY, AuditEventAction.R, auditOutcome, null, null, "Read from " + table.value());
+    Audit.createAuditEvent(AuditEventType.ACTIVITY, AuditEventAction.R, auditOutcome, null, null, "Read from " + table.value());
     return result;
   }
 
@@ -300,7 +300,7 @@ public class Database {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
-    new Audit(AuditEventType.ACTIVITY, AuditEventAction.R, auditOutcome, null, null, "Read all of " + table.value());
+    Audit.createAuditEvent(AuditEventType.ACTIVITY, AuditEventAction.R, auditOutcome, null, null, "Read all of " + table.value());
     return results;
   }
 
@@ -349,7 +349,7 @@ public class Database {
         ResultSet rs = stmt.executeQuery();
 
         if (rs.next()) {
-          new Audit(AuditEventType.ACTIVITY, AuditEventAction.R, AuditEventOutcome.SUCCESS, null, null,
+          Audit.createAuditEvent(AuditEventType.ACTIVITY, AuditEventAction.R, AuditEventOutcome.SUCCESS, null, null,
               "Read " + column + " from " + table.value());
           return rs.getString(column);
         }
@@ -357,7 +357,7 @@ public class Database {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
-    new Audit(AuditEventType.ACTIVITY, AuditEventAction.R, AuditEventOutcome.SERIOUS_FAILURE, null, null,
+    Audit.createAuditEvent(AuditEventType.ACTIVITY, AuditEventAction.R, AuditEventOutcome.SERIOUS_FAILURE, null, null,
         "Read " + column + " from " + table.value());
     return null;
   }
@@ -399,7 +399,7 @@ public class Database {
       }
     }
     if (table != Table.AUDIT)
-      new Audit(AuditEventType.ACTIVITY, AuditEventAction.C, auditOutcome, null, null,
+      Audit.createAuditEvent(AuditEventType.ACTIVITY, AuditEventAction.C, auditOutcome, null, null,
           "Write to " + table.value() + "\n" + data.toString());
     return result;
   }
@@ -433,7 +433,7 @@ public class Database {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
-    new Audit(AuditEventType.ACTIVITY, AuditEventAction.U, auditOutcome, null, null, sql);
+    Audit.createAuditEvent(AuditEventType.ACTIVITY, AuditEventAction.U, auditOutcome, null, null, sql);
     return result;
   }
 
@@ -529,7 +529,7 @@ public class Database {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
-    new Audit(AuditEventType.ACTIVITY, AuditEventAction.D, auditOutcome, null, null,
+    Audit.createAuditEvent(AuditEventType.ACTIVITY, AuditEventAction.D, auditOutcome, null, null,
         "Delete " + table.value() + "/" + id + " for patient " + patient);
     return result;
   }
@@ -556,7 +556,7 @@ public class Database {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
-    new Audit(AuditEventType.ACTIVITY, AuditEventAction.D, auditOutcome, null, null,
+    Audit.createAuditEvent(AuditEventType.ACTIVITY, AuditEventAction.D, auditOutcome, null, null,
         "Delete " + id + "from " + table.value());
     return result;
   }
@@ -581,7 +581,7 @@ public class Database {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
-    new Audit(AuditEventType.ACTIVITY, AuditEventAction.D, auditOutcome, null, null, "Delete " + table.value());
+    Audit.createAuditEvent(AuditEventType.ACTIVITY, AuditEventAction.D, auditOutcome, null, null, "Delete " + table.value());
     return result;
   }
 

@@ -1,4 +1,4 @@
-package org.hl7.davinci.priorauth;
+package org.hl7.davinci.priorauth.endpoint;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,8 +13,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.hl7.davinci.priorauth.App;
 import org.hl7.davinci.priorauth.Database.Table;
-import org.hl7.davinci.priorauth.Endpoint.RequestType;
+import org.hl7.davinci.priorauth.endpoint.Endpoint.RequestType;
 
 /**
  * The ClaimResponse endpoint to READ, SEARCH for, and DELETE ClaimResponses to
@@ -43,7 +44,7 @@ public class ClaimResponseEndpoint {
 
   public ResponseEntity<String> readClaimResponse(String id, String patient, String status, HttpServletRequest request,
       RequestType requestType) {
-    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    Map<String, Object> constraintMap = new HashMap<>();
 
     // get the claim id from the claim response id
     constraintMap.put("id", id);
