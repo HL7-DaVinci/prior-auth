@@ -182,7 +182,6 @@ public class ProcessClaimItemTask implements Runnable {
         RequestBody body = RequestBody.create(null, bundle.toString());
         Request request = new Request.Builder().url(address).post(body).build();
         // if no response in alloted time return some default value
-        System.out.println("I actualy managed to send  response");
         try (Response response = client.newCall(request).execute()) {
             String answer = response.body().string();
             return convertStringTDisposition(answer);
