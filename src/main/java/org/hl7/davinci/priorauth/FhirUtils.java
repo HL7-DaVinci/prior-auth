@@ -58,6 +58,18 @@ public class FhirUtils {
     public String value() {
       return this.value;
     }
+
+    public static Disposition convertStringToDisposition(String value) {
+      for (
+
+      Disposition disposition : Disposition.values()) {
+        if (disposition.value().equals(value))
+          return disposition;
+      }
+
+      return null;
+    }
+
   }
 
   /**
@@ -91,6 +103,7 @@ public class FhirUtils {
 
       return null;
     }
+
   }
 
   /**

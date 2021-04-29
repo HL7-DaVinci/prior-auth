@@ -128,9 +128,9 @@ public class ProcessClaimItemTask implements Runnable {
             if (rulesEngine.equals("internal")) {
                 itemDisposition = PriorAuthRule.computeDisposition(this.bundle, this.item.getSequence());
             } else {
-                String URL = PropertyProvider.getProperty("url");
+
                 try {
-                    itemDisposition = sendAndGetDisposition(this.bundle, this.item.getSequence(), URL);
+                    itemDisposition = sendAndGetDisposition(this.bundle, this.item.getSequence(), rulesEngine);
                 } catch (IOException e) {
                     // if we fail to talk to the external rules engine just say we don't know the
                     // state of the claim
@@ -184,28 +184,12 @@ public class ProcessClaimItemTask implements Runnable {
         // if no response in alloted time return some default value
         try (Response response = client.newCall(request).execute()) {
             String answer = response.body().string();
-            return convertStringTDisposition(answer);
+            return FhirUtils.Disposition.convertStringToDisposition(answer);
         } catch (Exception e) {
-            return Disposition.CANCELLED;
+            logger.info(
+                    "ProcessClaimItemTask::sendAndGetDisposition was unable to get a response from the rules engine");
+            return Disposition.UNKNOWN;
         }
     }
 
-    private Disposition convertStringTDisposition(String answer) {
-
-        if (answer.equals("Unknown"))
-            return FhirUtils.Disposition.UNKNOWN;
-        if (answer.equals("Granted"))
-            return FhirUtils.Disposition.GRANTED;
-        if (answer.equals("Denied"))
-            return FhirUtils.Disposition.DENIED;
-        if (answer.equals("Pending"))
-            return FhirUtils.Disposition.PENDING;
-        if (answer.equals("Cancelled"))
-            return FhirUtils.Disposition.CANCELLED;
-        if (answer.equals("Partial"))
-            return FhirUtils.Disposition.PARTIAL;
-        else
-            return null;
-
-    }
 }
