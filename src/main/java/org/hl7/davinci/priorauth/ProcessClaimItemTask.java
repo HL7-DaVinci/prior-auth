@@ -180,7 +180,7 @@ public class ProcessClaimItemTask implements Runnable {
 
         OkHttpClient client = new OkHttpClient();
         RequestBody body = RequestBody.create(null, bundle.toString());
-        Request request = new Request.Builder().url(address).post(body).build();
+        Request request = new Request.Builder().url(address + "?seq=" + String.valueOf(seq)).post(body).build();
         // if no response in alloted time return some default value
         try (Response response = client.newCall(request).execute()) {
             String answer = response.body().string();
