@@ -60,9 +60,7 @@ public class FhirUtils {
     }
 
     public static Disposition convertStringToDisposition(String value) {
-      for (
-
-      Disposition disposition : Disposition.values()) {
+      for (Disposition disposition : Disposition.values()) {
         if (disposition.value().equals(value))
           return disposition;
       }
