@@ -146,31 +146,6 @@ public class ClaimResponseFactory {
     }
 
     /**
-     * Set the Items on the ClaimResponse indicating the adjudication of each one
-     * 
-     * @param claim - the initial Claim which contains the items
-     * @return a list of ItemComponents to be added to the ClaimResponse.items field
-     */
-    private static List<ClaimResponse.ItemComponent> setClaimResponseItems(Claim claim) {
-        List<ClaimResponse.ItemComponent> items = new ArrayList<>();
-
-        // Set the Items on the ClaimResponse based on the initial Claim and the
-        // Response disposition
-        for (ItemComponent item : claim.getItem()) {
-            // Read the item outcome from the database
-            Map<String, Object> constraintMap = new HashMap<>();
-            constraintMap.put("id", FhirUtils.getIdFromResource(claim));
-            constraintMap.put("sequence", item.getSequence());
-            String outcome = App.getDB().readString(Table.CLAIM_ITEM, constraintMap, "outcome");
-
-            ClaimResponse.ItemComponent itemComponent = createItemComponent(item, ReviewAction.fromString(outcome),
-                    claim.getProvider());
-            items.add(itemComponent);
-        }
-        return items;
-    }
-
-    /**
      * Create the ClaimResponse resource for the response bundle
      * 
      * @param claim               The claim which this ClaimResponse is in reference
@@ -215,6 +190,31 @@ public class ClaimResponseFactory {
     }
 
     /**
+     * Set the Items on the ClaimResponse indicating the adjudication of each one
+     * 
+     * @param claim - the initial Claim which contains the items
+     * @return a list of ItemComponents to be added to the ClaimResponse.items field
+     */
+    private static List<ClaimResponse.ItemComponent> setClaimResponseItems(Claim claim) {
+        List<ClaimResponse.ItemComponent> items = new ArrayList<>();
+
+        // Set the Items on the ClaimResponse based on the initial Claim and the
+        // Response disposition
+        for (ItemComponent item : claim.getItem()) {
+            // Read the item outcome from the database
+            Map<String, Object> constraintMap = new HashMap<>();
+            constraintMap.put("id", FhirUtils.getIdFromResource(claim));
+            constraintMap.put("sequence", item.getSequence());
+            String outcome = App.getDB().readString(Table.CLAIM_ITEM, constraintMap, "outcome");
+
+            ClaimResponse.ItemComponent itemComponent = createItemComponent(item, ReviewAction.fromString(outcome),
+                    claim.getProvider());
+            items.add(itemComponent);
+        }
+        return items;
+    }
+
+    /**
      * Set the item for a ClaimResponse ItemComponent based on the submitted item
      * and the outcome
      * 
@@ -242,7 +242,7 @@ public class ClaimResponseFactory {
         CodeableConcept reviewActionCode = new CodeableConcept(new Coding(FhirUtils.REVIEW_ACTION_CODE_SYSTEM, action.value(), null));
         reviewActionExtension.addExtension(FhirUtils.REVIEW_ACTION_CODE_EXTENSION_URL, reviewActionCode);
         if (action.equals(ReviewAction.APPROVED) || action.equals(ReviewAction.PARTIAL)) {
-            reviewActionExtension.addExtension(FhirUtils.REVIEW_NUMBER, new StringType("randomid"));
+            reviewActionExtension.addExtension(FhirUtils.REVIEW_NUMBER, new StringType(UUID.randomUUID().toString()));
         } else if (action.equals(ReviewAction.DENIED) || action.equals(ReviewAction.PENDED)) {
             CodeableConcept reasonCodeableConcept = new CodeableConcept(new Coding(FhirUtils.REVIEW_REASON_CODE_SYSTEM, "X", "TODO: unknown"));
             reviewActionExtension.addExtension(FhirUtils.REVIEW_REASON_CODE, reasonCodeableConcept);
