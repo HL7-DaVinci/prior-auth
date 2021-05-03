@@ -1,10 +1,18 @@
 package org.hl7.davinci.priorauth;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import com.google.common.net.MediaType;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
 import org.hl7.davinci.rules.PriorAuthRule;
@@ -13,6 +21,13 @@ import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Type;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.RequestEntity;
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public class ProcessClaimItemTask implements Runnable {
 
@@ -96,6 +111,7 @@ public class ProcessClaimItemTask implements Runnable {
     private boolean process() {
         boolean ret = true;
         boolean itemIsCancelled = false;
+        String rulesEngine = PropertyProvider.getProperty("rules_engine");
         if (this.item.hasModifierExtension()) {
             List<Extension> exts = this.item.getModifierExtension();
             for (Extension ext : exts) {
@@ -108,7 +124,22 @@ public class ProcessClaimItemTask implements Runnable {
 
         Disposition itemDisposition;
         if (!itemIsCancelled) {
-            itemDisposition = PriorAuthRule.computeDisposition(this.bundle, this.item.getSequence());
+            // here is the place to switch
+            if (rulesEngine.equals("internal")) {
+                itemDisposition = PriorAuthRule.computeDisposition(this.bundle, this.item.getSequence());
+            } else {
+
+                try {
+                    itemDisposition = sendAndGetDisposition(this.bundle, this.item.getSequence(), rulesEngine);
+                } catch (IOException e) {
+                    // if we fail to talk to the external rules engine just say we don't know the
+                    // state of the claim
+                    itemDisposition = Disposition.UNKNOWN;
+                    e.printStackTrace();
+                }
+
+            }
+
         } else
             itemDisposition = Disposition.CANCELLED;
 
@@ -142,4 +173,23 @@ public class ProcessClaimItemTask implements Runnable {
 
         return ret;
     }
+
+    private Disposition sendAndGetDisposition(Bundle bundle, int seq, String address) throws IOException {
+
+        // create post request
+
+        OkHttpClient client = new OkHttpClient();
+        RequestBody body = RequestBody.create(null, bundle.toString());
+        Request request = new Request.Builder().url(address + "?seq=" + String.valueOf(seq)).post(body).build();
+        // if no response in alloted time return some default value
+        try (Response response = client.newCall(request).execute()) {
+            String answer = response.body().string();
+            return FhirUtils.Disposition.convertStringToDisposition(answer);
+        } catch (Exception e) {
+            logger.info(
+                    "ProcessClaimItemTask::sendAndGetDisposition was unable to get a response from the rules engine");
+            return Disposition.UNKNOWN;
+        }
+    }
+
 }
