@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.logging.Logger;
 
 import org.hl7.davinci.priorauth.Database.Table;
@@ -15,9 +16,14 @@ import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
+import org.hl7.fhir.r4.model.DateType;
+import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Meta;
+import org.hl7.fhir.r4.model.Period;
 import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.Resource;
+import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
@@ -52,44 +58,8 @@ public class ClaimResponseFactory {
                 + responseDisposition + ", status: " + responseStatus + ")");
 
         // Generate the claim response...
-        ClaimResponse response = new ClaimResponse();
+        ClaimResponse response = createClaimResponse(claim, id, responseDisposition, responseStatus);
         String claimId = App.getDB().getMostRecentId(FhirUtils.getIdFromResource(claim));
-        response.setStatus(responseStatus);
-        response.setType(claim.getType());
-        response.setUse(Use.PREAUTHORIZATION);
-        response.setPatient(claim.getPatient());
-        response.setCreated(new Date());
-        if (claim.hasInsurer()) {
-            response.setInsurer(claim.getInsurer());
-        } else {
-            response.setInsurer(new Reference().setDisplay("Unknown"));
-        }
-        response.setRequest(new Reference(App.getBaseUrl() + "Claim?identifier=" + FhirUtils.getIdFromResource(claim)
-                + "&patient.identifier=" + patient));
-        if (responseDisposition == Disposition.PENDING) {
-            response.setOutcome(RemittanceOutcome.QUEUED);
-        } else if (responseDisposition == Disposition.PARTIAL) {
-            response.setOutcome(RemittanceOutcome.PARTIAL);
-        } else {
-            response.setOutcome(RemittanceOutcome.COMPLETE);
-        }
-        response.setItem(setClaimResponseItems(claim));
-        response.setDisposition(responseDisposition.value());
-        response.setPreAuthRef(id);
-        // TODO response.setPreAuthPeriod(period)?
-        response.setId(id);
-
-        response.addExtension(FhirUtils.REVIEW_ACTION_EXTENSION_URL,
-                FhirUtils.dispositionToReviewAction(responseDisposition).valueCode());
-
-        Identifier identifier = new Identifier();
-        identifier.setSystem(App.getBaseUrl());
-        identifier.setValue(id);
-        response.addIdentifier(identifier);
-
-        if (responseDisposition == Disposition.DENIED || responseDisposition == Disposition.PENDING) {
-            response.addExtension(FhirUtils.REVIEW_ACTION_REASON_EXTENSION_URL, new StringType("X"));
-        }
 
         // Create the responseBundle
         Bundle responseBundle = new Bundle();
@@ -105,14 +75,16 @@ public class ClaimResponseFactory {
             // responseBundle.setMeta(meta); // This causes an error for some reason
         }
 
-        // TODO: update this to only add entries referenced in the ClaimResponse
-        // resource
+        // Add Patient and Provider from Claim Bundle into Response Bundle
         for (BundleEntryComponent entry : bundle.getEntry()) {
-            responseBundle.addEntry(entry);
+            Resource r = entry.getResource();
+            if (r != null && (r.getResourceType() == ResourceType.Patient || r.getResourceType() == ResourceType.Practitioner)) {
+                responseBundle.addEntry(entry);
+            }
         }
 
         // Store the claim response...
-        Map<String, Object> responseMap = new HashMap<String, Object>();
+        Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("id", id);
         responseMap.put("claimId", claimId);
         responseMap.put("patient", patient);
@@ -139,7 +111,7 @@ public class ClaimResponseFactory {
             boolean atleastOneDenied = false;
             boolean atleastOnePended = false;
             for (ItemComponent item : claim.getItem()) {
-                Map<String, Object> constraintMap = new HashMap<String, Object>();
+                Map<String, Object> constraintMap = new HashMap<>();
                 constraintMap.put("id", claimId);
                 constraintMap.put("sequence", item.getSequence());
                 String outcome = App.getDB().readString(Table.CLAIM_ITEM, constraintMap, "outcome");
@@ -167,9 +139,6 @@ public class ClaimResponseFactory {
             return disposition;
         } else {
             // There were no items on this claim so determine the disposition here
-            // PriorAuthRule rule = new PriorAuthRule("HomeOxygenTherapyPriorAuthRule");
-            // logger.info("ClaimResponseFactory::Created the rule!");
-            // return rule.computeDisposition(bundle);
             logger.warning(
                     "ClaimResponseFactory::determineDisposition:Request had no items to compute disposition from. Returning in pended by default");
             return Disposition.PENDING;
@@ -183,22 +152,66 @@ public class ClaimResponseFactory {
      * @return a list of ItemComponents to be added to the ClaimResponse.items field
      */
     private static List<ClaimResponse.ItemComponent> setClaimResponseItems(Claim claim) {
-        List<ClaimResponse.ItemComponent> items = new ArrayList<ClaimResponse.ItemComponent>();
+        List<ClaimResponse.ItemComponent> items = new ArrayList<>();
 
         // Set the Items on the ClaimResponse based on the initial Claim and the
         // Response disposition
         for (ItemComponent item : claim.getItem()) {
             // Read the item outcome from the database
-            Map<String, Object> constraintMap = new HashMap<String, Object>();
+            Map<String, Object> constraintMap = new HashMap<>();
             constraintMap.put("id", FhirUtils.getIdFromResource(claim));
             constraintMap.put("sequence", item.getSequence());
             String outcome = App.getDB().readString(Table.CLAIM_ITEM, constraintMap, "outcome");
 
             ClaimResponse.ItemComponent itemComponent = createItemComponent(item, ReviewAction.fromString(outcome),
-                    FhirUtils.getIdFromResource(claim));
+                    claim.getProvider());
             items.add(itemComponent);
         }
         return items;
+    }
+
+    /**
+     * Create the ClaimResponse resource for the response bundle
+     * 
+     * @param claim               The claim which this ClaimResponse is in reference
+     *                            to.
+     * @param id                  The new identifier for this ClaimResponse.
+     * @param responseDisposition The new disposition for this ClaimResponse
+     *                            (Granted, Pending, Cancelled, Declined ...).
+     * @param responseStatus      The new status for this ClaimResponse (Active,
+     *                            Cancelled, ...).
+     * @return ClaimResponse resource
+     */
+    private static ClaimResponse createClaimResponse(Claim claim, String id, Disposition responseDisposition, ClaimResponseStatus responseStatus) {
+        ClaimResponse response = new ClaimResponse();
+        response.setStatus(responseStatus);
+        response.setType(claim.getType());
+        response.setUse(Use.PREAUTHORIZATION);
+        response.setPatient(claim.getPatient());
+        response.setCreated(new Date());
+        if (claim.hasInsurer()) {
+            response.setInsurer(claim.getInsurer());
+        } else {
+            response.setInsurer(new Reference().setDisplay("Unknown"));
+        }
+        if (responseDisposition == Disposition.PENDING) {
+            response.setOutcome(RemittanceOutcome.QUEUED);
+        } else if (responseDisposition == Disposition.PARTIAL) {
+            response.setOutcome(RemittanceOutcome.PARTIAL);
+        } else {
+            response.setOutcome(RemittanceOutcome.COMPLETE);
+        }
+        response.setItem(setClaimResponseItems(claim));
+        response.setDisposition(responseDisposition.value());
+        response.setPreAuthRef(id);
+        response.setId(id);
+
+        Identifier identifier = new Identifier();
+        identifier.setSystem(App.getBaseUrl());
+        identifier.setValue(id);
+        response.addIdentifier(identifier);
+
+        return response;
     }
 
     /**
@@ -207,10 +220,9 @@ public class ClaimResponseFactory {
      * 
      * @param item   - the ItemComponent from the Claim
      * @param action - ReviewAction representing the outcome of the claim item
-     * @param id     - the ClaimResponse ID (used to set the identifier system)
      * @return ClaimResponse ItemComponent with appropriate elements set
      */
-    private static ClaimResponse.ItemComponent createItemComponent(ItemComponent item, ReviewAction action, String id) {
+    private static ClaimResponse.ItemComponent createItemComponent(ItemComponent item, ReviewAction action, Reference provider) {
         ClaimResponse.ItemComponent itemComponent = new ClaimResponse.ItemComponent();
         itemComponent.setItemSequence(item.getSequence());
 
@@ -225,16 +237,20 @@ public class ClaimResponseFactory {
         adjudication.setValue(adjudicationValue);
         itemComponent.addAdjudication(adjudication);
 
-        if (action == ReviewAction.APPROVED) {
-            // Add identifier for X12 mapping
-            Identifier itemIdentifier = new Identifier();
-            itemIdentifier.setSystem(App.getBaseUrl() + "/ClaimResponse/" + id);
-            itemIdentifier.setValue(Integer.toString(item.getSequence()));
-            itemComponent.addExtension(FhirUtils.ITEM_REFERENCE_EXTENSION_URL, itemIdentifier);
-        } else if (action == ReviewAction.DENIED || action == ReviewAction.PENDED)
-            itemComponent.addExtension(FhirUtils.REVIEW_ACTION_REASON_EXTENSION_URL, new StringType("X"));
-
-        itemComponent.addExtension(FhirUtils.REVIEW_ACTION_EXTENSION_URL, action.valueCode());
+        // Add the X12 extensions
+        Extension reviewActionExtension = new Extension(FhirUtils.REVIEW_ACTION_EXTENSION_URL);
+        CodeableConcept reviewActionCode = new CodeableConcept(new Coding(FhirUtils.REVIEW_ACTION_CODE_SYSTEM, action.value(), null));
+        reviewActionExtension.addExtension(FhirUtils.REVIEW_ACTION_CODE_EXTENSION_URL, reviewActionCode);
+        if (action.equals(ReviewAction.APPROVED) || action.equals(ReviewAction.PARTIAL)) {
+            reviewActionExtension.addExtension(FhirUtils.REVIEW_NUMBER, new StringType("randomid"));
+        } else if (action.equals(ReviewAction.DENIED) || action.equals(ReviewAction.PENDED)) {
+            CodeableConcept reasonCodeableConcept = new CodeableConcept(new Coding(FhirUtils.REVIEW_REASON_CODE_SYSTEM, "X", "TODO: unknown"));
+            reviewActionExtension.addExtension(FhirUtils.REVIEW_REASON_CODE, reasonCodeableConcept);
+        }
+        itemComponent.addExtension(reviewActionExtension);
+        itemComponent.addExtension(FhirUtils.ITEM_PREAUTH_ISSUE_DATE_EXTENSION_URL, new DateType(new Date()));
+        itemComponent.addExtension(FhirUtils.AUTHORIZATION_NUMBER_EXTENSION_URL, new StringType(UUID.randomUUID().toString()));
+        itemComponent.addExtension(FhirUtils.ITEM_AUTHORIZED_PROVIDER_EXTENSION_URL, provider);
 
         return itemComponent;
     }

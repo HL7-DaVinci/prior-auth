@@ -32,14 +32,27 @@ public class FhirUtils {
   static final Logger logger = PALogger.getLogger();
 
   // FHIR Extension URLS
-  public static final String ITEM_REFERENCE_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemReference";
+  public static final String ADMINISTRATION_REF_NUM_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-administrationReferenceNumber";
+  public static final String AUTHORIZATION_NUMBER_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-authorizationNumber";
+  public static final String ITEM_AUTHORIZED_DATE_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemAuthorizedDate";
+  public static final String ITEM_AUTHORIZED_PROVIDER_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemAuthorizedProvider";
   public static final String ITEM_CANCELLED_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemCancelled";
   public static final String ITEM_CHANGED_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-infoChanged";
+  public static final String ITEM_PREAUTH_ISSUE_DATE_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemPreAuthIssueDate";
+  public static final String ITEM_PREAUTH_PERIOD_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemPreAuthPeriod";
+  public static final String ITEM_REFERENCE_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemReference";
   public static final String REVIEW_ACTION_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction";
-  public static final String REVIEW_ACTION_REASON_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewActionReason";
+  public static final String REVIEW_ACTION_CODE_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewActionCode";
   public static final String WEBSOCKET_EXTENSION_URL = "http://hl7.org/fhir/StructureDefinition/capabilitystatement-websocket";
   public static final String SECURITY_SYSTEM_URL = "http://terminology.hl7.org/CodeSystem/v3-ObservationValue";
   public static final String SECURITY_SUBSETTED = "SUBSETTED";
+  public static final String REVIEW_REASON_CODE = "reasonCode";
+  public static final String REVIEW_NUMBER = "number";
+  public static final String REVIEW_SECOND_SURGICAL_OPINION = "secondSurgicalOpinionFlag";
+
+  // FHIR Code Systems
+  public static final String REVIEW_ACTION_CODE_SYSTEM = " https://valueset.x12.org/x217/005010/response/2000F/HCR/1/01/00/306";
+  public static final String REVIEW_REASON_CODE_SYSTEM = "https://codesystem.x12.org/external/886";
 
   /**
    * Enum for the ClaimResponse Disposition field Values are Granted, Denied,
@@ -59,7 +72,7 @@ public class FhirUtils {
       return this.value;
     }
 
-    public static Disposition convertStringToDisposition(String value) {
+    public static Disposition fromString(String value) {
       for (Disposition disposition : Disposition.values()) {
         if (disposition.value().equals(value))
           return disposition;
