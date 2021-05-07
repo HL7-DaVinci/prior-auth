@@ -126,8 +126,9 @@ public class ClaimEndpoint {
     logger.info("POST /Claim/$submit fhir+" + requestType.name());
     App.setBaseUrl(Endpoint.getServiceBaseUrl(request));
 
-    if (!AuthUtils.validateAccessToken(request)) 
-      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).contentType(MediaType.APPLICATION_JSON).body("{ error: \"Invalid access token. Make sure to use Authorization: Bearer (token)\" }");
+    if (!AuthUtils.validateAccessToken(request))
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).contentType(MediaType.APPLICATION_JSON)
+          .body("{ error: \"Invalid access token. Make sure to use Authorization: Bearer (token)\" }");
 
     String id = null;
     String patient = null;
@@ -209,6 +210,12 @@ public class ClaimEndpoint {
     ClaimStatus status = claim.getStatus();
     Disposition responseDisposition = null;
     ClaimResponseStatus responseStatus = ClaimResponseStatus.ACTIVE;
+    if (FhirUtils.isClaimInquiry(bundle)) {
+
+      // handle the claim inquiry operation
+      Bundle responseBundle = handleClaimInquiry(bundle);
+      return responseBundle;
+    }
 
     if (status == ClaimStatus.CANCELLED) {
       // Cancel the claim...
@@ -458,6 +465,18 @@ public class ClaimEndpoint {
       return true;
     }
     return false;
+  }
+
+  private Bundle handleClaimInquiry(Bundle bundle) {
+    String id = FhirUtils.getIdFromResource(bundle);// this should be inquiry but if it's not
+    String patient = FhirUtils.getPatientIdentifierFromBundle(bundle);
+    Claim claim = (Claim) App.getDB().read(Table.CLAIM, Collections.singletonMap("patient", patient));
+    Disposition responseDisposition = ClaimResponseFactory.determineDisposition(bundle);
+    // Generate the claim response...
+    Bundle responseBundle = ClaimResponseFactory.generateAndStoreClaimResponse(bundle, claim, id, responseDisposition,
+        ClaimResponseStatus.ACTIVE, patient);
+    return responseBundle;
+
   }
 
 }
