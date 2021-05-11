@@ -184,7 +184,7 @@ public class ProcessClaimItemTask implements Runnable {
         // if no response in alloted time return some default value
         try (Response response = client.newCall(request).execute()) {
             String answer = response.body().string();
-            return FhirUtils.Disposition.convertStringToDisposition(answer);
+            return FhirUtils.Disposition.fromString(answer);
         } catch (Exception e) {
             logger.info(
                     "ProcessClaimItemTask::sendAndGetDisposition was unable to get a response from the rules engine");

@@ -90,7 +90,7 @@ public class Metadata {
     implementation.setDescription(metadata.getTitle());
     implementation.setUrl(App.getBaseUrl() + "metadata");
     metadata.setImplementation(implementation);
-    metadata.setFhirVersion(FHIRVersion._4_0_0);
+    metadata.setFhirVersion(FHIRVersion._4_0_1);
     metadata.addFormat("json");
     metadata.addFormat("xml");
     metadata.addExtension(FhirUtils.WEBSOCKET_EXTENSION_URL, new StringType("/fhir"));
