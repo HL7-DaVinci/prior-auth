@@ -22,6 +22,7 @@ BEGIN TRANSACTION;
         "id" varchar PRIMARY KEY,
         "claimId" varchar,
         "patient" varchar,
+        "patientId" varchar,
         "status" varchar,
         "outcome" varchar,
         "isDifferential" boolean DEFAULT FALSE,
