@@ -1,6 +1,7 @@
 package org.hl7.davinci.priorauth;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.logging.Logger;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
 import org.hl7.davinci.priorauth.FhirUtils.ReviewAction;
+
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
@@ -26,6 +28,7 @@ import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
+import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
 import org.hl7.fhir.r4.model.ClaimResponse.AdjudicationComponent;
 import org.hl7.fhir.r4.model.ClaimResponse.ClaimResponseStatus;
@@ -255,4 +258,46 @@ public class ClaimResponseFactory {
         return itemComponent;
     }
 
+    public static Bundle handleClaimInquiry(Bundle claimInquiryBundle) {
+        String id = FhirUtils.getIdFromResource(claimInquiryBundle);// this should be inquiry but if it's not
+        String patient = FhirUtils.getPatientIdentifierFromBundle(claimInquiryBundle);
+        Claim claim = (Claim) App.getDB().read(Table.CLAIM, Collections.singletonMap("patient", patient));
+        List<Claim.ItemComponent> queriedItems = claim.getItem();
+        Disposition responseDisposition = ClaimResponseFactory.determineDisposition(claimInquiryBundle);
+
+        ClaimResponse response = new ClaimResponse();
+        String claimId = App.getDB().getMostRecentId(FhirUtils.getIdFromResource(claim));
+        ClaimStatus status = claim.getStatus();
+        if (status != ClaimStatus.CANCELLED) {
+
+            response.setStatus(ClaimResponseStatus.ACTIVE);
+        }
+        response.setType(claim.getType());
+        response.setUse(Use.PREAUTHORIZATION);
+        response.setPatient(claim.getPatient());
+        response.setCreated(new Date());
+        if (claim.hasInsurer()) {
+            response.setInsurer(claim.getInsurer());
+        } else {
+            response.setInsurer(new Reference().setDisplay("Unknown"));
+        }
+        BundleEntryComponent entry = new BundleEntryComponent();
+
+        Bundle responseBundle = new Bundle();
+        responseBundle.setId(id);
+        responseBundle.setType(Bundle.BundleType.COLLECTION);
+        BundleEntryComponent responseEntry = responseBundle.addEntry();
+        responseEntry.setResource(response);
+        for (ItemComponent item : queriedItems) {
+            entry.addExtension(FhirUtils.ITEM_TRACE_NUM_STRING,
+                    new StringType(item.getSequenceElement().asStringValue()));
+            response.setRequest(new Reference(App.getBaseUrl() + "Claim?identifier="
+                    + FhirUtils.getIdFromResource(claim) + "&patient.identifier=" + patient));
+
+            responseBundle.addEntry(entry);
+
+        }
+        return responseBundle;
+
+    }
 }

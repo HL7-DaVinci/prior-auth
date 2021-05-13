@@ -213,7 +213,7 @@ public class ClaimEndpoint {
     if (FhirUtils.isClaimInquiry(bundle)) {
 
       // handle the claim inquiry operation
-      Bundle responseBundle = handleClaimInquiry(bundle);
+      Bundle responseBundle = ClaimResponseFactory.handleClaimInquiry(bundle);
       return responseBundle;
     }
 
@@ -465,18 +465,6 @@ public class ClaimEndpoint {
       return true;
     }
     return false;
-  }
-
-  private Bundle handleClaimInquiry(Bundle bundle) {
-    String id = FhirUtils.getIdFromResource(bundle);// this should be inquiry but if it's not
-    String patient = FhirUtils.getPatientIdentifierFromBundle(bundle);
-    Claim claim = (Claim) App.getDB().read(Table.CLAIM, Collections.singletonMap("patient", patient));
-    Disposition responseDisposition = ClaimResponseFactory.determineDisposition(bundle);
-    // Generate the claim response...
-    Bundle responseBundle = ClaimResponseFactory.generateAndStoreClaimResponse(bundle, claim, id, responseDisposition,
-        ClaimResponseStatus.ACTIVE, patient);
-    return responseBundle;
-
   }
 
 }
