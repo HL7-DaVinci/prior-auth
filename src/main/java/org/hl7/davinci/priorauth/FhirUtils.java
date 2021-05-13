@@ -51,7 +51,7 @@ public class FhirUtils {
   public static final String REVIEW_SECOND_SURGICAL_OPINION = "secondSurgicalOpinionFlag";
 
   // FHIR Code Systems
-  public static final String REVIEW_ACTION_CODE_SYSTEM = " https://valueset.x12.org/x217/005010/response/2000F/HCR/1/01/00/306";
+  public static final String REVIEW_ACTION_CODE_SYSTEM = "https://valueset.x12.org/x217/005010/response/2000F/HCR/1/01/00/306";
   public static final String REVIEW_REASON_CODE_SYSTEM = "https://codesystem.x12.org/external/886";
 
   /**

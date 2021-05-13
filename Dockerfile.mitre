@@ -1,4 +1,4 @@
-FROM gradle:jdk11
+FROM gradle:6.9.0-jdk11
 EXPOSE 9000/tcp
 COPY --chown=gradle:gradle . /prior-auth/
 RUN keytool -import -alias mitre_ba_root -file "/prior-auth/MITRE BA Root.crt" \
