@@ -47,9 +47,9 @@ dependencies {
     implementation 'com.auth0:java-jwt:3.10.0'
     implementation 'com.auth0:jwks-rsa:0.11.0'
 
-    testCompile 'org.springframework.boot:spring-boot-starter-test'
-    testCompile 'org.springframework.boot:spring-boot-starter-webflux'
-    testCompile 'org.projectreactor:reactor-spring:1.0.1.RELEASE'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webflux'
+    testImplementation 'org.projectreactor:reactor-spring:1.0.1.RELEASE'
     testImplementation 'junit:junit:4.12'
     testImplementation 'com.squareup.okhttp3:okhttp:3.14.1'
     testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation:4.1.0'
