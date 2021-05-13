@@ -146,7 +146,7 @@ public class DebugEndpoint {
               if (file.getName().endsWith(".cql")) {
                 try {
                   // Read the file
-                  String cql = CqlUtils.readFile(topicName + "/" + file.getName());
+                  String cql = CqlUtils.readFile(cdsLibraryPath + "/" + topicName + "/" + file.getName());
                   String elm = CqlUtils.cqlToElm(cql, CqlUtils.RequestType.XML);
 
                   String elmFileName = file.toPath().toString().replaceAll(".cql", ".elm.xml");
