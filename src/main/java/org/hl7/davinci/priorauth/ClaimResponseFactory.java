@@ -281,10 +281,15 @@ public class ClaimResponseFactory {
         } else {
             response.setInsurer(new Reference().setDisplay("Unknown"));
         }
+
+        Identifier identifier = new Identifier();
+        identifier.setSystem(App.getBaseUrl());
+        identifier.setValue(claimId);
+        response.addIdentifier(identifier);
         BundleEntryComponent entry = new BundleEntryComponent();
 
         Bundle responseBundle = new Bundle();
-        responseBundle.setId(id);
+        responseBundle.setId(claimId);
         responseBundle.setType(Bundle.BundleType.COLLECTION);
         BundleEntryComponent responseEntry = responseBundle.addEntry();
         responseEntry.setResource(response);
@@ -293,6 +298,14 @@ public class ClaimResponseFactory {
                     new StringType(item.getSequenceElement().asStringValue()));
             response.setRequest(new Reference(App.getBaseUrl() + "Claim?identifier="
                     + FhirUtils.getIdFromResource(claim) + "&patient.identifier=" + patient));
+            response.setItem((List<org.hl7.fhir.r4.model.ClaimResponse.ItemComponent>) item);
+            response.setDisposition(responseDisposition.value());
+            response.setPreAuthRef(claimId);
+            response.setId(claimId);
+            response.addExtension(FhirUtils.REVIEW_ACTION_EXTENSION_URL,
+                    FhirUtils.dispositionToReviewAction(responseDisposition).valueCode());
+            entry.addExtension(FhirUtils.ITEM_TRACE_NUM_STRING,
+                    new StringType(item.getSequenceElement().asStringValue()));
 
             responseBundle.addEntry(entry);
 
