@@ -210,12 +210,6 @@ public class ClaimEndpoint {
     ClaimStatus status = claim.getStatus();
     Disposition responseDisposition = null;
     ClaimResponseStatus responseStatus = ClaimResponseStatus.ACTIVE;
-    if (FhirUtils.isClaimInquiry(bundle)) {
-
-      // handle the claim inquiry operation
-      Bundle responseBundle = ClaimResponseFactory.handleClaimInquiry(bundle);
-      return responseBundle;
-    }
 
     if (status == ClaimStatus.CANCELLED) {
       // Cancel the claim...

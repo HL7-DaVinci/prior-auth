@@ -41,6 +41,7 @@ public class FhirUtils {
   public static final String ITEM_PREAUTH_ISSUE_DATE_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemPreAuthIssueDate";
   public static final String ITEM_PREAUTH_PERIOD_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemPreAuthPeriod";
   public static final String ITEM_REFERENCE_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemReference";
+  public static final String ITEM_TRACE_NUM_STRING = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemTraceNumber";
   public static final String REVIEW_ACTION_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction";
   public static final String REVIEW_ACTION_CODE_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewActionCode";
   public static final String WEBSOCKET_EXTENSION_URL = "http://hl7.org/fhir/StructureDefinition/capabilitystatement-websocket";
@@ -53,9 +54,6 @@ public class FhirUtils {
   // FHIR Code Systems
   public static final String REVIEW_ACTION_CODE_SYSTEM = "https://valueset.x12.org/x217/005010/response/2000F/HCR/1/01/00/306";
   public static final String REVIEW_REASON_CODE_SYSTEM = "https://codesystem.x12.org/external/886";
-  public static final String ITEM_TRACE_NUM_STRING = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemTraceNumber"; /*
-                                                                                                                                          * itemTraceNumber
-                                                                                                                                          */
 
   /**
    * Enum for the ClaimResponse Disposition field Values are Granted, Denied,
