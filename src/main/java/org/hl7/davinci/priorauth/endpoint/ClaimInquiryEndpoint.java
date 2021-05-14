@@ -149,8 +149,21 @@ public class ClaimInquiryEndpoint {
 
     private Bundle processBundle(Bundle bundle) {
         logger.fine("ClaimEndpoint::processBundle:" + bundle.getId());
+        String id = FhirUtils.getIdFromResource(bundle);// this should be inquiry but if it's not
+        String patient = FhirUtils.getPatientIdentifierFromBundle(bundle);
+        Claim claimInq = FhirUtils.getClaimFromRequestBundle(bundle);
+        Claim[] claim = (Claim[]) App.getDB().read(Table.CLAIM, Collections.singletonMap("patient", patient));
+        List<Claim.ItemComponent> queriedItems = claim.getItem();
+        if (id.contains("inquiry")) {
+            if (patient.equals(claim.getPatient())) {
+                return handleClaimInquiry(bundle);
+            } else if (claim.getType() == claimInq.getType()) {
 
-        return handleClaimInquiry(bundle);
+                return handleClaimInquiry(bundle);
+            }
+        } else {
+            return new Bundle();
+        }
     }
 
     private Bundle handleClaimInquiry(Bundle claimInquiryBundle) {
