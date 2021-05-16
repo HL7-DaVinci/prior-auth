@@ -112,7 +112,7 @@ public class ClaimResponseFactoryTest {
     private void validateClaimResponse(Disposition disposition, ReviewAction reviewAction) {
         // Generate and store the response
         Bundle responseBundle = ClaimResponseFactory.generateAndStoreClaimResponse(bundle, claim, id, disposition,
-                status, patient);
+                status, patient, false);
 
         // Validate the response Bundle
         ValidationResult result = ValidationHelper.validate(responseBundle);

@@ -280,7 +280,7 @@ public class ClaimEndpoint {
 
     // Generate the claim response...
     Bundle responseBundle = ClaimResponseFactory.generateAndStoreClaimResponse(bundle, claim, id, responseDisposition,
-        responseStatus, patient);
+        responseStatus, patient, false);
 
     // Schedule update to Pended Claim
     if (responseDisposition == Disposition.PENDING) {

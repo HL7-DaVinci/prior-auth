@@ -50,15 +50,17 @@ public class ClaimResponseFactory {
      *                            Cancelled, ...).
      * @param patient             The identifier for the patient this ClaimResponse
      *                            is referring to.
+     * @param isScheduledUpdate   true if this is an automated update to a pended claim
      * @return ClaimResponse that has been generated and stored in the Database.
      */
     public static Bundle generateAndStoreClaimResponse(Bundle bundle, Claim claim, String id,
-            Disposition responseDisposition, ClaimResponseStatus responseStatus, String patient) {
+            Disposition responseDisposition, ClaimResponseStatus responseStatus, String patient,
+            boolean isScheduledUpdate) {
         logger.info("ClaimResponseFactory::generateAndStoreClaimResponse(" + id + "/" + patient + ", disposition: "
                 + responseDisposition + ", status: " + responseStatus + ")");
 
         // Generate the claim response...
-        ClaimResponse response = createClaimResponse(claim, id, responseDisposition, responseStatus);
+        ClaimResponse response = createClaimResponse(claim, id, responseDisposition, responseStatus, isScheduledUpdate);
         String claimId = App.getDB().getMostRecentId(FhirUtils.getIdFromResource(claim));
 
         // Create the responseBundle
@@ -155,9 +157,10 @@ public class ClaimResponseFactory {
      *                            (Granted, Pending, Cancelled, Declined ...).
      * @param responseStatus      The new status for this ClaimResponse (Active,
      *                            Cancelled, ...).
+     * @param isScheduledUpdate   true if this is an automated update to a pended claim
      * @return ClaimResponse resource
      */
-    private static ClaimResponse createClaimResponse(Claim claim, String id, Disposition responseDisposition, ClaimResponseStatus responseStatus) {
+    private static ClaimResponse createClaimResponse(Claim claim, String id, Disposition responseDisposition, ClaimResponseStatus responseStatus, boolean isScheduledUpdate) {
         ClaimResponse response = new ClaimResponse();
         response.setStatus(responseStatus);
         response.setType(claim.getType());
@@ -176,7 +179,7 @@ public class ClaimResponseFactory {
         } else {
             response.setOutcome(RemittanceOutcome.COMPLETE);
         }
-        response.setItem(setClaimResponseItems(claim));
+        response.setItem(setClaimResponseItems(claim, isScheduledUpdate));
         response.setDisposition(responseDisposition.value());
         response.setPreAuthRef(id);
         response.setId(id);
@@ -193,9 +196,10 @@ public class ClaimResponseFactory {
      * Set the Items on the ClaimResponse indicating the adjudication of each one
      * 
      * @param claim - the initial Claim which contains the items
+     * @param isScheduledUpdate - true if this is an automated update to a pended claim
      * @return a list of ItemComponents to be added to the ClaimResponse.items field
      */
-    private static List<ClaimResponse.ItemComponent> setClaimResponseItems(Claim claim) {
+    private static List<ClaimResponse.ItemComponent> setClaimResponseItems(Claim claim, boolean isScheduledUpdate) {
         List<ClaimResponse.ItemComponent> items = new ArrayList<>();
 
         // Set the Items on the ClaimResponse based on the initial Claim and the
@@ -206,8 +210,9 @@ public class ClaimResponseFactory {
             constraintMap.put("id", FhirUtils.getIdFromResource(claim));
             constraintMap.put("sequence", item.getSequence());
             String outcome = App.getDB().readString(Table.CLAIM_ITEM, constraintMap, "outcome");
+            ReviewAction reviewAction = isScheduledUpdate ? ReviewAction.APPROVED : ReviewAction.fromString(outcome);
 
-            ClaimResponse.ItemComponent itemComponent = createItemComponent(item, ReviewAction.fromString(outcome),
+            ClaimResponse.ItemComponent itemComponent = createItemComponent(item, reviewAction,
                     claim.getProvider());
             items.add(itemComponent);
         }
