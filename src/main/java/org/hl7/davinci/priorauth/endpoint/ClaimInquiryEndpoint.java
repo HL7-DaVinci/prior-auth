@@ -204,7 +204,7 @@ public class ClaimInquiryEndpoint {
         BundleEntryComponent responseEntry = responseBundle.addEntry();
         responseEntry.setResource(response);
         for (ItemComponent item : queriedItems) {
-            entry.addExtension(FhirUtils.ITEM_TRACE_NUM_STRING,
+            entry.addExtension(FhirUtils.ITEM_TRACE_NUMBER_EXTENSION_URL,
                     new StringType(item.getSequenceElement().asStringValue()));
             response.setRequest(new Reference(App.getBaseUrl() + "Claim?identifier="
                     + FhirUtils.getIdFromResource(claim) + "&patient.identifier=" + patient));
@@ -215,7 +215,7 @@ public class ClaimInquiryEndpoint {
             response.setId(claimId);
             response.addExtension(FhirUtils.REVIEW_ACTION_EXTENSION_URL,
                     FhirUtils.dispositionToReviewAction(responseDisposition).valueCode());
-            entry.addExtension(FhirUtils.ITEM_TRACE_NUM_STRING,
+            entry.addExtension(FhirUtils.ITEM_TRACE_NUMBER_EXTENSION_URL,
                     new StringType(item.getSequenceElement().asStringValue()));
 
             responseBundle.addEntry(entry);
