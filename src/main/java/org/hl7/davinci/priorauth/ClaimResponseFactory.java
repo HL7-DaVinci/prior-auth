@@ -244,9 +244,8 @@ public class ClaimResponseFactory {
         Extension reviewActionExtension = new Extension(FhirUtils.REVIEW_ACTION_EXTENSION_URL);
         CodeableConcept reviewActionCode = new CodeableConcept(new Coding(FhirUtils.REVIEW_ACTION_CODE_SYSTEM, action.value(), null));
         reviewActionExtension.addExtension(FhirUtils.REVIEW_ACTION_CODE_EXTENSION_URL, reviewActionCode);
-        if (action.equals(ReviewAction.APPROVED) || action.equals(ReviewAction.PARTIAL)) {
-            reviewActionExtension.addExtension(FhirUtils.REVIEW_NUMBER, new StringType(UUID.randomUUID().toString()));
-        } else if (action.equals(ReviewAction.DENIED) || action.equals(ReviewAction.PENDED)) {
+        reviewActionExtension.addExtension(FhirUtils.REVIEW_NUMBER, new StringType(UUID.randomUUID().toString()));
+        if (action.equals(ReviewAction.DENIED) || action.equals(ReviewAction.PENDED)) {
             CodeableConcept reasonCodeableConcept = new CodeableConcept(new Coding(FhirUtils.REVIEW_REASON_CODE_SYSTEM, "X", "TODO: unknown"));
             reviewActionExtension.addExtension(FhirUtils.REVIEW_REASON_CODE, reasonCodeableConcept);
         }
