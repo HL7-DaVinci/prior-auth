@@ -1,7 +1,6 @@
 package org.hl7.davinci.priorauth;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -22,13 +21,11 @@ import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Meta;
-import org.hl7.fhir.r4.model.Period;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
-import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
 import org.hl7.fhir.r4.model.ClaimResponse.AdjudicationComponent;
 import org.hl7.fhir.r4.model.ClaimResponse.ClaimResponseStatus;
@@ -66,27 +63,7 @@ public class ClaimResponseFactory {
         ClaimResponse response = createClaimResponse(claim, id, responseDisposition, responseStatus, isScheduledUpdate);
         String claimId = App.getDB().getMostRecentId(FhirUtils.getIdFromResource(claim));
 
-        // Create the responseBundle
-        Bundle responseBundle = new Bundle();
-        responseBundle.setId(id);
-        responseBundle.setType(Bundle.BundleType.COLLECTION);
-        BundleEntryComponent responseEntry = responseBundle.addEntry();
-        responseEntry.setResource(response);
-        responseEntry.setFullUrl(App.getBaseUrl() + "/ClaimResponse/" + id);
-        if (FhirUtils.isDifferential(bundle)) {
-            logger.info("ClaimResponseFactory::Adding subsetted tag");
-            Meta meta = new Meta();
-            meta.addSecurity(FhirUtils.SECURITY_SYSTEM_URL, FhirUtils.SECURITY_SUBSETTED, FhirUtils.SECURITY_SUBSETTED);
-            // responseBundle.setMeta(meta); // This causes an error for some reason
-        }
-
-        // Add Patient and Provider from Claim Bundle into Response Bundle
-        for (BundleEntryComponent entry : bundle.getEntry()) {
-            Resource r = entry.getResource();
-            if (r != null && (r.getResourceType() == ResourceType.Patient || r.getResourceType() == ResourceType.Practitioner)) {
-                responseBundle.addEntry(entry);
-            }
-        }
+        Bundle responseBundle = createClaimResponseBundle(bundle, response, id);
 
         // Store the claim response...
         Map<String, Object> responseMap = new HashMap<>();
@@ -97,6 +74,39 @@ public class ClaimResponseFactory {
         responseMap.put("outcome", FhirUtils.dispositionToReviewAction(responseDisposition).value());
         responseMap.put("resource", responseBundle);
         App.getDB().write(Table.CLAIM_RESPONSE, responseMap);
+
+        return responseBundle;
+    }
+
+    /**
+     * Create the Bundle for a ClaimResponse
+     * @param requestBundle - the Claim request Bundle
+     * @param claimResponse - the ClaimResponse
+     * @param id - the id of the response Bundle
+     * @return A Bundle with ClaimResponse, Patient, and Practitioner
+     */
+    public static Bundle createClaimResponseBundle(Bundle requestBundle, ClaimResponse claimResponse, String id) {
+        Bundle responseBundle = new Bundle();
+        responseBundle.setId(id);
+        responseBundle.setType(Bundle.BundleType.COLLECTION);
+        BundleEntryComponent responseEntry = responseBundle.addEntry();
+        responseEntry.setResource(claimResponse);
+        responseEntry.setFullUrl(App.getBaseUrl() + "/ClaimResponse/" + id);
+
+        if (FhirUtils.isDifferential(requestBundle)) {
+            logger.info("ClaimResponseFactory::Adding subsetted tag");
+            Meta meta = new Meta();
+            meta.addSecurity(FhirUtils.SECURITY_SYSTEM_URL, FhirUtils.SECURITY_SUBSETTED, FhirUtils.SECURITY_SUBSETTED);
+            // responseBundle.setMeta(meta); // This causes an error for some reason
+        }
+
+        // Add Patient and Provider from Claim Bundle into Response Bundle
+        for (BundleEntryComponent entry : requestBundle.getEntry()) {
+            Resource r = entry.getResource();
+            if (r != null && (r.getResourceType() == ResourceType.Patient || r.getResourceType() == ResourceType.Practitioner)) {
+                responseBundle.addEntry(entry);
+            }
+        }
 
         return responseBundle;
     }
