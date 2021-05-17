@@ -123,8 +123,6 @@ public class ClaimResponseFactoryTest {
         Assert.assertNotNull(claimResponse);
         Assert.assertEquals(status, claimResponse.getStatus());
         Assert.assertEquals(disposition.value(), claimResponse.getDisposition());
-        Assert.assertEquals(reviewAction.value(),
-                claimResponse.getExtensionByUrl(FhirUtils.REVIEW_ACTION_EXTENSION_URL).getValue().primitiveValue());
         Assert.assertTrue(claimResponse.hasIdentifier());
 
         if (disposition == Disposition.DENIED || disposition == Disposition.GRANTED
