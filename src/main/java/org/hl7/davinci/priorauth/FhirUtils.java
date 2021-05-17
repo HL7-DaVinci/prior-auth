@@ -456,15 +456,4 @@ public class FhirUtils {
     }
     return false;
   }
-
-  /**
-   * @param bundle - the bundle resource
-   * @return if the request is actually a claim inquiry request
-   */
-  public static boolean isClaimInquiry(Bundle bundle) {
-    if (bundle.getMeta().getId().contains("inquiry"))
-      return true;
-    return false;
-
-  }
 }
