@@ -4,18 +4,32 @@
 # Ignore Gradle build output directory
 build
 
+# Ignore CDS-Library
+CDS-Library
+
 # Ignore prettierignore file
 .prettierignore
 
-# Ignore Eclipse files
+# Ignore all log files
+*.log
+*.log.lck
+
+# Ignore Eclipse and vscode files
 .project
 .classpath
 .settings/
+.vscode/
 bin
 
 # Ignore Database files
 database.mv.db
 database.trace.db
 
+# Ignore the certificates
+*.crt
+*.p12
+
 # Ignore Mac OS X
 **/.DS_Store
+.idea/
+prior-auth.iml

@@ -1,6 +1,9 @@
-FROM gradle:jdk8-alpine
+FROM gradle:6.9.0-jdk11
 EXPOSE 9000/tcp
 COPY --chown=gradle:gradle . /prior-auth/
+RUN apt-get update         
+RUN apt-get install -y git
 WORKDIR /prior-auth/
-RUN gradle install
-CMD ["gradle", "run"]
+RUN git clone https://github.com/HL7-DaVinci/CDS-Library.git
+RUN gradle installBootDist
+CMD ["gradle", "bootRun"]

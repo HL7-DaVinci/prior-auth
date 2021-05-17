@@ -5,14 +5,33 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import org.apache.meecrowave.Meecrowave;
-import org.apache.meecrowave.junit.MonoMeecrowave;
-import org.apache.meecrowave.testing.ConfigurationInject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultMatcher;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import org.springframework.test.web.servlet.setup.DefaultMockMvcBuilder;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
+import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.fhir.r4.model.Bundle;
-import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.OperationOutcome;
+import org.hl7.fhir.r4.model.ResourceType;
+import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -21,19 +40,23 @@ import org.junit.runner.RunWith;
 
 import ca.uhn.fhir.validation.ValidationResult;
 import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 
-@RunWith(MonoMeecrowave.Runner.class)
+@RunWith(SpringRunner.class)
+@TestPropertySource(properties = "server.servlet.contextPath=/fhir")
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 public class ClaimSubmitTest {
 
-  public static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+  @LocalServerPort
+  private int port;
 
-  @ConfigurationInject
-  private Meecrowave.Builder config;
-  private static OkHttpClient client;
+  @Autowired
+  private WebApplicationContext wac;
+
+  private static ResultMatcher cors = MockMvcResultMatchers.header().string("Access-Control-Allow-Origin", "*");
+  private static ResultMatcher created = MockMvcResultMatchers.status().isCreated();
+  private static ResultMatcher badRequest = MockMvcResultMatchers.status().isBadRequest();
+
+  public static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
 
   /** List of resource IDs that will need to be cleaned up after the tests */
   private static List<String> resourceIds;
@@ -45,7 +68,7 @@ public class ClaimSubmitTest {
 
   @BeforeClass
   public static void setup() throws IOException {
-    client = new OkHttpClient();
+    App.initializeAppDB();
     resourceIds = new ArrayList<String>();
 
     // Read in the test fixtures...
@@ -67,35 +90,34 @@ public class ClaimSubmitTest {
   public static void cleanup() {
     for (String id : resourceIds) {
       System.out.println("Deleting Resources with ID = " + id);
-      App.DB.delete(Database.BUNDLE, id, "pat013");
-      App.DB.delete(Database.CLAIM, id, "pat013");
-      App.DB.delete(Database.CLAIM_RESPONSE, id, "pat013");
+      App.getDB().delete(Table.BUNDLE, id, "pat013");
+      App.getDB().delete(Table.CLAIM, id, "pat013");
+      App.getDB().delete(Table.CLAIM_RESPONSE, id, "pat013");
     }
   }
 
   @Test
   public void completeClaimValidation() {
-    Bundle bundle =
-        (Bundle) App.FHIR_CTX.newJsonParser().parseResource(completeClaim);
+    Bundle bundle = (Bundle) App.getFhirContext().newJsonParser().parseResource(completeClaim);
     Assert.assertNotNull(bundle);
     ValidationResult result = ValidationHelper.validate(bundle);
     Assert.assertTrue(result.isSuccessful());
   }
 
   @Test
-  public void submitCompleteClaim() throws IOException {
-    String base = "http://localhost:" + config.getHttpPort();
-
+  public void submitCompleteClaim() throws Exception {
     // Test that we can POST /fhir/Claim/$submit
-    RequestBody requestBody = RequestBody.create(JSON, completeClaim);
-    Request request = new Request.Builder()
-        .url(base + "/Claim/$submit")
-        .post(requestBody)
-        .build();
-    Response response = client.newCall(request).execute();
+    DefaultMockMvcBuilder builder = MockMvcBuilders.webAppContextSetup(wac);
+    MockMvc mockMvc = builder.build();
+    MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.post("/Claim/$submit").content(completeClaim)
+        .header("Content-Type", "application/fhir+json").header("Access-Control-Request-Method", "POST")
+        .header("Origin", "https://localhost:" + port).header("Authorization", "Bearer Y3YWq2l08kvFqy50fQJY");
+
+    // Test the response has CORS headers and returned status 201 (created)
+    MvcResult mvcresult = mockMvc.perform(requestBuilder).andExpect(created).andExpect(cors).andReturn();
 
     // Check Location header if it exists...
-    String location = response.header("Location");
+    String location = mvcresult.getResponse().getHeader("Location");
     if (location != null) {
       int index = location.indexOf("fhir/ClaimResponse/");
       if (index >= 0) {
@@ -103,68 +125,85 @@ public class ClaimSubmitTest {
       }
     }
 
-    // Check that the claim succeeded
-    Assert.assertEquals(200, response.code());
+    // Test the response is a JSON Bundle
+    String responseBody = mvcresult.getResponse().getContentAsString();
+    Bundle bundleResponse = (Bundle) App.getFhirContext().newJsonParser().parseResource(responseBody);
+    Assert.assertNotNull(bundleResponse);
 
-    // Test the response has CORS headers
-    String cors = response.header("Access-Control-Allow-Origin");
-    Assert.assertEquals("*", cors);
+    // Make sure all fullUrls and identifiers on the bundleResponse are the same as
+    // the submitted Claim
+    Bundle claimBundle = (Bundle) App.getFhirContext().newJsonParser().parseResource(completeClaim);
+    for (BundleEntryComponent responseEntry : bundleResponse.getEntry()) {
+      if (responseEntry.getResource().getResourceType() != ResourceType.ClaimResponse) {
+        String id = responseEntry.getResource().getId();
+        BundleEntryComponent claimEntry = FhirUtils.getEntryComponentFromBundle(claimBundle,
+            responseEntry.getResource().getResourceType(), id);
+        if (claimEntry != null) {
+          Assert.assertTrue(responseEntry.getFullUrl().equals(claimEntry.getFullUrl()));
 
-    // Test the response is a JSON ClaimResponse
-    String responseBody = response.body().string();
-    ClaimResponse claimResponse =
-        (ClaimResponse) App.FHIR_CTX.newJsonParser().parseResource(responseBody);
-    Assert.assertNotNull(claimResponse);
+          // Make sure the identifiers present in the request are still present in the
+          // response
+          String claimResource = FhirUtils.json(claimEntry.getResource());
+          String responseResource = FhirUtils.json(responseEntry.getResource());
+          JSONObject responseJSON = (JSONObject) new JSONParser().parse(responseResource);
+          JSONObject claimJSON = (JSONObject) new JSONParser().parse(claimResource);
+          if (claimJSON.get("identifier") != null) {
+            JSONArray claimIdentifiers = (JSONArray) claimJSON.get("identifier");
+            JSONArray responseIdentifiers = (JSONArray) responseJSON.get("identifier");
+            for (int i = 0; i < claimIdentifiers.size(); i++) {
+              Assert.assertTrue(responseIdentifiers.contains(claimIdentifiers.get(i)));
+            }
+          }
+        }
+      }
+    }
 
     // Make sure we clean up afterwards...
-    String id = claimResponse.getId().substring(14);
+    String id = FhirUtils.getIdFromResource(bundleResponse);
     resourceIds.add(id);
 
     // Test that the database contains the proper entries
-    Assert.assertNotNull(App.DB.read(Database.BUNDLE, id, "pat013"));
-    Assert.assertNotNull(App.DB.read(Database.CLAIM, id, "pat013"));
-    Assert.assertNotNull(App.DB.read(Database.CLAIM_RESPONSE, id, "pat013"));
+    Map<String, Object> constraintMap = new HashMap<String, Object>();
+    constraintMap.put("id", id);
+    constraintMap.put("patient", "pat013");
+    Assert.assertNotNull(App.getDB().read(Table.BUNDLE, constraintMap));
+    Assert.assertNotNull(App.getDB().read(Table.CLAIM, constraintMap));
+    Assert.assertNotNull(App.getDB().read(Table.CLAIM_RESPONSE, constraintMap));
 
     // Validate the response.
-    ValidationResult result = ValidationHelper.validate(claimResponse);
+    ValidationResult result = ValidationHelper.validate(bundleResponse);
     Assert.assertTrue(result.isSuccessful());
   }
 
   @Test
-  public void submitEmptyBundle() throws IOException {
+  public void submitEmptyBundle() throws Exception {
     checkErrors(emptyBundle);
   }
 
   @Test
-  public void submitClaimOnly() throws IOException {
+  public void submitClaimOnly() throws Exception {
     checkErrors(claimOnly);
   }
 
   @Test
-  public void submitBundleWithOnlyClaim() throws IOException {
+  public void submitBundleWithOnlyClaim() throws Exception {
     checkErrors(bundleWithOnlyClaim);
   }
 
-  private void checkErrors(String body) throws IOException {
-    String base = "http://localhost:" + config.getHttpPort();
-
+  private void checkErrors(String body) throws Exception {
     // Test that we can POST /fhir/Claim/$submit
-    RequestBody requestBody = RequestBody.create(JSON, body);
-    Request request = new Request.Builder()
-        .url(base + "/Claim/$submit")
-        .post(requestBody)
-        .build();
-    Response response = client.newCall(request).execute();
-    Assert.assertEquals(400, response.code());
+    DefaultMockMvcBuilder builder = MockMvcBuilders.webAppContextSetup(wac);
+    MockMvc mockMvc = builder.build();
+    MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.post("/Claim/$submit").content(body)
+        .header("Content-Type", "application/fhir+json").header("Access-Control-Request-Method", "POST")
+        .header("Origin", "https://localhost:" + port).header("Authorization", "Bearer Y3YWq2l08kvFqy50fQJY");
 
-    // Test the response has CORS headers
-    String cors = response.header("Access-Control-Allow-Origin");
-    Assert.assertEquals("*", cors);
+    // Test the response has CORS headers and returned status 400
+    MvcResult mvcresult = mockMvc.perform(requestBuilder).andExpect(badRequest).andExpect(cors).andReturn();
 
-    // Test the response is a JSON OperationOutcome
-    String responseBody = response.body().string();
-    OperationOutcome error =
-        (OperationOutcome) App.FHIR_CTX.newJsonParser().parseResource(responseBody);
+    // Test the response is a JSON Operation Outcome
+    String responseBody = mvcresult.getResponse().getContentAsString();
+    OperationOutcome error = (OperationOutcome) App.getFhirContext().newJsonParser().parseResource(responseBody);
     Assert.assertNotNull(error);
 
     // Validate the response.

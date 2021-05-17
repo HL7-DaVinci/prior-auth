@@ -1,0 +1,10 @@
+{
+  "resourceType": "Subscription",
+  "status": "requested",
+  "reason": "subscribe to updates for a pended ClaimResponse (priorauthorization)",
+  "criteria": "identifier=pended&patient.identifier=pat013&status=active",
+  "channel": {
+    "type": "rest-hook",
+    "endpoint": "http://localhost:9090/fhir/SubscriptionNotification?identifier=pended&patient.identifier=pat013&status=active"
+  }
+}
