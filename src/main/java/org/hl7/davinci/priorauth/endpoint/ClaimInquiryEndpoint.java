@@ -52,12 +52,12 @@ import ca.uhn.fhir.parser.IParser;
  */
 @CrossOrigin
 @RestController
-@RequestMapping("/ClaimInquiry")
+@RequestMapping("/Claim")
 public class ClaimInquiryEndpoint {
 
     static final Logger logger = PALogger.getLogger();
 
-    static final String REQUIRES_BUNDLE = "Prior Authorization Claim/$submit Operation requires a Bundle with a single Claim as the first entry and supporting resources.";
+    static final String REQUIRES_BUNDLE = "Prior Authorization Claim/$inquiry Operation requires a Bundle with a single Claim as the first entry and supporting resources.";
     static final String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
 
     @PostMapping(value = "/$inquiry", consumes = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
@@ -105,7 +105,7 @@ public class ClaimInquiryEndpoint {
                         OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID,
                                 PROCESS_FAILED);
                         formattedData = FhirUtils.getFormattedData(error, requestType);
-                        logger.severe("ClaimEndpoint::InquiryOperation:Failed to process Bundle:" + bundle.getId());
+                        logger.severe("ClaimInquiryEndpoint::InquiryOperation:Failed to process Bundle:" + bundle.getId());
                         auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
                     } else {
                         ClaimResponse response = FhirUtils.getClaimResponseFromResponseBundle(responseBundle);
@@ -120,109 +120,106 @@ public class ClaimInquiryEndpoint {
                     OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID,
                             REQUIRES_BUNDLE);
                     formattedData = FhirUtils.getFormattedData(error, requestType);
-                    logger.severe("ClaimEndpoint::InquiryOperation:First bundle entry is not a PASClaim");
+                    logger.severe("ClaimInquiryEndpoint::InquiryOperation:First bundle entry is not a PASClaim");
                 }
             } else {
                 // Bundle is required...
                 OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID,
                         REQUIRES_BUNDLE);
                 formattedData = FhirUtils.getFormattedData(error, requestType);
-                logger.severe("ClaimEndpoint::SubmitOperation:Body is not a Bundle");
+                logger.severe("ClaimInquiryEndpoint::SubmitOperation:Body is not a Bundle");
             }
         } catch (Exception e) {
-            // The submission failed so spectacularly that we need to
+            // The inquiry failed so spectacularly that we need to
             // catch an exception and send back an error message...
             OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.FATAL, IssueType.STRUCTURE, e.getMessage());
             formattedData = FhirUtils.getFormattedData(error, requestType);
             auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
         }
         Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, auditOutcome, null, request,
-                "POST /Claim/$submit");
+                "POST /Claim/$inquiry");
         MediaType contentType = requestType == RequestType.JSON ? MediaType.APPLICATION_JSON
                 : MediaType.APPLICATION_XML;
-        return ResponseEntity.status(status).contentType(contentType)
-                .header(HttpHeaders.LOCATION,
-                        App.getBaseUrl() + "/ClaimResponse?identifier=" + id + "&patient.identifier=" + patient)
-                .body(formattedData);
+        return ResponseEntity.status(status).contentType(contentType).body(formattedData);
 
     }
 
     private Bundle processBundle(Bundle bundle) {
-        logger.fine("ClaimEndpoint::processBundle:" + bundle.getId());
-        String id = FhirUtils.getIdFromResource(bundle);// this should be inquiry but if it's not
-        String patient = FhirUtils.getPatientIdentifierFromBundle(bundle);
-        Claim claimInq = FhirUtils.getClaimFromRequestBundle(bundle);
-        Claim[] claim = (Claim[]) App.getDB().read(Table.CLAIM, Collections.singletonMap("patient", patient));
-        List<Claim.ItemComponent> queriedItems = claim.getItem();
-        if (id.contains("inquiry")) {
-            if (patient.equals(claim.getPatient())) {
-                return handleClaimInquiry(bundle);
-            } else if (claim.getType() == claimInq.getType()) {
+        logger.fine("ClaimInquiryEndpoint::processBundle:" + bundle.getId());
+        // String patient = FhirUtils.getPatientIdentifierFromBundle(bundle);
+        // Claim claimInquiry = FhirUtils.getClaimFromRequestBundle(bundle);
+        // Claim[] claim = (Claim[]) App.getDB().read(Table.CLAIM, Collections.singletonMap("patient", patient));
+        // List<Claim.ItemComponent> queriedItems = claim.getItem();
+        // if (id.contains("inquiry")) {
+        //     if (patient.equals(claim.getPatient())) {
+        //         return handleClaimInquiry(bundle);
+        //     } else if (claim.getType() == claimInq.getType()) {
 
-                return handleClaimInquiry(bundle);
-            }
-        } else {
-            return new Bundle();
-        }
+        //         return handleClaimInquiry(bundle);
+        //     }
+        // } else {
+        //     return new Bundle();
+        // }
+        return new Bundle();
     }
 
-    private Bundle handleClaimInquiry(Bundle claimInquiryBundle) {
-        String id = FhirUtils.getIdFromResource(claimInquiryBundle);// this should be inquiry but if it's not
-        String patient = FhirUtils.getPatientIdentifierFromBundle(claimInquiryBundle);
-        Claim claim = (Claim) App.getDB().read(Table.CLAIM, Collections.singletonMap("patient", patient));
-        List<Claim.ItemComponent> queriedItems = claim.getItem();
-        // Disposition responseDisposition =
-        // ClaimResponseFactory.determineDisposition(claimInquiryBundle);
+    // private Bundle handleClaimInquiry(Bundle claimInquiryBundle) {
+    //     String id = FhirUtils.getIdFromResource(claimInquiryBundle);// this should be inquiry but if it's not
+    //     String patient = FhirUtils.getPatientIdentifierFromBundle(claimInquiryBundle);
+    //     Claim claim = (Claim) App.getDB().read(Table.CLAIM, Collections.singletonMap("patient", patient));
+    //     List<Claim.ItemComponent> queriedItems = claim.getItem();
+    //     // Disposition responseDisposition =
+    //     // ClaimResponseFactory.determineDisposition(claimInquiryBundle);
 
-        ClaimResponse response = new ClaimResponse();
-        String claimId = App.getDB().getMostRecentId(FhirUtils.getIdFromResource(claim));
-        ClaimStatus status = claim.getStatus();
-        if (status != ClaimStatus.CANCELLED) {
+    //     ClaimResponse response = new ClaimResponse();
+    //     String claimId = App.getDB().getMostRecentId(FhirUtils.getIdFromResource(claim));
+    //     ClaimStatus status = claim.getStatus();
+    //     if (status != ClaimStatus.CANCELLED) {
 
-            response.setStatus(ClaimResponseStatus.ACTIVE);
-        }
-        response.setType(claim.getType());
-        // response.setUse(Use.PREAUTHORIZATION);
+    //         response.setStatus(ClaimResponseStatus.ACTIVE);
+    //     }
+    //     response.setType(claim.getType());
+    //     // response.setUse(Use.PREAUTHORIZATION);
 
-        response.setPatient(claim.getPatient());
-        response.setCreated(new Date());
-        if (claim.hasInsurer()) {
-            response.setInsurer(claim.getInsurer());
-        } else {
-            response.setInsurer(new Reference().setDisplay("Unknown"));
-        }
+    //     response.setPatient(claim.getPatient());
+    //     response.setCreated(new Date());
+    //     if (claim.hasInsurer()) {
+    //         response.setInsurer(claim.getInsurer());
+    //     } else {
+    //         response.setInsurer(new Reference().setDisplay("Unknown"));
+    //     }
 
-        Identifier identifier = new Identifier();
-        identifier.setSystem(App.getBaseUrl());
-        identifier.setValue(claimId);
-        response.addIdentifier(identifier);
-        BundleEntryComponent entry = new BundleEntryComponent();
+    //     Identifier identifier = new Identifier();
+    //     identifier.setSystem(App.getBaseUrl());
+    //     identifier.setValue(claimId);
+    //     response.addIdentifier(identifier);
+    //     BundleEntryComponent entry = new BundleEntryComponent();
 
-        Bundle responseBundle = new Bundle();
-        responseBundle.setId(claimId);
-        responseBundle.setType(Bundle.BundleType.COLLECTION);
-        BundleEntryComponent responseEntry = responseBundle.addEntry();
-        responseEntry.setResource(response);
-        for (ItemComponent item : queriedItems) {
-            entry.addExtension(FhirUtils.ITEM_TRACE_NUMBER_EXTENSION_URL,
-                    new StringType(item.getSequenceElement().asStringValue()));
-            response.setRequest(new Reference(App.getBaseUrl() + "Claim?identifier="
-                    + FhirUtils.getIdFromResource(claim) + "&patient.identifier=" + patient));
-            response.setItem((List<org.hl7.fhir.r4.model.ClaimResponse.ItemComponent>) item);
-            Disposition responseDisposition = FhirUtils.Disposition.UNKNOWN;
-            response.setDisposition(responseDisposition.value());
-            response.setPreAuthRef(claimId);
-            response.setId(claimId);
-            response.addExtension(FhirUtils.REVIEW_ACTION_EXTENSION_URL,
-                    FhirUtils.dispositionToReviewAction(responseDisposition).valueCode());
-            entry.addExtension(FhirUtils.ITEM_TRACE_NUMBER_EXTENSION_URL,
-                    new StringType(item.getSequenceElement().asStringValue()));
+    //     Bundle responseBundle = new Bundle();
+    //     responseBundle.setId(claimId);
+    //     responseBundle.setType(Bundle.BundleType.COLLECTION);
+    //     BundleEntryComponent responseEntry = responseBundle.addEntry();
+    //     responseEntry.setResource(response);
+    //     for (ItemComponent item : queriedItems) {
+    //         entry.addExtension(FhirUtils.ITEM_TRACE_NUMBER_EXTENSION_URL,
+    //                 new StringType(item.getSequenceElement().asStringValue()));
+    //         response.setRequest(new Reference(App.getBaseUrl() + "Claim?identifier="
+    //                 + FhirUtils.getIdFromResource(claim) + "&patient.identifier=" + patient));
+    //         response.setItem((List<org.hl7.fhir.r4.model.ClaimResponse.ItemComponent>) item);
+    //         Disposition responseDisposition = FhirUtils.Disposition.UNKNOWN;
+    //         response.setDisposition(responseDisposition.value());
+    //         response.setPreAuthRef(claimId);
+    //         response.setId(claimId);
+    //         response.addExtension(FhirUtils.REVIEW_ACTION_EXTENSION_URL,
+    //                 FhirUtils.dispositionToReviewAction(responseDisposition).valueCode());
+    //         entry.addExtension(FhirUtils.ITEM_TRACE_NUMBER_EXTENSION_URL,
+    //                 new StringType(item.getSequenceElement().asStringValue()));
 
-            responseBundle.addEntry(entry);
+    //         responseBundle.addEntry(entry);
 
-        }
-        return responseBundle;
+    //     }
+    //     return responseBundle;
 
-    }
+    // }
 
 }
