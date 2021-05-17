@@ -116,8 +116,7 @@ public class Metadata {
     claim.addInteraction().setCode(TypeRestfulInteraction.SEARCHTYPE);
     claim.addInteraction().setCode(TypeRestfulInteraction.DELETE);
     claim.addOperation().setName("$submit").setDefinition("http://hl7.org/fhir/OperationDefinition/Claim-submit");
-    claim.addOperation().setName("$submit")
-        .setDefinition("https://build.fhir.org/ig/HL7/davinci-pas/Claim-submit.html");
+    claim.addOperation().setName("$inquiry").setDefinition("http://hl7.org/fhir/us/davinci-pas/OperationDefinition/Claim-inquiry");
     rest.addResource(claim);
 
     // ClaimResponse Resource

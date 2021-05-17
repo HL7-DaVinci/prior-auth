@@ -31,3 +31,5 @@ database.trace.db
 
 # Ignore Mac OS X
 **/.DS_Store
+.idea/
+prior-auth.iml

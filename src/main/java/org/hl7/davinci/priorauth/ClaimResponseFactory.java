@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
 import org.hl7.davinci.priorauth.FhirUtils.ReviewAction;
+
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
 import org.hl7.fhir.r4.model.ClaimResponse;
@@ -20,7 +21,6 @@ import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Meta;
-import org.hl7.fhir.r4.model.Period;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.ResourceType;
@@ -63,27 +63,7 @@ public class ClaimResponseFactory {
         ClaimResponse response = createClaimResponse(claim, id, responseDisposition, responseStatus, isScheduledUpdate);
         String claimId = App.getDB().getMostRecentId(FhirUtils.getIdFromResource(claim));
 
-        // Create the responseBundle
-        Bundle responseBundle = new Bundle();
-        responseBundle.setId(id);
-        responseBundle.setType(Bundle.BundleType.COLLECTION);
-        BundleEntryComponent responseEntry = responseBundle.addEntry();
-        responseEntry.setResource(response);
-        responseEntry.setFullUrl(App.getBaseUrl() + "/ClaimResponse/" + id);
-        if (FhirUtils.isDifferential(bundle)) {
-            logger.info("ClaimResponseFactory::Adding subsetted tag");
-            Meta meta = new Meta();
-            meta.addSecurity(FhirUtils.SECURITY_SYSTEM_URL, FhirUtils.SECURITY_SUBSETTED, FhirUtils.SECURITY_SUBSETTED);
-            // responseBundle.setMeta(meta); // This causes an error for some reason
-        }
-
-        // Add Patient and Provider from Claim Bundle into Response Bundle
-        for (BundleEntryComponent entry : bundle.getEntry()) {
-            Resource r = entry.getResource();
-            if (r != null && (r.getResourceType() == ResourceType.Patient || r.getResourceType() == ResourceType.Practitioner)) {
-                responseBundle.addEntry(entry);
-            }
-        }
+        Bundle responseBundle = createClaimResponseBundle(bundle, response, id);
 
         // Store the claim response...
         Map<String, Object> responseMap = new HashMap<>();
@@ -94,6 +74,39 @@ public class ClaimResponseFactory {
         responseMap.put("outcome", FhirUtils.dispositionToReviewAction(responseDisposition).value());
         responseMap.put("resource", responseBundle);
         App.getDB().write(Table.CLAIM_RESPONSE, responseMap);
+
+        return responseBundle;
+    }
+
+    /**
+     * Create the Bundle for a ClaimResponse
+     * @param requestBundle - the Claim request Bundle
+     * @param claimResponse - the ClaimResponse
+     * @param id - the id of the response Bundle
+     * @return A Bundle with ClaimResponse, Patient, and Practitioner
+     */
+    public static Bundle createClaimResponseBundle(Bundle requestBundle, ClaimResponse claimResponse, String id) {
+        Bundle responseBundle = new Bundle();
+        responseBundle.setId(id);
+        responseBundle.setType(Bundle.BundleType.COLLECTION);
+        BundleEntryComponent responseEntry = responseBundle.addEntry();
+        responseEntry.setResource(claimResponse);
+        responseEntry.setFullUrl(App.getBaseUrl() + "/ClaimResponse/" + id);
+
+        if (FhirUtils.isDifferential(requestBundle)) {
+            logger.info("ClaimResponseFactory::Adding subsetted tag");
+            Meta meta = new Meta();
+            meta.addSecurity(FhirUtils.SECURITY_SYSTEM_URL, FhirUtils.SECURITY_SUBSETTED, FhirUtils.SECURITY_SUBSETTED);
+            // responseBundle.setMeta(meta); // This causes an error for some reason
+        }
+
+        // Add Patient and Provider from Claim Bundle into Response Bundle
+        for (BundleEntryComponent entry : requestBundle.getEntry()) {
+            Resource r = entry.getResource();
+            if (r != null && (r.getResourceType() == ResourceType.Patient || r.getResourceType() == ResourceType.Practitioner)) {
+                responseBundle.addEntry(entry);
+            }
+        }
 
         return responseBundle;
     }
@@ -246,9 +259,8 @@ public class ClaimResponseFactory {
         Extension reviewActionExtension = new Extension(FhirUtils.REVIEW_ACTION_EXTENSION_URL);
         CodeableConcept reviewActionCode = new CodeableConcept(new Coding(FhirUtils.REVIEW_ACTION_CODE_SYSTEM, action.value(), null));
         reviewActionExtension.addExtension(FhirUtils.REVIEW_ACTION_CODE_EXTENSION_URL, reviewActionCode);
-        if (action.equals(ReviewAction.APPROVED) || action.equals(ReviewAction.PARTIAL)) {
-            reviewActionExtension.addExtension(FhirUtils.REVIEW_NUMBER, new StringType(UUID.randomUUID().toString()));
-        } else if (action.equals(ReviewAction.DENIED) || action.equals(ReviewAction.PENDED)) {
+        reviewActionExtension.addExtension(FhirUtils.REVIEW_NUMBER, new StringType(UUID.randomUUID().toString()));
+        if (action.equals(ReviewAction.DENIED) || action.equals(ReviewAction.PENDED)) {
             CodeableConcept reasonCodeableConcept = new CodeableConcept(new Coding(FhirUtils.REVIEW_REASON_CODE_SYSTEM, "X", "TODO: unknown"));
             reviewActionExtension.addExtension(FhirUtils.REVIEW_REASON_CODE, reasonCodeableConcept);
         }
@@ -259,5 +271,4 @@ public class ClaimResponseFactory {
 
         return itemComponent;
     }
-
 }

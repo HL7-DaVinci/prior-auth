@@ -1,18 +1,11 @@
 package org.hl7.davinci.priorauth;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import com.google.common.net.MediaType;
-
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
 import org.hl7.davinci.rules.PriorAuthRule;
@@ -21,8 +14,6 @@ import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Type;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.RequestEntity;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
