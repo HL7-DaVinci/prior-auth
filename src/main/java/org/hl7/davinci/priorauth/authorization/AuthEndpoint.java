@@ -68,6 +68,7 @@ public class AuthEndpoint {
         HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
         String body = entity.getBody();
         String clientId = UUID.randomUUID().toString();
+        String formattedData = "{ client_id: \"" + clientId + "\" }";
         try {
             // Read the body
             JSONObject jsonObject = (JSONObject) new JSONParser().parse(body);
@@ -76,28 +77,34 @@ public class AuthEndpoint {
             String jwksUrl = (String) jsonObject.get("jwks_url");
             String name = (String) jsonObject.get("organization_name");
             String contact = (String) jsonObject.get("organization_contact");
-            status = HttpStatus.OK;
 
-            Organization organization = new Organization();
-            organization.setId(clientId);
-            organization.setName(name);
-            ContactPoint telecom = new ContactPoint();
-            telecom.setValue(contact);
-            organization.setTelecom(Collections.singletonList(telecom));
+            if ((jwks != null || jwksUrl != null) && name != null && contact != null) {
+                status = HttpStatus.OK;
 
-            // Add the new client to the database
-            HashMap<String, Object> dataMap = new HashMap<>();
-            dataMap.put("id", clientId);
-            dataMap.put("jwks", jwks != null ? jwks.toJSONString() : null);
-            dataMap.put("jwks_url", jwksUrl);
-            dataMap.put("organization", organization);
-            App.getDB().write(Table.CLIENT, dataMap);
+                Organization organization = new Organization();
+                organization.setId(clientId);
+                organization.setName(name);
+                ContactPoint telecom = new ContactPoint();
+                telecom.setValue(contact);
+                organization.setTelecom(Collections.singletonList(telecom));
+
+                // Add the new client to the database
+                HashMap<String, Object> dataMap = new HashMap<>();
+                dataMap.put("id", clientId);
+                dataMap.put("jwks", jwks != null ? jwks.toJSONString() : null);
+                dataMap.put("jwks_url", jwksUrl);
+                dataMap.put("organization", organization);
+                App.getDB().write(Table.CLIENT, dataMap);
+            } else {
+                status = HttpStatus.BAD_REQUEST;
+                formattedData = "{ error: \"Body malformed. Must include jwks or jwks_url, organization_name, and organization_contact\" }";
+            }
         } catch (ParseException e) {
             logger.log(Level.SEVERE, "AuthEndpoint::registerClient:Unable to parse body\n" + body, e);
         }
 
         return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON)
-                .body("{ client_id: " + clientId + " }");
+                .body(formattedData);
     }
 
     @PostMapping(value = "/token")
