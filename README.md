@@ -119,17 +119,7 @@ The recommended way of authorization is server to server OAuth. The implementati
 
 #### Register a new client `/auth/register`
 
-Registering a new client requires providing either the jwks or a public url to get the jwks. The URL is the preferrable way.
-
-```
-HTTP POST /auth/register
-Content-Type application/json
-{
-  "jwks_url": "http://example.com/jwks"
-}
-```
-
-The server will respond with a JSON object containing `client_id`. This will be required for the client to recieve a token
+See [wiki](https://github.com/HL7-DaVinci/prior-auth/wiki/Connectathon-README#authorization).
 
 #### Token request `/auth/token`
 
