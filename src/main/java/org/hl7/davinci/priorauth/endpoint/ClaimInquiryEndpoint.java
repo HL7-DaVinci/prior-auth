@@ -19,6 +19,7 @@ import org.hl7.fhir.r4.model.AuditEvent.AuditEventAction;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -127,8 +128,10 @@ public class ClaimInquiryEndpoint {
                 "POST /Claim/$inquiry");
         MediaType contentType = requestType == RequestType.JSON ? MediaType.APPLICATION_JSON
                 : MediaType.APPLICATION_XML;
-        return ResponseEntity.status(status).contentType(contentType).body(formattedData);
-
+        String fhirContentType = requestType == RequestType.JSON ? "application/fhir+json" : "application/xml+json";
+        return ResponseEntity.status(status).contentType(contentType)
+            .header(HttpHeaders.CONTENT_TYPE, fhirContentType + "; charset=utf-8")
+            .body(formattedData);
     }
 
     private Bundle getClaimResponseBundle(Bundle requestBundle) {
