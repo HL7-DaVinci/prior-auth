@@ -89,15 +89,16 @@ public class ClaimResponseFactory {
         Bundle responseBundle = new Bundle();
         responseBundle.setId(id);
         responseBundle.setType(Bundle.BundleType.COLLECTION);
+        responseBundle.setTimestamp(new Date());
+        Meta meta = new Meta();
+        meta.addProfile("http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-pas-response-bundle");
         BundleEntryComponent responseEntry = responseBundle.addEntry();
         responseEntry.setResource(claimResponse);
         responseEntry.setFullUrl(App.getBaseUrl() + "/ClaimResponse/" + id);
 
         if (FhirUtils.isDifferential(requestBundle)) {
             logger.info("ClaimResponseFactory::Adding subsetted tag");
-            Meta meta = new Meta();
-            meta.addSecurity(FhirUtils.SECURITY_SYSTEM_URL, FhirUtils.SECURITY_SUBSETTED, FhirUtils.SECURITY_SUBSETTED);
-            // responseBundle.setMeta(meta); // This causes an error for some reason
+            // meta.addSecurity(FhirUtils.SECURITY_SYSTEM_URL, FhirUtils.SECURITY_SUBSETTED, FhirUtils.SECURITY_SUBSETTED); // This causes an error for some reason
         }
 
         // Add Patient and Provider from Claim Bundle into Response Bundle
@@ -107,6 +108,8 @@ public class ClaimResponseFactory {
                 responseBundle.addEntry(entry);
             }
         }
+
+        responseBundle.setMeta(meta);
 
         return responseBundle;
     }
@@ -202,6 +205,10 @@ public class ClaimResponseFactory {
         identifier.setValue(id);
         response.addIdentifier(identifier);
 
+        Meta meta = new Meta();
+        meta.addProfile("http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-claimresponse");
+        response.setMeta(meta);
+
         return response;
     }
 
@@ -246,13 +253,10 @@ public class ClaimResponseFactory {
 
         // Add the adjudication
         Coding adjudicationCoding = new Coding();
-        adjudicationCoding.setCode("eligpercent");
-        adjudicationCoding.setDisplay("Eligible %");
+        adjudicationCoding.setCode("submitted");
         adjudicationCoding.setSystem("http://terminology.hl7.org/CodeSystem/adjudication");
         CodeableConcept category = new CodeableConcept(adjudicationCoding);
         AdjudicationComponent adjudication = new AdjudicationComponent(category);
-        Double adjudicationValue = action == ReviewAction.APPROVED ? 1.0 : 0.0;
-        adjudication.setValue(adjudicationValue);
         itemComponent.addAdjudication(adjudication);
 
         // Add the X12 extensions
@@ -264,10 +268,14 @@ public class ClaimResponseFactory {
             CodeableConcept reasonCodeableConcept = new CodeableConcept(new Coding(FhirUtils.REVIEW_REASON_CODE_SYSTEM, "X", "TODO: unknown"));
             reviewActionExtension.addExtension(FhirUtils.REVIEW_REASON_CODE, reasonCodeableConcept);
         }
+
+        Extension itemAuthorizedProviderExtension = new Extension(FhirUtils.ITEM_AUTHORIZED_PROVIDER_EXTENSION_URL);
+        itemAuthorizedProviderExtension.addExtension("provider", provider);
+
         itemComponent.addExtension(reviewActionExtension);
         itemComponent.addExtension(FhirUtils.ITEM_PREAUTH_ISSUE_DATE_EXTENSION_URL, new DateType(new Date()));
         itemComponent.addExtension(FhirUtils.AUTHORIZATION_NUMBER_EXTENSION_URL, new StringType(UUID.randomUUID().toString()));
-        itemComponent.addExtension(FhirUtils.ITEM_AUTHORIZED_PROVIDER_EXTENSION_URL, provider);
+        itemComponent.addExtension(itemAuthorizedProviderExtension);
 
         return itemComponent;
     }
