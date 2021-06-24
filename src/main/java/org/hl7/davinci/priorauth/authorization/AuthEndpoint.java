@@ -1,5 +1,6 @@
 package org.hl7.davinci.priorauth.authorization;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -50,6 +51,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
 
 @CrossOrigin
 @RestController
@@ -151,7 +155,7 @@ public class AuthEndpoint {
             return sendError(INVALID_REQUEST, "client_assertion is not a valid jwt token");
         }
 
-        String clientId;
+        String clientId = "unknown";
         String jwtHeaderRaw = new String(Base64.getUrlDecoder().decode(jwtParts[0]));
         String jwtBodyRaw = new String(Base64.getUrlDecoder().decode(jwtParts[1]));
         try {
@@ -194,10 +198,7 @@ public class AuthEndpoint {
             return sendFailure();
         } catch (InvalidAttributeValueException e) {
             Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
-            return sendError(INVALID_CLIENT, "No client registered with that id. Please register first");
-        } catch (NotSupportedException e) {
-            Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
-            return sendError(INVALID_REQUEST, "Only supports jwks and not jwks_url");
+            return sendError(INVALID_CLIENT, "No client registered with that id (" + clientId + "). Please register first");
         } catch (JWTVerificationException e) {
             Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, AuditEventOutcome.MAJOR_FAILURE, null, request, "POST /token" + requestQueryParams);
             return sendError(INVALID_CLIENT, "Could not verify client using any of the keys in the jwk set");
@@ -272,18 +273,18 @@ public class AuthEndpoint {
      * @throws InvalidAttributeValueException No jwks or jwks_url for the given
      *                                        client id
      * @throws NotSupportedException          RI does not support jwks_url right now
+     * @throws IOException
      */
-    private static JSONObject getJwks(String clientId)
-            throws ParseException, InvalidAttributeValueException, NotSupportedException {
+    private static JSONObject getJwks(String clientId) throws ParseException, IOException, InvalidAttributeValueException {
         String jwks = App.getDB().readString(Table.CLIENT, Collections.singletonMap("id", clientId), "jwks");
-        if (jwks == null) {
+        if (jwks == null || jwks.equals("null")) {
             String jwksUrl = App.getDB().readString(Table.CLIENT, Collections.singletonMap("id", clientId),
                     "jwks_url");
-            // TODO: get the jwks
-            if (jwksUrl == null)
-                throw new InvalidAttributeValueException();
-            else
-                throw new NotSupportedException("Only jwks is supported right now");
+            if (jwksUrl == null) throw new InvalidAttributeValueException();
+            OkHttpClient client = new OkHttpClient();
+            okhttp3.Response response = client.newCall(new Request.Builder().get().url(jwksUrl).build()).execute();
+            if (response.isSuccessful()) jwks = response.body().string();
+            else throw new InvalidAttributeValueException();
         }
 
         // Convert to JSONObject
