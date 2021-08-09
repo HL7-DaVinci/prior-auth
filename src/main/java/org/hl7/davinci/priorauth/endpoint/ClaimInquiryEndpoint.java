@@ -64,7 +64,7 @@ public class ClaimInquiryEndpoint {
 
     /**
      * The inquiryOperation function for both json and xml
-     * 
+     *
      * @param body        - the body of the post request.
      * @param requestType - the RequestType of the request.
      * @return - claimResponse response
@@ -92,8 +92,8 @@ public class ClaimInquiryEndpoint {
                         && bundle.getEntry().get(0).getResource().getResourceType() == ResourceType.Claim) {
 
                     Claim claimInq = (Claim) bundle.getEntry().get(0).getResource();
-                    if (claimInq.hasProvider() && claimInq.hasInsurance() && claimInq.hasInsurer()) {
-
+                    if (claimInq.hasProvider() && claimInq.hasInsurer()
+                            && (FhirUtils.getPatientIdentifierFromBundle(bundle) != null)) {
                         Bundle responseBundle = getClaimResponseBundle(bundle);
                         if (responseBundle == null) {
                             // Failed to find ClaimResponse
@@ -110,6 +110,16 @@ public class ClaimInquiryEndpoint {
                             status = HttpStatus.OK;
                             auditOutcome = AuditEventOutcome.SUCCESS;
                         }
+                    } else {
+                        // Failed because the inquriy didn't include the required elements
+                        OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID,
+                                PROCESS_FAILED);
+                        formattedData = FhirUtils.getFormattedData(error, requestType);
+                        logger.severe(
+                                "ClaimInquiryEndpoint::InquiryOperation: Required elements were not found in inquiry Bundle:"
+                                        + bundle.getId());
+                        status = HttpStatus.NOT_FOUND;
+                        auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
                     }
                 } else {
                     // Claim is required...
