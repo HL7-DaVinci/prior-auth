@@ -24,6 +24,6 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
     - name: Checkout CDSLibrary
-      run:  sudo chmod +x ./travis-setup.sh
-      - name: Build with Gradle
+      run:  sudo chmod +x travis-setup.sh
+    - name: Build with Gradle
       run: ./gradlew build
