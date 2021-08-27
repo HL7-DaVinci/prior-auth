@@ -64,7 +64,7 @@ public class ClaimInquiryEndpoint {
 
     /**
      * The inquiryOperation function for both json and xml
-     * 
+     *
      * @param body        - the body of the post request.
      * @param requestType - the RequestType of the request.
      * @return - claimResponse response
@@ -85,23 +85,41 @@ public class ClaimInquiryEndpoint {
             IParser parser = requestType == RequestType.JSON ? App.getFhirContext().newJsonParser()
                     : App.getFhirContext().newXmlParser();
             IBaseResource resource = parser.parseResource(body);
+
             if (resource instanceof Bundle) {
                 Bundle bundle = (Bundle) resource;
                 if (bundle.hasEntry() && (!bundle.getEntry().isEmpty()) && bundle.getEntry().get(0).hasResource()
                         && bundle.getEntry().get(0).getResource().getResourceType() == ResourceType.Claim) {
-                    Bundle responseBundle = getClaimResponseBundle(bundle);
-                    if (responseBundle == null) {
-                        // Failed to find ClaimResponse
+
+                    Claim claimInq = (Claim) bundle.getEntry().get(0).getResource();
+                    if (claimInq.hasProvider() && claimInq.hasInsurer()
+                            && (FhirUtils.getPatientIdentifierFromBundle(bundle) != null)) {
+                        Bundle responseBundle = getClaimResponseBundle(bundle);
+                        if (responseBundle == null) {
+                            // Failed to find ClaimResponse
+                            OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID,
+                                    PROCESS_FAILED);
+                            formattedData = FhirUtils.getFormattedData(error, requestType);
+                            logger.severe(
+                                    "ClaimInquiryEndpoint::InquiryOperation:Could not find matching ClaimResponse for inquiry Bundle:"
+                                            + bundle.getId());
+                            status = HttpStatus.NOT_FOUND;
+                            auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
+                        } else {
+                            formattedData = FhirUtils.getFormattedData(responseBundle, requestType);
+                            status = HttpStatus.OK;
+                            auditOutcome = AuditEventOutcome.SUCCESS;
+                        }
+                    } else {
+                        // Failed because the inquriy didn't include the required elements
                         OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID,
                                 PROCESS_FAILED);
                         formattedData = FhirUtils.getFormattedData(error, requestType);
-                        logger.severe("ClaimInquiryEndpoint::InquiryOperation:Could not find matching ClaimResponse for inquiry Bundle:" + bundle.getId());
+                        logger.severe(
+                                "ClaimInquiryEndpoint::InquiryOperation: Required elements were not found in inquiry Bundle:"
+                                        + bundle.getId());
                         status = HttpStatus.NOT_FOUND;
                         auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
-                    } else {
-                        formattedData = FhirUtils.getFormattedData(responseBundle, requestType);
-                        status = HttpStatus.OK;
-                        auditOutcome = AuditEventOutcome.SUCCESS;
                     }
                 } else {
                     // Claim is required...
@@ -130,8 +148,7 @@ public class ClaimInquiryEndpoint {
                 : MediaType.APPLICATION_XML;
         String fhirContentType = requestType == RequestType.JSON ? "application/fhir+json" : "application/xml+json";
         return ResponseEntity.status(status).contentType(contentType)
-            .header(HttpHeaders.CONTENT_TYPE, fhirContentType + "; charset=utf-8")
-            .body(formattedData);
+                .header(HttpHeaders.CONTENT_TYPE, fhirContentType + "; charset=utf-8").body(formattedData);
     }
 
     private Bundle getClaimResponseBundle(Bundle requestBundle) {
@@ -141,26 +158,29 @@ public class ClaimInquiryEndpoint {
 
         // Search DB for all claims for patient then filter to where identifiers match
         List<IBaseResource> claims = App.getDB().readAll(Table.CLAIM, Collections.singletonMap("patient", patient));
-        logger.fine("Found " + claims.size() + " claims for Patient " + patient + " (Inquiry bundle: " + requestBundle.getId() + ")");
+        logger.fine("Found " + claims.size() + " claims for Patient " + patient + " (Inquiry bundle: "
+                + requestBundle.getId() + ")");
         for (IBaseResource resource : claims) {
-           Claim claim = (Claim) resource;
-           Identifier claimIdentifier = claim.getIdentifier().get(0);
-           if (identifiersMatch(claimIdentifier, claimInquiryIdentifier)) {
-               // Find the ClaimResponse
-               String claimId = FhirUtils.getIdFromResource(claim);
-               Map<String, Object> constraintMap = new HashMap<>();
-               constraintMap.put("patient", patient);
-               constraintMap.put("claimId", claimId);
-               logger.fine("Found matching Claim. Getting ClaimResponse with patient: " + patient + " and claimId: " + claimId);
-               return (Bundle) App.getDB().read(Table.CLAIM_RESPONSE, constraintMap);
-           }
+            Claim claim = (Claim) resource;
+            Identifier claimIdentifier = claim.getIdentifier().get(0);
+            if (identifiersMatch(claimIdentifier, claimInquiryIdentifier)) {
+                // Find the ClaimResponse
+                String claimId = FhirUtils.getIdFromResource(claim);
+                Map<String, Object> constraintMap = new HashMap<>();
+                constraintMap.put("patient", patient);
+                constraintMap.put("claimId", claimId);
+                logger.fine("Found matching Claim. Getting ClaimResponse with patient: " + patient + " and claimId: "
+                        + claimId);
+                return (Bundle) App.getDB().read(Table.CLAIM_RESPONSE, constraintMap);
+            }
         }
 
         return null;
     }
 
     private boolean identifiersMatch(Identifier identifier1, Identifier identifier2) {
-        return identifier1.getSystem().equals(identifier2.getSystem()) && identifier1.getValue().equals(identifier2.getValue());
+        return identifier1.getSystem().equals(identifier2.getSystem())
+                && identifier1.getValue().equals(identifier2.getValue());
     }
 
 }
