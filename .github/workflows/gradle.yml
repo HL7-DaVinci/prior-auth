@@ -17,16 +17,32 @@ jobs:
       - uses: actions/checkout@v2
         with:
           repository: HL7-DaVinci/CDS-Library
+      - name: Checkout CDSLibrary
+        run:  sudo chmod +x travis-setup.sh
       - name: Set up JDK 11
         uses: actions/setup-java@v2
         with:
           java-version: '11'
           distribution: 'adopt'
-      - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@e6e38bacfdf1a337459f332974bb2327a31aaf4b
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
       - run: gradle -v
       - name: Build with Gradle
         run: ./gradlew build
+
+    # steps:
+    # - uses: actions/checkout@v2
+    # - name: Set up JDK 11
+    #   uses: actions/setup-java@v2
+    #   with:
+    #     java-version: '11'
+    #     distribution: 'adopt'
+ 
+    # - name: Checkout CDSLibrary
+    #   run:  sudo chmod +x travis-setup.sh
+    # - name: Build with Gradle
+    #   run: ./gradlew build
+
   # build:
   #   runs-on: ubuntu-latest
 
