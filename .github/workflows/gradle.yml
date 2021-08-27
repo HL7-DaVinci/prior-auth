@@ -11,28 +11,19 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Check out CDS Library Repo
-      uses: actions/checkout@master
-      with:
+      - uses: actions/checkout@v2
+      - name: Check out CDS Library Repo
+        uses: actions/checkout@master
+        with:
           repository: HL7-DaVinci/CDS-Library
-    # - name: Set up JDK 1.8
-    #   uses:  actions/checkout@v2
-    #   with:
-    #     java-version: 1.8
-    - name: Set up JDK 11 - test
-      uses: actions/setup-java@v2
-      with:
-        java-version: '11'
-        distribution: 'adopt'
-    - run: gradle -v
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-    # - name: Checkout CDSLibrary
-    #   run:  sudo chmod +x travis-setup.sh
-    - name: Build with Gradle
-      run: ./gradlew build
+      - name: Set up JDK 1.8
+        uses:  actions/checkout@v2
+        with:
+          java-version: 1.8
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Build with Gradle
+        run: ./gradlew build
