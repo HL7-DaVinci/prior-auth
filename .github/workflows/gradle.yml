@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # - uses: actions/checkout@v2
+    - uses: actions/checkout@v2
     - name: Check out CDS Library Repo
       uses: actions/checkout@master
       with:
@@ -32,7 +32,7 @@ jobs:
     - run: gradle -v
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
-    - name: Checkout CDSLibrary
-      run:  sudo chmod +x travis-setup.sh
+    # - name: Checkout CDSLibrary
+    #   run:  sudo chmod +x travis-setup.sh
     - name: Build with Gradle
       run: ./gradlew build
