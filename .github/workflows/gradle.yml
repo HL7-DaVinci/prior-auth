@@ -17,7 +17,8 @@ jobs:
       uses: actions/setup-java@v2
       with:
         java-version: '11'
-        distribution: 'temurin'
+        distribution: 'adopt-hotspot'
+    - run: java -version
     - run: chmod +x gradlew
     - run:  sudo chmod +x travis-setup.sh
     - run: ./travis-setup.sh
