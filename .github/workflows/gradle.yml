@@ -9,7 +9,7 @@ on:
 jobs:
   build:
 
-    runs-on: macos-latest
+    runs-on: ubuntu-18.02
 
     steps:
     - uses: actions/checkout@v2
@@ -17,10 +17,11 @@ jobs:
       uses: actions/setup-java@v2
       with:
         java-version: '11'
-        distribution: 'adopt-hotspot'
+        distribution: 'zulu'
     - run: java -version
     - run: chmod +x gradlew
     - run:  sudo chmod +x travis-setup.sh
     - run: ./travis-setup.sh
+    - run: ls -a
     - name: Build with Gradle
       run: ./gradlew build 
