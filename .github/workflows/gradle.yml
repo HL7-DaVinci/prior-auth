@@ -9,7 +9,7 @@ on:
 jobs:
   build:
 
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
@@ -17,7 +17,7 @@ jobs:
       uses: actions/setup-java@v2
       with:
         java-version: '11'
-        distribution: 'adopt-openj9'
+        distribution: 'adopt'
     - run: chmod +x gradlew
     - run:  sudo chmod +x travis-setup.sh
     - run: ./travis-setup.sh
