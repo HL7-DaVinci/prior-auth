@@ -17,7 +17,7 @@ jobs:
       uses: actions/setup-java@v2
       with:
         java-version: '14'
-        distribution: 'adopt'
+        distribution: 'adopt-openj9'
     - run: chmod +x gradlew
     - run:  sudo chmod +x travis-setup.sh
     - run: ./travis-setup.sh
