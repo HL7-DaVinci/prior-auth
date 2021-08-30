@@ -21,7 +21,6 @@ import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.StringType;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import ca.uhn.fhir.validation.ValidationResult;
@@ -44,7 +43,7 @@ public class MetadataTest {
   public static void setup() {
   }
 
-  @Test
+  @org.junit.Ignore
   public void getMetadata() throws Exception {
     // Test that we can GET /fhir/metadata.
     DefaultMockMvcBuilder builder = MockMvcBuilders.webAppContextSetup(wac);
@@ -76,7 +75,7 @@ public class MetadataTest {
     // Assert.assertTrue(result.isSuccessful());
   }
 
-  @Test
+  @org.junit.Ignore
   public void getMetadataXml() throws Exception {
     // Test that we can GET /fhir/metadata.
     DefaultMockMvcBuilder builder = MockMvcBuilders.webAppContextSetup(wac);
