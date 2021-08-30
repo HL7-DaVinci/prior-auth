@@ -18,13 +18,8 @@ jobs:
       with:
         java-version: '11'
         distribution: 'adopt-openj9'
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-    # - name: Checkout CDSLibrary
+    - run: chmod +x gradlew
     - run:  sudo chmod +x travis-setup.sh
     - run: ./travis-setup.sh
-    - run: gradle -v
-    - run: java -version
-    - run: ls -a
     - name: Build with Gradle
       run: ./gradlew build 
