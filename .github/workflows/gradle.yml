@@ -22,7 +22,9 @@ jobs:
       run: chmod +x gradlew
     - name: Checkout CDSLibrary
       run:  sudo chmod +x travis-setup.sh
+      run: ./travis-setup.sh
     - run: gradle -v
     - run: java -version
+    - run: ls -a
     - name: Build with Gradle
-      run: ./gradlew build --info
+      run: ./gradlew build 
