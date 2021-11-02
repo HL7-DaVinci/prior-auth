@@ -13,6 +13,7 @@ CDS-Library
 # Ignore all log files
 *.log
 *.log.lck
+logs/
 
 # Ignore Eclipse and vscode files
 .project
