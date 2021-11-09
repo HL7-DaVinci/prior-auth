@@ -50,7 +50,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webflux'
     testImplementation 'org.projectreactor:reactor-spring:1.0.1.RELEASE'
-    testImplementation 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.13.2'
     testImplementation 'com.squareup.okhttp3:okhttp:3.14.1'
     testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation:4.1.0'
     testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-dstu3:5.5.3'
