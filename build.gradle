@@ -53,7 +53,7 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     testImplementation 'com.squareup.okhttp3:okhttp:3.14.1'
     testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation:4.1.0'
-    testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-dstu3:4.1.0'
+    testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-dstu3:5.5.3'
     testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-dstu2:4.1.0'
     testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-r4:4.1.0'
     testImplementation 'com.helger:ph-schematron:5.0.6'
