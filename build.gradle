@@ -39,7 +39,7 @@ dependencies {
         exclude group: 'org.slf4j', module: 'slf4j-log4j12'    
     } 
     implementation 'info.cqframework:cql-to-elm:1.4.6'
-    implementation 'com.google.guava:guava:27.0.1-jre'
+    implementation 'com.google.guava:guava:31.0.1-jre'
     implementation 'ca.uhn.hapi.fhir:hapi-fhir-base:4.1.0'
     implementation 'ca.uhn.hapi.fhir:hapi-fhir-structures-dstu3:4.1.0'
     implementation 'ca.uhn.hapi.fhir:hapi-fhir-structures-r4:4.1.0'
