@@ -40,9 +40,9 @@ dependencies {
     } 
     implementation 'info.cqframework:cql-to-elm:1.5.4'
     implementation 'com.google.guava:guava:31.0.1-jre'
-    implementation 'ca.uhn.hapi.fhir:hapi-fhir-base:4.1.0'
+    implementation 'ca.uhn.hapi.fhir:hapi-fhir-base:5.5.2'
     implementation 'ca.uhn.hapi.fhir:hapi-fhir-structures-dstu3:5.5.3'
-    implementation 'ca.uhn.hapi.fhir:hapi-fhir-structures-r4:4.1.0'
+    implementation 'ca.uhn.hapi.fhir:hapi-fhir-structures-r4:5.5.2'
     implementation 'com.h2database:h2:1.4.200'
     implementation 'com.auth0:java-jwt:3.18.2'
     implementation 'com.auth0:jwks-rsa:0.20.0'
@@ -56,7 +56,7 @@ dependencies {
     testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-dstu3:5.5.3'
     testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-dstu2:5.5.3'
     testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-r4:5.5.3'
-    testImplementation 'com.helger:ph-schematron:5.0.6'
+    testImplementation 'com.helger:ph-schematron:5.6.5'
     testImplementation 'com.phloc:phloc-schematron:2.7.1'
     testImplementation 'com.phloc:phloc-commons:4.6.7'
 }
