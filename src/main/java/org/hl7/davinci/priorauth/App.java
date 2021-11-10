@@ -44,27 +44,15 @@ public class App {
    * @param args - ignored.
    */
   public static void main(String[] args) {
-    config.setProperty("debugMode", "false");
-
     if ((args.length > 0 && args[0].equalsIgnoreCase("debug")) || 
       (System.getenv("debug") != null && System.getenv("debug").equalsIgnoreCase("true"))) {
-        System.out.println("debug mode true");
-        config.setProperty("debugMode", "true");
         debugMode = true;
     }
-    System.out.println("1debug mode in isDebugEnabled is: " + debugMode);
-    System.out.println("1-2debug mode in isDebugEnabled is: " + config.getProperty("debugMode"));
-
     // Set the DB
     initializeAppDB();
-    System.out.println("2debug mode in isDebugEnabled is: " + debugMode);
-    System.out.println("2-2debug mode in isDebugEnabled is: " + config.getProperty("debugMode"));
-
     // Assemble the microservice
     SpringApplication server = new SpringApplication(App.class);
-    server.run();
-    System.out.println("3debug mode in isDebugEnabled is: " + debugMode);
-    System.out.println("3-2debug mode in isDebugEnabled is: " + config.getProperty("debugMode"));
+    server.run(args);
 
   }
 
@@ -123,9 +111,6 @@ public class App {
    * @return true if debugMode is true, false otherwise
    */
   public static boolean isDebugModeEnabled() {
-    System.out.println("4-1debug mode in isDebugEnabled is: " + debugMode);
-    System.out.println("4-2debug mode in isDebugEnabled is: " + config.getProperty("debugMode"));
-    return true;
-    // return debugMode;
+    return debugMode;
   }
 }
