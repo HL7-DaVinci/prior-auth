@@ -1,9 +1,6 @@
 package org.hl7.davinci.priorauth;
 
 import org.hl7.davinci.ruleutils.ModelResolver;
-
-import java.util.Properties;
-
 import org.hl7.davinci.priorauth.authorization.AuthUtils;
 import org.hl7.davinci.rules.PriorAuthRule;
 import org.springframework.boot.SpringApplication;
@@ -36,7 +33,6 @@ public class App {
   private static boolean debugMode = false;
 
   private static String baseUrl;
-  public static final Properties config = new Properties();;
 
   /**
    * Launch the Prior Authorization microservice.
