@@ -79,7 +79,9 @@ public class Database {
   }
 
   public Database() {
-    this("./databaseData/");
+    // this("./databaseData/");
+    this("./");
+
   }
 
   public Database(String relativePath) {
