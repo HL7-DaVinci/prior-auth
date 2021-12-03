@@ -1,0 +1,42 @@
+{
+	"folders": [
+		{
+			"path": "../test-ehr"
+		},
+		{
+			"name": "CRD-CDS-Library",
+			"path": "../CRD/server/CDS-Library"
+		},
+		{
+			"path": "../CRD"
+		},
+		{
+			"path": "../crd-request-generator"
+		},
+		{
+			"path": "../dtr"
+		},
+		{
+			"name": "PriorAuth-CDS-Library",
+			"path": "CDS-Library"
+		},
+		{
+			"path": "."
+		},
+		{
+			"path": "../prior-auth-client"
+		},
+		{
+			"path": "../fhir-x12"
+		},
+		{
+			"path": "../fhir-x12-frontend"
+		},
+		{
+			"path": "../DRLS-Docker"
+		}
+	],
+	"settings": {
+		"java.configuration.updateBuildConfiguration": "disabled"
+	}
+}

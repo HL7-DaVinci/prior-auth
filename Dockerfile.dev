@@ -9,4 +9,4 @@ COPY --chown=gradle:gradle . .
 # Expose port to access the app
 EXPOSE 9015
 # Command to run our app
-CMD ./dockerRunner.sh
+CMD ./dockerRunnerDev.sh

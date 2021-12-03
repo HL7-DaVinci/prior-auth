@@ -1,0 +1,49 @@
+name: fullstack_drls_pas
+version: 0.0.1
+description: Fullstack DRLS Prior Authorization Workflow
+registry: smalho01234
+
+dockerfile: Dockerfile.tmpl
+
+
+required:
+  - docker
+
+mixins:
+  - docker
+  - docker-compose
+
+# credentials:
+#   - name: DOCKER_USERNAME
+#     env: DOCKER_USERNAME
+#   - name: DOCKER_PASSWORD
+#     env: DOCKER_PASSWORD
+
+build:
+  - docker:
+      description: "Docker build"
+      outputs:
+        - name: invocationImage
+
+install:
+  - docker-compose:
+      description: Docker Compose up
+      arguments:
+        - -f 
+        - docker-compose-porter.yml
+        - up
+ 
+ps:
+  - docker-compose:
+      description: Docker Compose ps
+      arguments:
+        - ps
+
+uninstall:
+  - docker-compose:
+      description: Docker Compose down
+      arguments:
+        - -f 
+        - docker-compose-porter.yml
+        - down
+        - --remove-orphans

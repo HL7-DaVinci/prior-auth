@@ -1,0 +1,115 @@
+version: '3.6'
+services:
+  keycloak:
+    container_name: pas_prod_keycloak    
+    # command: ["-Djboss.http.port=8180"]
+    ports:
+      - '8180:8080'
+    environment:
+      - KEYCLOAK_USER=admin
+      - KEYCLOAK_PASSWORD=admin
+      - DB_VENDOR=h2
+      - KEYCLOAK_IMPORT=/resources/ClientFhirServerRealm.json
+    volumes:
+      - keycloak-data:/opt/jboss/keycloak/standalone/data/
+    build: 
+      context: ../test-ehr
+      dockerfile: Dockerfile.keycloak
+
+
+  # Create crd container
+  test-ehr: # Name of our service
+    container_name: pas_prod_test-ehr
+    ports: # Port binding to host from docker container
+      - '8080:8080' # Bind port 3000 of host to 3000 of container
+    build: 
+      context: ../test-ehr
+
+  # Create crd container
+  crd: # Name of our service
+    build: 
+      context: ../crd
+    container_name: pas_prod_crd
+    ports: # Port binding to host from docker container
+      - "8090:8090" # Bind port 3000 of host to 3000 of container
+    environment:
+      VSAC_API_KEY: ${VSAC_API_KEY}
+    volumes:
+     - crd-value-set-data:/CRD/server/ValueSetCache
+
+
+
+  # Create crd container
+  crd-request-generator: # Name of our service
+    build: 
+      context: ../crd-request-generator
+    container_name: pas_prod_crd-request-generator
+    ports: # Port binding to host from docker containerdockerß
+      - "3000:3000" # Bind port 3000 of host to 3000 of container
+      - "3001:3001"
+    volumes:
+     - crd-request-generator-data:/home/node/app/databaseData
+
+  # Create crd container
+  dtr: # Name of our service
+    build: 
+      context: ../dtr 
+    container_name: pas_prod_dtr
+    ports: # Port binding to host from docker container
+      - "3005:3005" # Bind port 3000 of host to 3000 of container
+    volumes:
+     - dtr-data:/home/node/app/databaseData
+
+  # Create crd container
+  prior-auth: # Name of our service
+    build: 
+      context: ../prior-auth
+    container_name: pas_prod_prior-auth
+    ports: # Port binding to host from docker container
+      - "9015:9015" # Bind port 3000 of host to 3000 of container
+    volumes:
+      - prior-auth-data:/prior-auth/databaseData
+
+
+  prior-auth-client: # Name of our service
+    build: 
+      context: ../prior-auth-client
+    container_name: pas_prod_prior-auth-client
+    ports: # Port binding to host from docker container
+      - "9090:9090" # Bind port 3000 of host to 3000 of container
+
+
+  # Create fhir-x12 converter container
+  fhir-x12: # Name of our service
+    build: 
+      context: ../fhir-x12
+    container_name: pas_prod_fhir-x12
+    ports: # Port binding to host from docker container
+      - "8086:8086" # Bind port 3000 of host to 3000 of container
+    environment:
+      PORT: 8086
+      ADMIN_TOKEN: fhir-x12-secret
+    volumes:
+      - fhir-x12-data:/usr/src/app/fhir-x12/databaseData
+
+
+
+  # Create frontend fhir-x12 frontend converter container
+  fhir-x12-frontend: # Name of our service
+    build: 
+      context: ../fhir-x12-frontend
+    container_name: pas_prod_fhir-x12-frontend
+    ports: # Port binding to host from docker container
+      - "3015:3015" # Bind port 3000 of host to 3000 of container
+    environment:
+      PORT: 3015
+
+volumes:
+  keycloak-data:
+  crd-value-set-data:
+  crd-request-generator-data:
+  dtr-data:
+  prior-auth-data:
+  fhir-x12-data:
+
+

@@ -5,6 +5,12 @@ buildscript {
     dependencies {
         classpath 'org.springframework.boot:spring-boot-gradle-plugin:2.5.5'
     }
+
+    processResources {
+        from ('CDS-Library') {
+            into 'CDS-Library'
+        }
+    }  
 }
 
 plugins {

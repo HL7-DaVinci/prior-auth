@@ -79,7 +79,7 @@ public class Database {
   }
 
   public Database() {
-    this("./");
+    this("./databaseData/");
   }
 
   public Database(String relativePath) {

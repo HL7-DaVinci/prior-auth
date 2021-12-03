@@ -1,3 +1,7 @@
+.cnab
+.docker-sync/
+Zscaler_Root_CA.pem
+
 # Ignore Gradle project-specific cache directory
 .gradle
 
