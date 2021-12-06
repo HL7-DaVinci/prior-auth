@@ -154,20 +154,42 @@ or
 
     docker volume prune # Optional - Removes persisted data
 ```
+#### Updating docker-compose application images
+
+```bash
+    docker-compose build --no-cache --pull [<service_name1> <service_name2> ...] 
+    docker-compose --force-recreate  [<service_name1> <service_name2> ...]
+```
+
+```bash
+
+    # Options:
+    #   --force-recreate                        Recreate containers even if their configuration and image haven't changed.
+    #   --build                                 Build images before starting containers.
+    #   --pull                                  Pull published images before building images.
+    #   --no-cache                              Do not use cache when building the image.
+    #   [<service_name1> <service_name2> ...]   Services to recreate, not specifying any service will rebuild and recreate all services
+```
 
 ### Option 2 - Porter Install
 #### Install and Run Porter application 
 
 ```bash
-   porter install --allow-docker-host-access --reference codexPAS/fullstack_drls_PAS:v0.0.1   
+   porter install --allow-docker-host-access --reference codexPAS/fullstack_drls_PAS:latest 
 ```
 Note: The project will keep running in the background when you "ctrl + c" out of the above process. To stop running all together, use the uninstall command below 
 
 #### Stop Running Porter application and Uninstall
 ```bash
-    porter uninstall --allow-docker-host-access --reference codexPAS/fullstack_drls_PAS:v0.0.1 # Stops and removes application servers
+    porter uninstall --allow-docker-host-access --reference codexPAS/fullstack_drls_PAS:latest # Stops and removes application servers
 
     docker volume prune # Optional - Removes persisted data
+```
+#### Updating Porter application 
+
+```bash
+    docker-compose build --no-cache --pull [<service_name1> <service_name2> ...] 
+    docker-compose --force-recreate  [<service_name1> <service_name2> ...]
 ```
 
 

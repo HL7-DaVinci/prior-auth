@@ -1,6 +1,4 @@
 # DRLS-PAS-Docker-The Ultimate Guide to Running DRLS PAS for Local Development
-Repository to host root docker bundle config files for local development and publishing 
-
 
 ## Purpose of this guide
 
@@ -139,15 +137,28 @@ Reference: https://github.com/rbenv/rbenv
 2. Now clone the DRLS component repositories from Github:
     ```bash
     cd <drlsroot>
+    git clone https://github.com/HL7-DaVinci/DRLS-Docker.git DRLS-Docker 
     git clone https://github.com/HL7-DaVinci/CRD.git CRD
-    git clone https://github.com/HL7-DaVinci/test-ehr.git test-ehr
-    git clone https://github.com/HL7-DaVinci/crd-request-generator.git crd-request-generator
-    git clone https://github.com/HL7-DaVinci/dtr.git dtr
-    git clone https://github.com/HL7-DaVinci/PAS.git PAS
+    git clone https://github.com/HL7-DaVinci/CDS-Library CDS-Library
+    git clone https://github.com/HL7-DaVinci/test-ehr test-ehr
+    git clone https://github.com/HL7-DaVinci/crd-request-generator crd-request-generator
+    git clone https://github.com/HL7-DaVinci/dtr dtr
+    git clone https://github.com/HL7-DaVinci/prior-auth.git prior-auth
+    git clone https://github.com/HL7-DaVinci/prior-auth-client.git prior-auth-client
 
     cd <drlsroot>/CRD/server
     git clone https://github.com/HL7-DaVinci/CDS-Library.git CDS-Library
+
+    cd <drlsroot>/prior-auth
+    git clone https://github.com/HL7-DaVinci/CDS-Library.git CDS-Library
+
+    # Optional if you have access to the private fhir-x12 converter and fhir-x12-frontend repositories - will require changing docker-compose-prior-auth-dev.yml, docker-sync.yml, and docker-compose.yml in configure steps 
+
+    git clone https://github.com/HL7-DaVinci/fhir-x12.git fhir-x12
+    git clone https://github.com/HL7-DaVinci/fhir-x12-frontend.git fhir-x12-frontend
     ```
+
+    Note: The prior-auth repository contains the *PriorAuth.code-workspace* file, which can be used to open the above project structure as a multi-root VS Code workspace. In this workspace configuration, the CDS-Library embedded within CRD and prior-auth are opened as seperate roots for an easier development experience. 
 
 ## Configure DRLS PAS
 
@@ -203,9 +214,31 @@ Reference: https://github.com/rbenv/rbenv
 
 ***None***
 
-### PAS configs
+### prior-auth-client configs
 
 ***None***
+
+### prior-auth configs
+1. Install CDS Library with prior-auth folder
+    ```bash
+    cd  <drlsroot>/prior-auth
+    ./gradlew embedCdsLibrary
+    ```
+2. Change the metadata token uri  - lines 105 + 106 of src/main/java/org/hl7/davinci/priorauth/endpoint/Metadata.java
+
+    ```bash
+    # change 
+    Extension tokenUri = new Extension("token", new UriType("https://davinci-prior-auth.logicahealth.org/fhir/auth/token"));
+    # to 
+    Extension tokenUri = new Extension("token", new UriType("http://localhost:9015/fhir/auth/token"));
+    ```
+### fhir-x12 (optional) configs
+
+1. Uncomment out the section for fhir-x12 in docker-compose-prior-auth-dev.yml (service + volume), docker-sync.yml, and docker-compose.yml in the DRLS-Docker folder
+
+### fhir-x12-frontend (optional) configs
+
+1. Uncomment out the section for fhir-x12-frontend in docker-compose-prior-auth-dev.yml (service + volume), docker-sync.yml, and docker-compose.yml in the DRLS-Docker folder
 
 
 ### Add VSAC credentials to your development environment
@@ -262,7 +295,31 @@ Note: Initial set up will take several minutes and spin up fans with high resour
 
 ### Rebuilding Images and Containers
 ```bash
-    # Fill this in
+    docker-compose -f docker-compose-dev.yml up --build --force-recreate  [<service_name1> <service_name2> ...]
+```
+
+    or
+
+```bash
+    docker-compose -f docker-compose-dev.yml build --no-cache --pull [<service_name1> <service_name2> ...] 
+    docker-compose -f docker-compose-dev.yml up --force-recreate  [<service_name1> <service_name2> ...]
+```
+
+```bash
+
+    # Options:
+    #   --force-recreate                        Recreate containers even if their configuration and image haven't changed.
+    #   --build                                 Build images before starting containers.
+    #   --pull                                  Pull published images before building images.
+    #   --no-cache                              Do not use cache when building the image.
+    #   [<service_name1> <service_name2> ...]   Services to recreate, not specifying any service will rebuild and recreate all services
+```
+
+After rebuilding imaages and containers, start docker-sync normally  
+
+```bash
+    ctrl + c # Stop running "docker-compose up" command (containers running without sync functionality)
+    docker-sync-stack start # If this command fails to run, running a second time usually fixes the issue
 ```
 
 ### Useful docker-sync commands
