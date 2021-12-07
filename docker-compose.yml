@@ -12,23 +12,21 @@ services:
       - KEYCLOAK_IMPORT=/resources/ClientFhirServerRealm.json
     volumes:
       - keycloak-data:/opt/jboss/keycloak/standalone/data/
-    build: 
-      context: ../test-ehr
-      dockerfile: Dockerfile.keycloak
+    image: smalho01234/keycloak
 
 
   # Create crd container
   test-ehr: # Name of our service
     container_name: pas_prod_test-ehr
+    environment:
+      - DOCKER_PROFILE=true
     ports: # Port binding to host from docker container
       - '8080:8080' # Bind port 3000 of host to 3000 of container
-    build: 
-      context: ../test-ehr
+    image: smalho01234/test-ehr
 
   # Create crd container
   crd: # Name of our service
-    build: 
-      context: ../crd
+    image: smalho01234/crd
     container_name: pas_prod_crd
     ports: # Port binding to host from docker container
       - "8090:8090" # Bind port 3000 of host to 3000 of container
@@ -41,8 +39,7 @@ services:
 
   # Create crd container
   crd-request-generator: # Name of our service
-    build: 
-      context: ../crd-request-generator
+    image: smalho01234/crd-request-generator
     container_name: pas_prod_crd-request-generator
     ports: # Port binding to host from docker containerdockerß
       - "3000:3000" # Bind port 3000 of host to 3000 of container
@@ -52,8 +49,7 @@ services:
 
   # Create crd container
   dtr: # Name of our service
-    build: 
-      context: ../dtr 
+    image: smalho01234/dtr 
     container_name: pas_prod_dtr
     ports: # Port binding to host from docker container
       - "3005:3005" # Bind port 3000 of host to 3000 of container
@@ -62,9 +58,10 @@ services:
 
   # Create crd container
   prior-auth: # Name of our service
-    build: 
-      context: ../prior-auth
+    image: smalho01234/prior-auth
     container_name: pas_prod_prior-auth
+    environment:
+      - TOKEN_BASE_URI=http://localhost:9015
     ports: # Port binding to host from docker container
       - "9015:9015" # Bind port 3000 of host to 3000 of container
     volumes:
@@ -72,8 +69,7 @@ services:
 
 
   prior-auth-client: # Name of our service
-    build: 
-      context: ../prior-auth-client
+    image: smalho01234/prior-auth-client
     container_name: pas_prod_prior-auth-client
     ports: # Port binding to host from docker container
       - "9090:9090" # Bind port 3000 of host to 3000 of container
@@ -81,8 +77,7 @@ services:
 
   # Create fhir-x12 converter container
   fhir-x12: # Name of our service
-    build: 
-      context: ../fhir-x12
+    image: smalho01234/fhir-x12
     container_name: pas_prod_fhir-x12
     ports: # Port binding to host from docker container
       - "8086:8086" # Bind port 3000 of host to 3000 of container
@@ -96,13 +91,14 @@ services:
 
   # Create frontend fhir-x12 frontend converter container
   fhir-x12-frontend: # Name of our service
-    build: 
-      context: ../fhir-x12-frontend
+    image: smalho01234/fhir-x12-frontend
     container_name: pas_prod_fhir-x12-frontend
     ports: # Port binding to host from docker container
       - "3015:3015" # Bind port 3000 of host to 3000 of container
-    environment:
+  environment:
       PORT: 3015
+      ADMIN_TOKEN: fhir-x12-secret
+      BACKEND_URL: http://localhost:8086/
 
 volumes:
   keycloak-data:

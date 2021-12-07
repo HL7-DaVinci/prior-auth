@@ -3,6 +3,8 @@
 # Handle closing application on signal interrupt (ctrl + c)
 trap 'kill $CONTINUOUS_BUILD_PID $SERVER_PID; gradle --stop; exit' INT
 
+export TOKEN_BASE_URI=http://localhost:9015
+
 mkdir logs 
 # Reset log file content for new application boot
 echo "*** Logs for 'gradle installBootDist --continuous' ***" > ./logs/builder.log

@@ -31,12 +31,14 @@
 		},
 		{
 			"path": "../fhir-x12-frontend"
-		},
-		{
-			"path": "../DRLS-Docker"
 		}
 	],
-	"settings": {
-		"java.configuration.updateBuildConfiguration": "disabled"
+	"extensions": {
+		"recommendations": [
+			"ms-azuretools.vscode-docker",
+			"vscjava.vscode-java-pack",
+			"cqframework.cql",
+			"mitre-health.vscode-language-fsh"
+		]
 	}
 }

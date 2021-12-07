@@ -20,6 +20,8 @@ services:
     container_name: pas_dev_test-ehr
     ports: # Port binding to host from docker container
       - '8080:8080' # Bind port 3000 of host to 3000 of container
+    environment:
+      - DOCKER_PROFILE=true
     build: 
       context: ../test-ehr
       dockerfile: Dockerfile.dev 
@@ -65,6 +67,7 @@ services:
       - /home/node/app/node_modules
       - /home/node/app/databaseData
       - /home/node/app/build
+      - /home/node/app/logs
 
 
   # Create crd container
@@ -79,7 +82,44 @@ services:
       - pas_dev_dtr-sync:/home/node/app:nocopy #  nocopy is important
       - /home/node/app/node_modules
       - /home/node/app/databaseData
+      - /home/node/app/logs
 
+  # # Create fhir-x12 converter container
+  # fhir-x12: # Name of our service
+  #   build: 
+  #     context: ../fhir-x12
+  #     dockerfile: Dockerfile.dev     
+  #   container_name: pas_dev_fhir-x12
+  #   ports: # Port binding to host from docker container
+  #     - "8086:8086" # Bind port 3000 of host to 3000 of container
+  #   volumes:
+  #     - pas_dev_fhir-x12-sync:/usr/src/app/fhir-x12:nocopy #  nocopy is important
+  #     - /usr/src/app/fhir-x12/node_modules
+  #     - /usr/src/app/fhir-x12/build
+  #     - /usr/src/app/fhir-x12/databaseData
+  #     - /usr/src/app/fhir-x12/logs
+  #   environment:
+  #     PORT: 8086
+  #     ADMIN_TOKEN: fhir-x12-secret
+
+
+  # # Create frontend fhir-x12 frontend converter container
+  # fhir-x12-frontend: # Name of our service
+  #   build: 
+  #     context: ../fhir-x12-frontend
+  #     dockerfile: Dockerfile.dev 
+  #   container_name: pas_dev_fhir-x12-frontend
+  #   ports: # Port binding to host from docker container
+  #     - "3015:3015" # Bind port 3000 of host to 3000 of container
+  #   volumes:
+  #     - pas_dev_fhir-x12-frontend-sync:/usr/src/app/fhir-x12-frontend:nocopy #  nocopy is important
+  #     - /usr/src/app/fhir-x12-frontend/node_modules
+  #     - /usr/src/app/fhir-x12=frontend/build
+  #     - /usr/src/app/fhir-x12=frontend/logs
+  #   environment:
+  #     PORT: 3015
+  #     ADMIN_TOKEN: fhir-x12-secret
+  #     BACKEND_URL: http://localhost:8086/
 
   # Create crd container
   prior-auth: # Name of our service
@@ -87,6 +127,8 @@ services:
       context: '.'
       dockerfile: Dockerfile.dev     
     container_name: pas_dev_prior-auth
+    environment:
+      - TOKEN_BASE_URI=http://localhost:9015
     ports: # Port binding to host from docker container
       - "9015:9015" # Bind port 3000 of host to 3000 of container
     volumes:
@@ -110,41 +152,6 @@ services:
       - /prior-auth-client/build
       - /prior-auth-client/logs
 
-  # Create fhir-x12 converter container
-  fhir-x12: # Name of our service
-    build: 
-      context: ../fhir-x12
-      dockerfile: Dockerfile.dev     
-    container_name: pas_dev_fhir-x12
-    ports: # Port binding to host from docker container
-      - "8086:8086" # Bind port 3000 of host to 3000 of container
-    volumes:
-      - pas_dev_fhir-x12-sync:/usr/src/app/fhir-x12:nocopy #  nocopy is important
-      - /usr/src/app/fhir-x12/node_modules
-      - /usr/src/app/fhir-x12/build
-      - /usr/src/app/fhir-x12/databaseData
-    environment:
-      PORT: 8086
-      ADMIN_TOKEN: fhir-x12-secret
-
-
-  # Create frontend fhir-x12 frontend converter container
-  fhir-x12-frontend: # Name of our service
-    build: 
-      context: ../fhir-x12-frontend
-      dockerfile: Dockerfile.dev 
-    container_name: pas_dev_fhir-x12-frontend
-    ports: # Port binding to host from docker container
-      - "3015:3015" # Bind port 3000 of host to 3000 of container
-    volumes:
-      - pas_dev_fhir-x12-frontend-sync:/usr/src/app/fhir-x12-frontend:nocopy #  nocopy is important
-      - /usr/src/app/fhir-x12-frontend/node_modules
-      - /usr/src/app/fhir-x12=frontend/build
-    environment:
-      PORT: 3015
-      ADMIN_TOKEN: fhir-x12-secret
-      BACKEND_URL: http://localhost:8086/
-
 
 volumes:
   keycloak-data:
@@ -160,7 +167,7 @@ volumes:
     external: true
   pas_dev_prior-auth-client-sync:
     external: true
-  pas_dev_fhir-x12-sync:
-    external: true
-  pas_dev_fhir-x12-frontend-sync:
-    external: true
+  # pas_dev_fhir-x12-sync:
+  #   external: true
+  # pas_dev_fhir-x12-frontend-sync:
+  #   external: true

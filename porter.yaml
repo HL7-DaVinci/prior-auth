@@ -13,12 +13,6 @@ mixins:
   - docker
   - docker-compose
 
-# credentials:
-#   - name: DOCKER_USERNAME
-#     env: DOCKER_USERNAME
-#   - name: DOCKER_PASSWORD
-#     env: DOCKER_PASSWORD
-
 build:
   - docker:
       description: "Docker build"
@@ -27,16 +21,42 @@ build:
 
 install:
   - docker-compose:
-      description: Docker Compose up
+      description: docker-compose up
       arguments:
         - -f 
         - docker-compose-porter.yml
         - up
+
+
+upgrade:
+  - docker-compose:
+      description: docker-compose pull
+      arguments:
+        - -f 
+        - docker-compose-porter.yml
+        - pull
+  - docker-compose:
+      description: docker-compose build
+      arguments:
+        - -f 
+        - docker-compose-porter.yml
+        - build
+        - --pull
+        - --no-cache
+  - docker-compose:
+      description: docker-compose up
+      arguments:
+        - -f 
+        - docker-compose-porter.yml
+        - up
+        - --force-recreate
  
 ps:
   - docker-compose:
       description: Docker Compose ps
       arguments:
+        - -f 
+        - docker-compose-porter.yml      
         - ps
 
 uninstall:
@@ -47,3 +67,12 @@ uninstall:
         - docker-compose-porter.yml
         - down
         - --remove-orphans
+
+customActions:
+stop:
+  - docker-compose:
+      description: Stop Running Application Images
+      arguments:
+        - -f 
+        - docker-compose-porter.yml
+        - stop

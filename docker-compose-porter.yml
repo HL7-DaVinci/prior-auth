@@ -18,6 +18,8 @@ services:
   # Create crd container
   test-ehr: # Name of our service
     container_name: pas_porter_test-ehr
+    environment:
+      - DOCKER_PROFILE=true
     ports: # Port binding to host from docker container
       - '8080:8080' # Bind port 3000 of host to 3000 of container
     image: smalho01234/test-ehr
@@ -57,6 +59,8 @@ services:
   # Create crd container
   prior-auth: # Name of our service
     image: smalho01234/prior-auth
+    environment:
+      - TOKEN_BASE_URI=http://localhost:9015
     container_name: pas_porter_prior-auth
     ports: # Port binding to host from docker container
       - "9015:9015" # Bind port 3000 of host to 3000 of container
@@ -93,6 +97,8 @@ services:
       - "3015:3015" # Bind port 3000 of host to 3000 of container
     environment:
       PORT: 3015
+      ADMIN_TOKEN: fhir-x12-secret
+      BACKEND_URL: http://localhost:8086/
 
 volumes:
   keycloak-data:

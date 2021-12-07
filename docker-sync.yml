@@ -12,11 +12,11 @@ syncs:
 
   pas_dev_crd-request-generator-sync:
     src: '../crd-request-generator'
-    sync_excludes: ['node_modules', 'build', 'databaseData']
+    sync_excludes: ['node_modules', 'build', 'databaseData', 'logs']
 
   pas_dev_dtr-sync:  
     src: '../dtr'
-    sync_excludes: ['node_modules', 'databaseData']
+    sync_excludes: ['node_modules', 'databaseData', 'logs']
 
   pas_dev_prior-auth-sync:
     src: '.'
@@ -26,10 +26,10 @@ syncs:
     src: '../prior-auth-client'
     sync_excludes: ['.gradle', 'build', 'logs']
 
-  pas_dev_fhir-x12-sync:
-    src: '../fhir-x12'
-    sync_excludes: ['node_modules', 'databaseData', 'build']
+  # pas_dev_fhir-x12-sync:
+  #   src: '../fhir-x12'
+  #   sync_excludes: ['node_modules', 'databaseData', 'build', 'logs']
 
-  pas_dev_fhir-x12-frontend-sync:
-    src: '../fhir-x12-frontend'
-    sync_excludes: ['node_modules', "build"]
+  # pas_dev_fhir-x12-frontend-sync:
+  #   src: '../fhir-x12-frontend'
+  #   sync_excludes: ['node_modules', "build", "logs"]
