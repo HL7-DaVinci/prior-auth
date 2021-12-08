@@ -9,6 +9,7 @@ This document details the installation process for the dockerized version of the
 2. Automatic Server Reloading whenever source file is changed
     - CRD and prior-auth also reload on CDS_Library changes 
 3. Automatic Dependendency Installation whenever package.json, package-lock.json, or build.gradle are changed
+4. Automatic Data Loader in test-ehr whenever fhirResourcesToLoad directory is changed
 
 This document **is designed to take you through the entire set up process for DRLS using docker containers**. It is a standalone guide that does not depend on any supplementary DRLS documentation.
 
