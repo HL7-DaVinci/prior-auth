@@ -4,12 +4,6 @@
 
 This document details the installation process for the dockerized version of the **Documentation Requirements Lookup Service (DRLS) PAS Workflow** system for Local Development. Be aware that each component of DRLS has its own README where you will find more detailed documentation. This document **is not designed to replace those individual READMEs**. 
 
-## Expected Functionality 
-1. File Synchronization between local host system and docker container
-2. Automatic Server Reloading whenever source file is changed
-    - CRD and prior-auth also reload on CDS_Library changes 
-3. Automatic Dependendency Installation whenever package.json, package-lock.json, or build.gradle are changed
-4. Automatic Data Loader in test-ehr whenever fhirResourcesToLoad directory is changed
 
 This document **is designed to take you through the entire set up process for DRLS using docker containers**. It is a standalone guide that does not depend on any supplementary DRLS documentation.
 
@@ -21,6 +15,13 @@ This guide will take you through the development environment setup for each of t
 5. [CRD Request Generator](https://github.com/HL7-DaVinci/crd-request-generator)
 6. [PAS](https://github.com/HL7-DaVinci/PAS.git)
 7. Keycloak
+
+### Expected Functionality 
+1. File Synchronization between local host system and docker container
+2. Automatic Server Reloading whenever source file is changed
+    - CRD and prior-auth also reload on CDS_Library changes 
+3. Automatic Dependendency Installation whenever package.json, package-lock.json, or build.gradle are changed
+4. Automatic Data Loader in test-ehr whenever fhirResourcesToLoad directory is changed
 
 ## Table of Contents
 - [Prerequisites](#prerequisites)
@@ -153,9 +154,7 @@ Reference: https://github.com/rbenv/rbenv
 2. Now clone the DRLS component repositories from Github:
     ```bash
     cd <drlsroot>
-    git clone https://github.com/HL7-DaVinci/DRLS-Docker.git DRLS-Docker 
     git clone https://github.com/HL7-DaVinci/CRD.git CRD
-    git clone https://github.com/HL7-DaVinci/CDS-Library CDS-Library
     git clone https://github.com/HL7-DaVinci/test-ehr test-ehr
     git clone https://github.com/HL7-DaVinci/crd-request-generator crd-request-generator
     git clone https://github.com/HL7-DaVinci/dtr dtr
@@ -246,14 +245,14 @@ You can see a list of your pre-existing environment variables on your Mac by run
 ### Add Compose Project Name 
 
 You can see a list of your pre-existing environment variables on your Mac by running `env` in your Terminal. To add to `env`:
-1. Set "COMPOSE_PROJECT_NAME" as "PAS_dev" in the .env file in the PAS Repository 
+1. Set "COMPOSE_PROJECT_NAME" as "pas_dev" in the .env file in the PAS Repository 
 
     or
 
 1. `cd ~/`
 2. Open `.bash_profile` and add the following lines at the very bottom:
     ```bash
-    export COMPOSE_PROJECT_NAME=PAS_dev
+    export COMPOSE_PROJECT_NAME=pas_dev
     ```
 3. Save `.bash_profile` and complete the update to `env`: 
     ```bash

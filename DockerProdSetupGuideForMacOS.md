@@ -1,6 +1,4 @@
 # DRLS-PAS-Docker-The Ultimate Guide to Running DRLS PAS locally
-Repository to host root docker bundle config files for local development and publishing 
-
 
 ## Purpose of this guide
 
@@ -62,7 +60,7 @@ Additionally, you must have credentials (api key) access for the **[Value Set Au
 2. Once the installation is complete, you should see a Docker icon on your Mac's menu bar (top of the screen). Click the icon and verify that **Docker Desktop is running.**
 3. Configure Docker to have access to enough resources. To do this, open Docker Desktop and select Settings > Resources. 
 
-    The defaults for memory at 2GB and possibly CPU as well are too low to run the entire DRLS PAS workflow. If not enough resources are provided, you may notice containers unexpectedly crashing and stopping. Exact requirements for these resource values will depend on your machine. That said, as a baseline starting point, the system runs relatively smoothly at 15GB memory and 7 CPU Processors on MITRE issued Mac Devices.
+    The defaults for memory at 2GB and possibly CPU as well are too low to run the entire DRLS PAS workflow. If not enough resources are provided, you may notice containers unexpectedly crashing and stopping. Exact requirements for these resource values will depend on your machine. That said, as a baseline starting point, the system runs relatively smoothly at 16GB memory and 6 CPU Processors on MITRE issued Mac Devices.
 
 #### Install Visual Studio Code and Extensions (Option 1 Only)
 
@@ -135,14 +133,14 @@ You can see a list of your pre-existing environment variables on your Mac by run
 Note: The compose project name is to disambiguate between different set ups on the same machine and can be set to any identifier. If you are following both options mentioned in this guide, it is reccomended to change the compose project name for each so that they differ.
 
 You can see a list of your pre-existing environment variables on your Mac by running `env` in your Terminal. To add to `env`:
-1. Set "COMPOSE_PROJECT_NAME" as "PAS_prod" in the .env file in the PAS Repository 
+1. Set "COMPOSE_PROJECT_NAME" as "pas_prod" in the .env file in the PAS Repository 
 
     or 
 
 1. `cd ~/`
 2. Open `.bash_profile` and add the following lines at the very bottom:
     ```bash
-    export COMPOSE_PROJECT_NAME=PAS_prod
+    export COMPOSE_PROJECT_NAME=pas_prod
     ```
 3. Save `.bash_profile` and complete the update to `env`: 
     ```bash
