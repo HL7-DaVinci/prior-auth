@@ -270,10 +270,11 @@ Note: Initial set up will take several minutes and spin up fans with high resour
     docker-sync-stack start # This is the equivalent of running docker-sync start followed by docker-compose up
 ```
 
-### Stop docker-sync application and remove all containers/volumes
+### Stop docker-sync application and remove all containers/volumes/images
 ```bash
     docker-sync-stack clean # This is the equivalent of running docker-sync clean followed by docker-compose down
-    docker volume prune
+    docker image prune -a #Remove unused images
+    docker volume prune # Remove unused volumes
 ```
 
 ### Rebuilding Images and Containers
