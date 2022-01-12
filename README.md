@@ -33,7 +33,7 @@ curl http://localhost:9015/fhir/Claim
 curl http://localhost:9015/fhir/ClaimResponse
 ```
 
-Submit a prior authorization request:
+Submit a prior authorization request: 
 
 ```
 curl -X POST
