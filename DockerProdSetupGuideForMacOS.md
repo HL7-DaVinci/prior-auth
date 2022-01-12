@@ -153,7 +153,7 @@ You can see a list of your pre-existing environment variables on your Mac by run
 #### Start docker compose application 
 
 ```bash
-    cd PAS # Need to execute commands in directory with corresponding docker-compose.yml file located in the PAS repository 
+    cd prior-auth # Need to execute commands in directory with corresponding docker-compose.yml file located in the PAS repository 
     docker-compose up 
 ```
 
@@ -222,7 +222,7 @@ Note: The project will keep running in the background when you "ctrl + c" out of
 
 ### The fun part: Generate a test request
 
-1. Go to http://localhost:3000/ehr-server/reqgen.
+1. Go to http://localhost:3000
 2. Click **Patient Select** button in upper left.
 3. Find **William Oster** in the list of patients and click the dropdown menu next to his name.
 4. Select **E0470** in the dropdown menu.

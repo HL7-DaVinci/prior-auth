@@ -95,7 +95,7 @@ services:
     container_name: pas_prod_fhir-x12-frontend
     ports: # Port binding to host from docker container
       - "3015:3015" # Bind port 3000 of host to 3000 of container
-  environment:
+    environment:
       PORT: 3015
       ADMIN_TOKEN: fhir-x12-secret
       BACKEND_URL: http://localhost:8086/
