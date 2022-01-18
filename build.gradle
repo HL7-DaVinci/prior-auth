@@ -54,7 +54,7 @@ dependencies {
     implementation 'ca.uhn.hapi.fhir:hapi-fhir-structures-r4:5.6.1'
     implementation 'com.h2database:h2:1.4.200'
     implementation 'com.auth0:java-jwt:3.18.2'
-    implementation 'com.auth0:jwks-rsa:0.20.0'
+    implementation 'com.auth0:jwks-rsa:0.20.1'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webflux'
