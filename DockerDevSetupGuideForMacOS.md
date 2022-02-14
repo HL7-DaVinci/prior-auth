@@ -48,15 +48,7 @@ This guide will take you through the development environment setup for each of t
 
 ## Prerequisites
 
-Your computer must have these minimum requirements:
-- Running MacOS
-    
-    > The docker synchronization strategy used by docker-sync in this guide is designed for MacOs use. The same configuration will likely not work on Windows as the synchronization strategy used by docker-sync on windows can not handle more than 30 sync files at a time. Reference documentaion: https://docker-sync.readthedocs.io/en/latest/advanced/sync-strategies.html#
-
-    
-    >  If you are using a windows device, refer to the [Production Environement Set Up](DockerProdSetupGuideForMacOS.md) and follow option 1
-
-
+Your computer must have these minimum requirements: 
 - x86_64 (64-bit) or equivalent processor
     * Follow these instructions to verify your machine's compliance: https://www.macobserver.com/tips/how-to/mac-32-bit-64-bit/ 
 - At least 8 GB of RAM
@@ -66,6 +58,16 @@ Your computer must have these minimum requirements:
 - [Git installed](https://www.atlassian.com/git/tutorials/install-git)
 
 Additionally, you must have credentials (api key) access for the **[Value Set Authority Center (VSAC)](https://vsac.nlm.nih.gov/)**. Later on you will add these credentials to your development environment, as they are required for allowing DRLS to pull down updates to value sets that are housed in VSAC. If you don't already have VSAC credentials, you should [create them using UMLS](https://www.nlm.nih.gov/research/umls/index.html).
+
+### Setting Environment Variables and System Path
+
+How you set environment and path variables may vary depending on your operating system and terminal used. For instance, for zsh on MacOS you typically need to modify .zshrc instead of .bash_profile. To figure out how to set environment variables for your system, consult the guides below or google `how to permentaly set environment/path variables on [insert operating system] [insert terminal type]`.
+
+    For more information on how to set environment variables consult these following guides:
+
+    - https://chlee.co/how-to-setup-environment-variables-for-windows-mac-and-linux/
+    - https://www3.ntu.edu.sg/home/ehchua/programming/howto/Environment_Variables.html
+    - https://unix.stackexchange.com/questions/117467/how-to-permanently-set-environmental-variables
 
 ## Install core tools
 
@@ -211,11 +213,11 @@ The Docker Extension for VsCode has useful functionality to aid in the developme
 
 ### fhir-x12 (optional) configs
 
-1. Uncomment out the section for fhir-x12 in docker-compose-prior-auth-dev.yml (service + volume) and docker-sync.yml in the prior-auth folder
+1. Uncomment out the section for fhir-x12 in docker-compose-prior-auth-dev.yml (service + volume), PriorAuth.code-workspace, and docker-sync.yml in the prior-auth folder
 
 ### fhir-x12-frontend (optional) configs
 
-1. Uncomment out the section for fhir-x12-frontend in docker-compose-prior-auth-dev.yml (service + volume) and docker-sync.yml in the prior-auth folder
+1. Uncomment out the section for fhir-x12-frontend in docker-compose-prior-auth-dev.yml (service + volume), PriorAuth.code-workspace, and docker-sync.yml in the prior-auth folder
 
 
 ### Add VSAC credentials to your development environment
@@ -242,6 +244,9 @@ You can see a list of your pre-existing environment variables on your Mac by run
 
 > Be aware that if you have chosen to skip this step, you will be required to manually provide your VSAC credentials at http://localhost:8090/data and hit **Reload Data** every time you want DRLS to use new or updated value sets.
 
+Note: How you set environment and path variables may vary depending on your operating system and terminal used. See [Setting Environment Variables and System Path](#setting-environment-variables-and-system-path) for more information.
+
+
 ### Add Compose Project Name 
 
 You can see a list of your pre-existing environment variables on your Mac by running `env` in your Terminal. To add to `env`:
@@ -259,6 +264,8 @@ You can see a list of your pre-existing environment variables on your Mac by run
     source .bash_profile
     ```
 
+Note: How you set environment and path variables may vary depending on your operating system and terminal used. See [Setting Environment Variables and System Path](#setting-environment-variables-and-system-path) for more information.
+
 
 
 ## Run DRLS
@@ -269,6 +276,14 @@ Note: Initial set up will take several minutes and spin up fans with high resour
 ```bash
     docker-sync-stack start # This is the equivalent of running docker-sync start followed by docker-compose up
 ```
+
+### Debugging docker-sync application
+1. Select the Debugger Tab on the left side pannel of VsCode
+2. From the drop down menu next to Run and Debug select **Debug All REMS Applications (Docker) (workspace)**. This is a compund debugger that combines all the other docker debuggers for all servers and applications in this workspace.
+3. When finished debugging, simply hit the disconnect button to close out all debug sessions
+4. **Important**: Make sure to close out the **Launch Chrome in Debug Mode** task that gets open in the VsCode terminal space. This task launches chrome in debug mode in order to debug frontend applications in this workspace. This needs to be closed in order to run the debugger again next time, leaving it open will not properly start the frontend debuggers. 
+
+![Closing Launch Chrome Task](./setup-images/ClosingLaunchChromeTask.png)
 
 ### Stop docker-sync application and remove all containers/volumes/images
 ```bash

@@ -20,6 +20,7 @@ services:
     container_name: pas_dev_test-ehr
     ports: # Port binding to host from docker container
       - '8080:8080' # Bind port 3000 of host to 3000 of container
+      - "8081:8081"    
     environment:
       - DOCKER_PROFILE=true
     build: 
@@ -27,10 +28,10 @@ services:
       dockerfile: Dockerfile.dev 
     volumes:
       - pas_dev_test-ehr-sync:/test-ehr:nocopy #  nocopy is important
-      - /test-ehr/.gradle
-      - /test-ehr/build
-      - /test-ehr/target
-      - /test-ehr/logs
+      - pas_dev_test-ehr-gradle:/test-ehr/.gradle
+      - pas_dev_test-ehr-build:/test-ehr/build
+      - pas_dev_test-ehr-target:/test-ehr/target
+      - pas_dev_test-ehr-logs:/test-ehr/logs
 
 
   # Create crd container
@@ -41,17 +42,18 @@ services:
     container_name: pas_dev_crd
     ports: # Port binding to host from docker container
       - "8090:8090" # Bind port 3000 of host to 3000 of container
+      - "8091:8091"    
     environment:
       VSAC_API_KEY: ${VSAC_API_KEY}
     volumes:
       - pas_dev_crd-sync:/CRD:nocopy #  nocopy is important
-      - /CRD/logs
-      - /CRD/.gradle
-      - /CRD/server/.gradle
-      - /CRD/server/build
-      - /CRD/server/ValueSetCache
-      - /CRD/operations/build
-      - /CRD/resources/build
+      - pas_dev_crd-logs:/CRD/logs
+      - pas_dev_crd-gradle:/CRD/.gradle
+      - pas_dev_crd-server-gradle:/CRD/server/.gradle
+      - pas_dev_crd-server-build:/CRD/server/build
+      - pas_dev_crd-server-ValueSetCache:/CRD/server/ValueSetCache
+      - pas_dev_crd-operations-build:/CRD/operations/build
+      - pas_dev_crd-resources-build:/CRD/resources/build
 
   # Create crd container
   crd-request-generator: # Name of our service
@@ -63,11 +65,11 @@ services:
       - "3000:3000" # Bind port 3000 of host to 3000 of container
       - "3001:3001"
     volumes:
-      - pas_dev_crd-request-generator-sync:/home/node/app:nocopy #  nocopy is important
-      - /home/node/app/node_modules
-      - /home/node/app/databaseData
-      - /home/node/app/build
-      - /home/node/app/logs
+      - pas_dev_crd-request-generator-sync:/home/node/app/crd-request-generator:nocopy #  nocopy is important
+      - pas_dev_crd-request-generator-node-modules:/home/node/app/crd-request-generator/node_modules
+      - pas_dev_crd-request-generator-databaseData:/home/node/app/crd-request-generator/databaseData
+      - pas_dev_crd-request-generator-build:/home/node/app/crd-request-generator/build
+      - pas_dev_crd-request-generator-logs:/home/node/app/crd-request-generator/logs
 
 
   # Create crd container
@@ -78,20 +80,22 @@ services:
     container_name: pas_dev_dtr
     ports: # Port binding to host from docker container
       - "3005:3005" # Bind port 3000 of host to 3000 of container
+      - "3006:3006"   
     volumes:
-      - pas_dev_dtr-sync:/home/node/app:nocopy #  nocopy is important
-      - /home/node/app/node_modules
-      - /home/node/app/databaseData
-      - /home/node/app/logs
+      - pas_dev_dtr-sync:/home/node/app/dtr:nocopy #  nocopy is important
+      - pas_dev_dtr-node-modules:/home/node/app/dtr/node_modules
+      - pas_dev_dtr-databaseData:/home/node/app/dtr/databaseData
+      - pas_dev_dtr-logs:/home/node/app/dtr/logs
 
-  # # Create fhir-x12 converter container
+  #       # Create fhir-x12 converter container
   # fhir-x12: # Name of our service
   #   build: 
   #     context: ../fhir-x12
   #     dockerfile: Dockerfile.dev     
   #   container_name: pas_dev_fhir-x12
   #   ports: # Port binding to host from docker container
-  #     - "8086:8086" # Bind port 3000 of host to 3000 of container
+  #     - "8085:8085" # Bind port 3000 of host to 3000 of container
+  #     - "8086:8086"
   #   volumes:
   #     - pas_dev_fhir-x12-sync:/usr/src/app/fhir-x12:nocopy #  nocopy is important
   #     - /usr/src/app/fhir-x12/node_modules
@@ -99,7 +103,7 @@ services:
   #     - /usr/src/app/fhir-x12/databaseData
   #     - /usr/src/app/fhir-x12/logs
   #   environment:
-  #     PORT: 8086
+  #     PORT: 8085
   #     ADMIN_TOKEN: fhir-x12-secret
 
 
@@ -114,12 +118,12 @@ services:
   #   volumes:
   #     - pas_dev_fhir-x12-frontend-sync:/usr/src/app/fhir-x12-frontend:nocopy #  nocopy is important
   #     - /usr/src/app/fhir-x12-frontend/node_modules
-  #     - /usr/src/app/fhir-x12=frontend/build
-  #     - /usr/src/app/fhir-x12=frontend/logs
+  #     - /usr/src/app/fhir-x12-frontend/build
+  #     - /usr/src/app/fhir-x12-frontend/logs
   #   environment:
   #     PORT: 3015
   #     ADMIN_TOKEN: fhir-x12-secret
-  #     BACKEND_URL: http://localhost:8086/
+  #     BACKEND_URL: http://localhost:8085/
 
   # Create crd container
   prior-auth: # Name of our service
@@ -131,6 +135,7 @@ services:
       - TOKEN_BASE_URI=http://localhost:9015
     ports: # Port binding to host from docker container
       - "9015:9015" # Bind port 3000 of host to 3000 of container
+      - "9016:9016"   
     volumes:
       - pas_dev_prior-auth-sync:/prior-auth:nocopy #  nocopy is important
       - /prior-auth/.gradle
@@ -146,6 +151,7 @@ services:
     container_name: pas_dev_prior-auth-client
     ports: # Port binding to host from docker container
       - "9090:9090" # Bind port 3000 of host to 3000 of container
+      - "9091:9091"
     volumes:
       - pas_dev_prior-auth-sync:/prior-auth:nocopy #  nocopy is important
       - /prior-auth-client/.gradle

@@ -38,8 +38,6 @@ This guide will take you through the development environment setup for each of t
 ## Prerequisites
 
 Your computer must have these minimum requirements:
-- Running MacOS
-
 - x86_64 (64-bit) or equivalent processor
     * Follow these instructions to verify your machine's compliance: https://www.macobserver.com/tips/how-to/mac-32-bit-64-bit/ 
 - At least 8 GB of RAM
@@ -49,6 +47,16 @@ Your computer must have these minimum requirements:
 - [Git installed](https://www.atlassian.com/git/tutorials/install-git)
 
 Additionally, you must have credentials (api key) access for the **[Value Set Authority Center (VSAC)](https://vsac.nlm.nih.gov/)**. Later on you will add these credentials to your development environment, as they are required for allowing DRLS to pull down updates to value sets that are housed in VSAC. If you don't already have VSAC credentials, you should [create them using UMLS](https://www.nlm.nih.gov/research/umls/index.html).
+
+### Setting Environment Variables and System Path
+
+How you set environment and path variables may vary depending on your operating system and terminal used. For instance, for zsh on MacOS you typically need to modify .zshrc instead of .bash_profile. To figure out how to set environment variables for your system, consult the guides below or google `how to permentaly set environment/path variables on [insert operating system] [insert terminal type]`.
+
+    For more information on how to set environment variables consult these following guides:
+
+    - https://chlee.co/how-to-setup-environment-variables-for-windows-mac-and-linux/
+    - https://www3.ntu.edu.sg/home/ehchua/programming/howto/Environment_Variables.html
+    - https://unix.stackexchange.com/questions/117467/how-to-permanently-set-environmental-variables
 
 ## Install core tools
 
@@ -79,15 +87,19 @@ The recomended IDE for this set up is Visual Studio Code
     ```bash
     export PATH=$PATH:~/.porter
     ```
-4. Save `.bash_profile` and complete the update to `env`: 
+3. Save `.bash_profile` and complete the update to `env`: 
     ```bash
     source .bash_profile
     ```
-5. Install required Porter plugins 
+4. Install required Porter plugins 
     ```bash
     porter mixins install docker
     porter mixins install docker-compose
     ```
+
+    Note: The exact command to add to your system path will be mentioned at the bottom of the execution of step 1 and may vary from what's above depending the operating system you installed Porter on. Consult the output in your terminal for how to set your system path.
+
+    Note: How you set environment and path variables may vary depending on your operating system and terminal used. See [Setting Environment Variables and System Path](#setting-environment-variables-and-system-path) for more information.
 
 ## Clone PAS repository (Option 1 Only)
 
@@ -128,6 +140,8 @@ You can see a list of your pre-existing environment variables on your Mac by run
 
 > Be aware that if you have chosen to skip this step, you will be required to manually provide your VSAC credentials at http://localhost:8090/data and hit **Reload Data** every time you want DRLS to use new or updated value sets.
 
+Note: How you set environment and path variables may vary depending on your operating system and terminal used. See [Setting Environment Variables and System Path](#setting-environment-variables-and-system-path) for more information.
+
 ### Add Compose Project Name to environment (Option 1 only)
 
 Note: The compose project name is to disambiguate between different set ups on the same machine and can be set to any identifier. If you are following both options mentioned in this guide, it is reccomended to change the compose project name for each so that they differ.
@@ -146,7 +160,8 @@ You can see a list of your pre-existing environment variables on your Mac by run
     ```bash
     source .bash_profile
     ```
-
+    
+Note: How you set environment and path variables may vary depending on your operating system and terminal used. See [Setting Environment Variables and System Path](#setting-environment-variables-and-system-path) for more information.
 
 ## Run DRLS PAS
 ### Option 1 - Docker Compose

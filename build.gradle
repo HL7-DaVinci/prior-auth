@@ -23,7 +23,13 @@ processResources {
     from ('CDS-Library') {
         into 'CDS-Library'
     }
-}  
+}   
+
+bootRun {  
+    if (project.hasProperty('debug')) { 
+        jvmArgs=["-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=0.0.0.0:9016"]
+    }
+}
 
 repositories {
     mavenLocal()

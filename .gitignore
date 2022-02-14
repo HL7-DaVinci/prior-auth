@@ -24,7 +24,6 @@ logs/
 .project
 .classpath
 .settings/
-.vscode/
 bin
 
 # Ignore Database files

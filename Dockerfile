@@ -5,7 +5,7 @@ WORKDIR /prior-auth
 # Copy app files to container
 COPY --chown=gradle:gradle . .
 # Embed CDS Library
-# RUN gradle embedCdsLibrary
+RUN gradle embedCdsLibrary
 RUN gradle installBootDist
 # Expose port to access the app
 EXPOSE 9015

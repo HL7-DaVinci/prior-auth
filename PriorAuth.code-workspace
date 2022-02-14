@@ -33,12 +33,101 @@
 			"path": "../fhir-x12-frontend"
 		}
 	],
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"postDebugTask": "Terminate All Tasks",
+				"name": "Post Debug Task - Terminate Chrome (This is not a Debugger)",
+				"request": "launch",
+				"type": "node"
+			},
+		],
+		"compounds": [
+			{
+			  "name": "Debug All DRLS PAS Applications (Attach Docker)",
+			  "stopAll": true,
+			  "preLaunchTask": "Launch Chrome in Debug Mode",
+			  "configurations": [
+				  "Debug CRD (Local + Docker)", 
+				  "Debug DTR Backend (Docker)", 
+				  "Debug Test-EHR (Local + Docker)", 
+				  "Debug DTR Frontend (Attach Local + Docker)", 
+				  "Debug CRD-Request-Generator (Attach Docker)",
+				  "Debug Prior Auth (Local + Docker)",
+				  "Debug Prior Auth Client (Local + Docker)",
+				//   "Debug FHIR-X12 Backend (Docker)",
+				//   "Debug FHIR-X12 Frontend (Attach Docker)",
+				  "Post Debug Task - Terminate Chrome (This is not a Debugger)"
+				],
+			}
+		  ]
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"type": "shell",
+				"label": "Launch Chrome in Debug Mode",
+				"linux": {
+					"command": "google-chrome http://localhost:3000 http://localhost:3015 http://localhost:3005/register --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug"
+				},
+				"osx": {
+					"command": "/Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome http://localhost:3000 http://localhost:3015 http://localhost:3005/register --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug"
+				},
+				"windows": {
+					"command": "for /f \"usebackq tokens=1,2,3,4,5\" %a in (`reg query HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ /s /f \\chrome.exe ^| findstr Application`) do set CHROMEPATH=%c%d%e & set CHROMEPATH=%CHROMEPATH:ProgramFiles=Program Files% & \"%CHROMEPATH%\" http://localhost:3000 http://localhost:3015 http://localhost:3005/register --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug"
+				},
+				"presentation": {
+					"close": true,
+				},
+				"isBackground": true,
+				"problemMatcher": [
+					{
+					  "pattern": [
+						{
+						  "regexp": ".",
+						  "file": 1,
+						  "location": 2,
+						  "message": 3
+						}
+					  ],
+					  "background": {
+						"activeOnStart": true,
+						"beginsPattern": ".",
+						"endsPattern": ".",
+					  }
+					}
+				  ]
+			},
+			{
+				"label": "Terminate All Tasks",
+				"command": "echo ${input:terminate}",
+				"type": "shell",
+				"problemMatcher": []
+			  }
+		],
+		"inputs": [
+			{
+			  "id": "terminate",
+			  "type": "command",
+			  "command": "workbench.action.tasks.terminate",
+			  "args": "terminateAll"
+			}
+		  ]
+	},
+	"settings": {
+		"debug.onTaskErrors": "debugAnyway"
+	},
 	"extensions": {
 		"recommendations": [
 			"ms-azuretools.vscode-docker",
-			"vscjava.vscode-java-pack",
+			"vscjava.vscode-java-debug",
 			"cqframework.cql",
-			"mitre-health.vscode-language-fsh"
+			"mitre-health.vscode-language-fsh",
+			"redhat.java",
+			"mongodb.mongodb-vscode",
+			"VisualStudioExptTeam.vscodeintellicode"
 		]
-	}
+	},
 }

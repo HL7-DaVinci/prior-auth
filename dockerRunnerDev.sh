@@ -21,8 +21,8 @@ gradle installBootDist --continuous 2>&1 | tee ./logs/builder.log & CONTINUOUS_B
 ( while ! grep -m1 'BUILD SUCCESSFUL' < ./logs/builder.log; do
     sleep 1
 done
-echo "starting application server..."
-gradle bootRun --args='debug' 2>&1 | tee ./logs/runner.log ) & SERVER_PID=$!
+echo "starting application server in debug mode..."
+gradle bootRun -Pdebug --args='debug' 2>&1 | tee ./logs/runner.log ) & SERVER_PID=$!
 
 # Handle application background process exiting
 wait $CONTINUOUS_BUILD_PID $SERVER_PID

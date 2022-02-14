@@ -80,9 +80,9 @@ services:
     image: smalho01234/fhir-x12
     container_name: pas_prod_fhir-x12
     ports: # Port binding to host from docker container
-      - "8086:8086" # Bind port 3000 of host to 3000 of container
+      - "8085:8085" # Bind port 3000 of host to 3000 of container
     environment:
-      PORT: 8086
+      PORT: 8085
       ADMIN_TOKEN: fhir-x12-secret
     volumes:
       - fhir-x12-data:/usr/src/app/fhir-x12/databaseData
@@ -98,7 +98,7 @@ services:
     environment:
       PORT: 3015
       ADMIN_TOKEN: fhir-x12-secret
-      BACKEND_URL: http://localhost:8086/
+      BACKEND_URL: http://localhost:8085/
 
 volumes:
   keycloak-data:
