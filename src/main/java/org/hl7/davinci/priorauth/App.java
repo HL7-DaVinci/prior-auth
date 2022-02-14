@@ -44,13 +44,12 @@ public class App {
       (System.getenv("debug") != null && System.getenv("debug").equalsIgnoreCase("true"))) {
         debugMode = true;
     }
-
     // Set the DB
     initializeAppDB();
-
     // Assemble the microservice
     SpringApplication server = new SpringApplication(App.class);
-    server.run();
+    server.run(args);
+
   }
 
   public static void initializeAppDB() {
