@@ -16,7 +16,7 @@ public class PALogger {
     private static PALogger singletonPALogger;
 
     private Logger logger;
-    private static String LOG_FILE = "logs/priorauth.log";
+    private static String LOG_FILE = "priorauth.log";
 
     private PALogger() {
         this.logger = Logger.getLogger("PriorAuth");
