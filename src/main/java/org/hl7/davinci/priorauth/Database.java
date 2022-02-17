@@ -60,7 +60,7 @@ public class Database {
   // (so that we don't lose everything between a connection closing and the next
   // being opened)
   private static final String JDBC_TYPE = "jdbc:h2:";
-  private static final String JDBC_FILE = "databaseData/database";
+  private static final String JDBC_FILE = "database";
   private static final String JDBC_OPTIONS = ";DB_CLOSE_DELAY=-1";
   private String JDBC_STRING;
 
@@ -80,7 +80,6 @@ public class Database {
 
   public Database() {
     this("./");
-
   }
 
   public Database(String relativePath) {
