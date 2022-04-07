@@ -102,8 +102,11 @@ public class Metadata {
     CapabilityStatementRestSecurityComponent security = new CapabilityStatementRestSecurityComponent();
     security.setCors(true);
     Extension oauthUris = new Extension("http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris");
-    // Extension tokenUri = new Extension("token", new UriType("https://localhost:9000/fhir/auth/token"));
-    Extension tokenUri = new Extension("token", new UriType("https://davinci-prior-auth.logicahealth.org/fhir/auth/token"));
+    String tokenUriBase = "https://davinci-prior-auth.logicahealth.org";
+    if (System.getenv("TOKEN_BASE_URI") != null && !System.getenv("TOKEN_BASE_URI").isBlank()) {
+      tokenUriBase = System.getenv("TOKEN_BASE_URI");
+    }
+    Extension tokenUri = new Extension("token", new UriType(tokenUriBase + "/fhir/auth/token"));
     oauthUris.addExtension(tokenUri);
     security.addExtension(oauthUris);
     rest.setSecurity(security);
