@@ -1,13 +1,9 @@
-# Base image
 FROM gradle:6.9.0-jdk11
-# Set working directory so that all subsequent command runs in this folder
-WORKDIR /prior-auth
-# Copy app files to container
-COPY --chown=gradle:gradle . .
-# Embed CDS Library
-RUN gradle embedCdsLibrary
+EXPOSE 9000/tcp
+COPY --chown=gradle:gradle . /prior-auth/
+RUN apt-get update         
+RUN apt-get install -y git
+WORKDIR /prior-auth/
+RUN git clone https://github.com/HL7-DaVinci/CDS-Library.git
 RUN gradle installBootDist
-# Expose port to access the app
-EXPOSE 9015
-# Command to run our app
-CMD gradle bootRun
+CMD ["gradle", "bootRun"]
