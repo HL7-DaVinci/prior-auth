@@ -10,27 +10,14 @@ buildscript {
 }
 
 plugins {
-  id 'java'
-  id 'application'
-  id 'eclipse'
-  id 'jacoco'
+ id 'java'
+ id 'application'
+ id 'eclipse'
+ id 'jacoco'
 }
 
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
-
-processResources {
-    from ('CDS-Library') {
-        into 'CDS-Library'
-    }
-}   
-
-bootRun {  
-    if (project.hasProperty('debug')) { 
-        jvmArgs=["-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=0.0.0.0:9016"]
-    }
-
-}
 
 repositories {
     mavenLocal()
@@ -40,10 +27,10 @@ repositories {
 
     maven {
         url = uri('https://repo.maven.apache.org/maven2/')
-    }}
+     }
+}
 
 dependencies {
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.webjars:webjars-locator-core'
     implementation 'org.webjars:sockjs-client:1.1.2'
@@ -82,60 +69,6 @@ dependencies {
     testImplementation 'com.phloc:phloc-schematron:2.7.1'
     testImplementation 'com.phloc:phloc-commons:4.6.7'
 }
-
-task embedCdsLibrary() {
-    doFirst {
-        exec {
-            workingDir './'
-            commandLine 'rm', '-rf', 'CDS-Library'
-        }
-    }
-
-    doLast {
-        if (project.hasProperty('branch')) {
-            cloneCdsLibraryScript(branch)
-        } else {
-            cloneCdsLibraryScript('master')
-        }
-    }
-}
-
-task updateCdsLibrary() {
-    doLast {
-        if (project.hasProperty('branch')) {
-            checkoutCdsLibraryScript(branch)
-            pullCdsLibraryScript()
-        } else {
-            pullCdsLibraryScript()
-        }
-    }
-}
-
-void cloneCdsLibraryScript(branch) {
-    println "GIT: clone CDS-Library branch " + branch
-    exec {
-        workingDir './'
-        commandLine 'git', 'clone', 'https://github.com/HL7-DaVinci/CDS-Library.git', 'CDS-Library'
-    }
-    checkoutCdsLibraryScript(branch)
-}
-
-void pullCdsLibraryScript() {
-    println "GIT: pull latest CDS-Library"
-    exec {
-        workingDir './CDS-Library'
-        commandLine 'git', 'pull'
-    }
-}
-
-void checkoutCdsLibraryScript(branch) {
-    println "GIT: checkout CDS-Library branch " + branch
-    exec {
-        workingDir './CDS-Library'
-        commandLine 'git', 'checkout', branch
-    }
-}
-
 
 jacocoTestReport {
   reports {
