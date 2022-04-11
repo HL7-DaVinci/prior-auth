@@ -87,43 +87,43 @@ services:
       - pas_dev_dtr-databaseData:/home/node/app/dtr/databaseData
       - pas_dev_dtr-logs:/home/node/app/dtr/logs
 
-        # Create fhir-x12 converter container
-  fhir-x12: # Name of our service
-    build: 
-      context: ../fhir-x12
-      dockerfile: Dockerfile.dev     
-    container_name: pas_dev_fhir-x12
-    ports: # Port binding to host from docker container
-      - "8085:8085" # Bind port 3000 of host to 3000 of container
-      - "8086:8086"
-    volumes:
-      - pas_dev_fhir-x12-sync:/usr/src/app/fhir-x12:nocopy #  nocopy is important
-      - pas_dev_fhir-x12-node-modules:/usr/src/app/fhir-x12/node_modules
-      - pas_dev_fhir-x12-build:/usr/src/app/fhir-x12/build
-      - pas_dev_fhir-x12-databaseData:/usr/src/app/fhir-x12/databaseData
-      - pas_dev_fhir-x12-logs:/usr/src/app/fhir-x12/logs
-    environment:
-      PORT: 8085
-      ADMIN_TOKEN: fhir-x12-secret
+  #       # Create fhir-x12 converter container
+  # fhir-x12: # Name of our service
+  #   build: 
+  #     context: ../fhir-x12
+  #     dockerfile: Dockerfile.dev     
+  #   container_name: pas_dev_fhir-x12
+  #   ports: # Port binding to host from docker container
+  #     - "8085:8085" # Bind port 3000 of host to 3000 of container
+  #     - "8086:8086"
+  #   volumes:
+  #     - pas_dev_fhir-x12-sync:/usr/src/app/fhir-x12:nocopy #  nocopy is important
+  #     - pas_dev_fhir-x12-node-modules:/usr/src/app/fhir-x12/node_modules
+  #     - pas_dev_fhir-x12-build:/usr/src/app/fhir-x12/build
+  #     - pas_dev_fhir-x12-databaseData:/usr/src/app/fhir-x12/databaseData
+  #     - pas_dev_fhir-x12-logs:/usr/src/app/fhir-x12/logs
+  #   environment:
+  #     PORT: 8085
+  #     ADMIN_TOKEN: fhir-x12-secret
 
 
-  # Create frontend fhir-x12 frontend converter container
-  fhir-x12-frontend: # Name of our service
-    build: 
-      context: ../fhir-x12-frontend
-      dockerfile: Dockerfile.dev 
-    container_name: pas_dev_fhir-x12-frontend
-    ports: # Port binding to host from docker container
-      - "3015:3015" # Bind port 3000 of host to 3000 of container
-    volumes:
-      - pas_dev_fhir-x12-frontend-sync:/usr/src/app/fhir-x12-frontend:nocopy #  nocopy is important
-      - pas_dev_fhir-x12-frontend-node-modules:/usr/src/app/fhir-x12-frontend/node_modules
-      - pas_dev_fhir-x12-frontend-build:/usr/src/app/fhir-x12-frontend/build
-      - pas_dev_fhir-x12-frontend-logs:/usr/src/app/fhir-x12-frontend/logs
-    environment:
-      PORT: 3015
-      ADMIN_TOKEN: fhir-x12-secret
-      BACKEND_URL: http://localhost:8085/
+  # # Create frontend fhir-x12 frontend converter container
+  # fhir-x12-frontend: # Name of our service
+  #   build: 
+  #     context: ../fhir-x12-frontend
+  #     dockerfile: Dockerfile.dev 
+  #   container_name: pas_dev_fhir-x12-frontend
+  #   ports: # Port binding to host from docker container
+  #     - "3015:3015" # Bind port 3000 of host to 3000 of container
+  #   volumes:
+  #     - pas_dev_fhir-x12-frontend-sync:/usr/src/app/fhir-x12-frontend:nocopy #  nocopy is important
+  #     - pas_dev_fhir-x12-frontend-node-modules:/usr/src/app/fhir-x12-frontend/node_modules
+  #     - pas_dev_fhir-x12-frontend-build:/usr/src/app/fhir-x12-frontend/build
+  #     - pas_dev_fhir-x12-frontend-logs:/usr/src/app/fhir-x12-frontend/logs
+  #   environment:
+  #     PORT: 3015
+  #     ADMIN_TOKEN: fhir-x12-secret
+  #     BACKEND_URL: http://localhost:8085/
 
   # Create crd container
   prior-auth: # Name of our service
@@ -173,10 +173,10 @@ volumes:
     external: true
   pas_dev_prior-auth-client-sync:
     external: true
-  pas_dev_fhir-x12-sync:
-    external: true
-  pas_dev_fhir-x12-frontend-sync:
-    external: true
+  # pas_dev_fhir-x12-sync:
+  #   external: true
+  # pas_dev_fhir-x12-frontend-sync:
+  #   external: true
   pas_dev_keycloak-data:
   pas_dev_test-ehr-gradle:
   pas_dev_test-ehr-bin:
@@ -205,10 +205,10 @@ volumes:
   pas_dev_prior-auth-client-gradle:
   pas_dev_prior-auth-client-build:
   pas_dev_prior-auth-client-logs:
-  pas_dev_fhir-x12-node-modules:
-  pas_dev_fhir-x12-build:
-  pas_dev_fhir-x12-databaseData:
-  pas_dev_fhir-x12-logs:
-  pas_dev_fhir-x12-frontend-node-modules:
-  pas_dev_fhir-x12-frontend-build:
-  pas_dev_fhir-x12-frontend-logs:
+  # pas_dev_fhir-x12-node-modules:
+  # pas_dev_fhir-x12-build:
+  # pas_dev_fhir-x12-databaseData:
+  # pas_dev_fhir-x12-logs:
+  # pas_dev_fhir-x12-frontend-node-modules:
+  # pas_dev_fhir-x12-frontend-build:
+  # pas_dev_fhir-x12-frontend-logs:
