@@ -1,6 +1,8 @@
 # Prior Authorization Reference Implementation
 
 The Da Vinci Prior Authorization Reference Implementation (RI) is a software project that conforms to the [Prior Authorization Implementation Guide (IG)](https://build.fhir.org/ig/HL7/davinci-pas/index.html) and the [Prior Authorization IG Proposal](http://wiki.hl7.org/index.php?title=Da_Vinci_Prior_Authorization_FHIR_IG_Proposal) developed by the [Da Vinci Project](http://www.hl7.org/about/davinci/index.cfm?ref=common) within the [HL7 Standards Organization](http://www.hl7.org/).
+ 
+
 
 ## Requirements
 
@@ -25,10 +27,10 @@ To run the microservice in debug mode (which enables debug log statements, an en
 Access the microservice:
 
 ```
-curl http://localhost:9000/fhir/metadata
-curl http://localhost:9000/fhir/Bundle
-curl http://localhost:9000/fhir/Claim
-curl http://localhost:9000/fhir/ClaimResponse
+curl http://localhost:9015/fhir/metadata
+curl http://localhost:9015/fhir/Bundle
+curl http://localhost:9015/fhir/Claim
+curl http://localhost:9015/fhir/ClaimResponse
 ```
 
 Submit a prior authorization request: 
@@ -37,8 +39,17 @@ Submit a prior authorization request:
 curl -X POST
      -H "Content-Type: application/json"
      -d @src/test/resources/bundle-prior-auth.json
-     http://localhost:9000/fhir/Claim/\$submit
+     http://localhost:9015/fhir/Claim/\$submit
 ```
+
+## End-To-End DRLS PAS Docker configuration:
+
+You can find complete end-to-end fullstack set up guides for DRLS PAS at the following links:
+
+[Developer Environment Set Up](DockerDevSetupGuideForMacOS.md) - Follow this guide if you are a developer and intend on making code changes to the DRLS PAS project. This guide follows a much more technical set up process.
+    
+[Production Environement Set Up](DockerProdSetupGuideForMacOS.md) - Follow this guide if you are not a developer and do not intend on making code changes to the DRLS PAS project. This guide covers two options for running DRLS PAS, both of which are less techincal than the developer set up. 
+
 
 ## Configuration Notes
 
@@ -50,7 +61,7 @@ The server on the `dev` branch is always configured to run on Logicahealth. If y
 
 ## FHIR Services
 
-The service endpoints in the table below are relative to `http://localhost:9000/fhir`. `patient` is the first `identifier.value` on the `Patient` referenced in the submitted `Claim`.
+The service endpoints in the table below are relative to `http://localhost:9015/fhir`. `patient` is the first `identifier.value` on the `Patient` referenced in the submitted `Claim`.
 
 | Service                                                                       | Methods  | Description                                                                                                                                                                                                        |
 | ----------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -79,7 +90,7 @@ The service endpoints in the table below are relative to `http://localhost:9000/
 
 > _Note About DELETE_: A DELETE by `id` to one resource (i.e. `Bundle`, `Claim`, `ClaimResponse`) is a _Cascading Delete_ and it will delete all associated and related resources.
 
-If debug mode is enabled the following endpoints are available for use at `http://localhost:9000/fhir`:
+If debug mode is enabled the following endpoints are available for use at `http://localhost:9015/fhir`:
 
 | Service                           | Methods | Description                                                                                                                                                            |
 | --------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -288,7 +299,7 @@ To use WebSocket subscriptions the client must submit a Subscription as well as 
 1.  Start the Prior Auth service
 2.  Submit a Claim to `/Claim/$submit`
 3.  Subscribe to a pended or partial ClaimResponse by submitting a WebSocket subscription to `/Subscription`. The response to this submission will contain the logical id of the Subscription used in step 5
-4.  The client should connect to the WebSocket `ws://{BASE}/fhir/connect` and subscribe to `/private/notification`. For localhost the `{BASE}` is `localhost:9000`. To connect to the RI on LogicaHealth use `wss://davinci-prior-auth.logicahealth.org/fhir/connect`.
+4.  The client should connect to the WebSocket `ws://{BASE}/fhir/connect` and subscribe to `/private/notification`. For localhost the `{BASE}` is `localhost:9015`. To connect to the RI on LogicaHealth use `wss://davinci-prior-auth.logicahealth.org/fhir/connect`.
 5.  The client then binds the Subscription id by sending the message `bind: id` (using the logical id of the Subscription) to `/subscribe` over the WebSocket
 6.  If the id is bound successfully the client receives the message `bound: id` over `{BASE}/fhir/private/notification`
 7.  When an update is ready the Prior Auth service will send the message `ping: id` over `{BASE}/fhir/private/notification`
@@ -337,7 +348,7 @@ docker build -t hspc/davinci-prior-auth:latest .
 Run the docker image:
 
 ```
-docker run -p 9000:9000 -it --rm --name davinci-prior-auth hspc/davinci-prior-auth:latest
+docker run -p 9015:9015 -it --rm --name davinci-prior-auth hspc/davinci-prior-auth:latest
 ```
 
 If you are building the docker image locally from a MITRE machine you must copy over the BA Certificates to the Docker image. Download the `MITRE BA NPE CA-3` and `MITRE BA ROOT` certs from the [MII](http://www2.mitre.org/tech/mii/pki/). Copy the two files to the root directory of this project.
@@ -346,7 +357,7 @@ Build and run using:
 
 ```
 docker build -f Dockerfile.mitre -t mitre/davinci-prior-auth .
-docker run -p 9000:9000 -it --rm --name davinci-prior-auth mitre/davinci-prior-auth
+docker run -p 9015:9015 -it --rm --name davinci-prior-auth mitre/davinci-prior-auth
 ```
 
 ## Questions and Contributions
