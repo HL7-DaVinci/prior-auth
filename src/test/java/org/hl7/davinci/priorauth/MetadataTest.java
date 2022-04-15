@@ -15,10 +15,10 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.DefaultMockMvcBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
-
 import org.hl7.fhir.r4.model.CapabilityStatement;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.StringType;
+import org.hl7.fhir.r4.model.CapabilityStatement.CapabilityStatementRestComponent;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -64,9 +64,11 @@ public class MetadataTest {
 
     // Test the websocket extension is included
     StringType websocketUrl = null;
-    for (Extension ext : capabilityStatement.getExtension()) {
-      if (ext.getUrl().equals(FhirUtils.WEBSOCKET_EXTENSION_URL))
-        websocketUrl = (StringType) ext.getValue();
+    for (CapabilityStatementRestComponent rest : capabilityStatement.getRest()) {
+      for (Extension ext : rest.getExtension()) {
+        if (ext.getUrl().equals(FhirUtils.WEBSOCKET_EXTENSION_URL))
+          websocketUrl = (StringType) ext.getValue();
+      }
     }
     Assert.assertNotNull(websocketUrl);
 
@@ -96,9 +98,11 @@ public class MetadataTest {
 
     // Test the websocket extension is included
     StringType websocketUrl = null;
-    for (Extension ext : capabilityStatement.getExtension()) {
-      if (ext.getUrl().equals(FhirUtils.WEBSOCKET_EXTENSION_URL))
-        websocketUrl = (StringType) ext.getValue();
+    for (CapabilityStatementRestComponent rest : capabilityStatement.getRest()) {
+      for (Extension ext : rest.getExtension()) {
+        if (ext.getUrl().equals(FhirUtils.WEBSOCKET_EXTENSION_URL))
+          websocketUrl = (StringType) ext.getValue();
+      }
     }
     Assert.assertNotNull(websocketUrl);
 
