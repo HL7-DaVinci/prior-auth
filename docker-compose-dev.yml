@@ -98,10 +98,10 @@ services:
   #     - "8086:8086"
   #   volumes:
   #     - pas_dev_fhir-x12-sync:/usr/src/app/fhir-x12:nocopy #  nocopy is important
-  #     - /usr/src/app/fhir-x12/node_modules
-  #     - /usr/src/app/fhir-x12/build
-  #     - /usr/src/app/fhir-x12/databaseData
-  #     - /usr/src/app/fhir-x12/logs
+  #     - pas_dev_fhir-x12-node-modules:/usr/src/app/fhir-x12/node_modules
+  #     - pas_dev_fhir-x12-build:/usr/src/app/fhir-x12/build
+  #     - pas_dev_fhir-x12-databaseData:/usr/src/app/fhir-x12/databaseData
+  #     - pas_dev_fhir-x12-logs:/usr/src/app/fhir-x12/logs
   #   environment:
   #     PORT: 8085
   #     ADMIN_TOKEN: fhir-x12-secret
@@ -117,9 +117,9 @@ services:
   #     - "3015:3015" # Bind port 3000 of host to 3000 of container
   #   volumes:
   #     - pas_dev_fhir-x12-frontend-sync:/usr/src/app/fhir-x12-frontend:nocopy #  nocopy is important
-  #     - /usr/src/app/fhir-x12-frontend/node_modules
-  #     - /usr/src/app/fhir-x12-frontend/build
-  #     - /usr/src/app/fhir-x12-frontend/logs
+  #     - pas_dev_fhir-x12-frontend-node-modules:/usr/src/app/fhir-x12-frontend/node_modules
+  #     - pas_dev_fhir-x12-frontend-build:/usr/src/app/fhir-x12-frontend/build
+  #     - pas_dev_fhir-x12-frontend-logs:/usr/src/app/fhir-x12-frontend/logs
   #   environment:
   #     PORT: 3015
   #     ADMIN_TOKEN: fhir-x12-secret
@@ -138,10 +138,10 @@ services:
       - "9016:9016"   
     volumes:
       - pas_dev_prior-auth-sync:/prior-auth:nocopy #  nocopy is important
-      - /prior-auth/.gradle
-      - /prior-auth/databaseData
-      - /prior-auth/build
-      - /prior-auth/logs
+      - pas_dev_prior-auth-gradle:/prior-auth/.gradle
+      - pas_dev_prior-auth-databaseData:/prior-auth/databaseData
+      - pas_dev_prior-auth-build:/prior-auth/build
+      - pas_dev_prior-auth-logs:/prior-auth/logs
 
   # Create crd container
   prior-auth-client: # Name of our service
@@ -154,9 +154,9 @@ services:
       - "9091:9091"
     volumes:
       - pas_dev_prior-auth-sync:/prior-auth:nocopy #  nocopy is important
-      - /prior-auth-client/.gradle
-      - /prior-auth-client/build
-      - /prior-auth-client/logs
+      - pas_dev_prior-auth-client-gradle:/prior-auth-client/.gradle
+      - pas_dev_prior-auth-client-build:/prior-auth-client/build
+      - pas_dev_prior-auth-client-logs:/prior-auth-client/logs
 
 
 volumes:
@@ -177,3 +177,38 @@ volumes:
   #   external: true
   # pas_dev_fhir-x12-frontend-sync:
   #   external: true
+  pas_dev_keycloak-data:
+  pas_dev_test-ehr-gradle:
+  pas_dev_test-ehr-bin:
+  pas_dev_test-ehr-build:
+  pas_dev_test-ehr-target:
+  pas_dev_test-ehr-logs:
+  pas_dev_crd-logs:
+  pas_dev_crd-gradle:
+  pas_dev_crd-server-gradle:
+  pas_dev_crd-server-build:
+  pas_dev_crd-server-bin:
+  pas_dev_crd-server-ValueSetCache:
+  pas_dev_crd-operations-build:
+  pas_dev_crd-resources-build:
+  pas_dev_crd-request-generator-node-modules:
+  pas_dev_crd-request-generator-databaseData:
+  pas_dev_crd-request-generator-build:
+  pas_dev_crd-request-generator-logs:
+  pas_dev_dtr-node-modules:
+  pas_dev_dtr-databaseData:
+  pas_dev_dtr-logs:
+  pas_dev_prior-auth-gradle:
+  pas_dev_prior-auth-databaseData:
+  pas_dev_prior-auth-build:
+  pas_dev_prior-auth-logs:
+  pas_dev_prior-auth-client-gradle:
+  pas_dev_prior-auth-client-build:
+  pas_dev_prior-auth-client-logs:
+  # pas_dev_fhir-x12-node-modules:
+  # pas_dev_fhir-x12-build:
+  # pas_dev_fhir-x12-databaseData:
+  # pas_dev_fhir-x12-logs:
+  # pas_dev_fhir-x12-frontend-node-modules:
+  # pas_dev_fhir-x12-frontend-build:
+  # pas_dev_fhir-x12-frontend-logs:
