@@ -24,4 +24,4 @@ jobs:
       with:
         context: .
         push: true
-        tags: codexrems/prior-auth:latest
+        tags: smalho01234/prior-auth:latest
