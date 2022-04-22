@@ -108,11 +108,11 @@ The recomended IDE for this set up is Visual Studio Code
 
 1. Pull Windows Porter Image
     ```bash
-    docker pull codexrems/fullstack_rems-windows:REMSvCurrent
+    docker pull smalho01234/fullstack_drls_pas-windows:latest
     ```
 2. Run Windows Porter Image in Interactive mode with docker daemon volume mount
     ```bash
-    docker run -v /var/run/docker.sock:/var/run/docker.sock -ti --name porter-windows-container codexrems/fullstack_rems-windows:REMSvCurrent
+    docker run -v /var/run/docker.sock:/var/run/docker.sock -ti --name porter-windows-container smalho01234/fullstack_drls_pas-windows:latest
     ```
 3. In the interactive docker shell, install the porter plugins 
     ```bash
@@ -226,7 +226,7 @@ Note: replace ${vsac_api_key} in the below commands with your own vsac api key. 
 Note: On Windows this should be run within the interactive shell of the windows porter image container 
 
 ```bash
-    porter install fullstack_rems --param vsac_api_key=${vsac_api_key} --allow-docker-host-access --reference codexrems/fullstack_rems:REMSvCurrent # Initial Installation needs to be from remote repository
+    porter install fullstack_rems --param vsac_api_key=${vsac_api_key} --allow-docker-host-access --reference smalho01234/fullstack_drls_pas:latest # Initial Installation needs to be from remote repository
 
     or 
 
