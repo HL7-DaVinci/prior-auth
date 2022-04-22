@@ -26,6 +26,8 @@ services:
     build: 
       context: ../test-ehr
       dockerfile: Dockerfile.dev 
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - pas_dev_test-ehr-sync:/test-ehr:nocopy #  nocopy is important
       - pas_dev_test-ehr-gradle:/test-ehr/.gradle

@@ -13,6 +13,10 @@ mixins:
   - docker
   - docker-compose
 
+parameters:
+- name: vsac_api_key
+  type: string
+
 build:
   - docker:
       description: "Docker build"

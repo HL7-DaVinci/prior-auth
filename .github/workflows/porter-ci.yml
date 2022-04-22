@@ -1,0 +1,30 @@
+name: Porter Invocation Docker Image CI
+
+on:
+  pull_request:
+    branches: [ master, dev ]
+  workflow_dispatch:
+
+
+jobs:
+  porter-ci:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    - run: 'echo "COMPOSE_PROJECT_NAME=pas_porter" >> .env; echo "PORTER_ALLOW_DOCKER_HOST_ACCESS=true" >> .env'
+      shell: bash
+
+    - name: Install Porter
+      run: curl -L https://cdn.porter.sh/canary/install-linux.sh | bash
+
+    - name: Set Porter path
+      run: echo "~/.porter" >> $GITHUB_PATH
+
+    - name: Install Porter Mixins
+      run: porter mixins install docker; porter mixins install docker-compose
+
+    - name: Build Invocation Image
+      run: porter build 
