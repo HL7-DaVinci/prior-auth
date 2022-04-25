@@ -203,7 +203,8 @@ public class Metadata {
     claim.addInteraction().setCode(TypeRestfulInteraction.READ);
     claim.addInteraction().setCode(TypeRestfulInteraction.SEARCHTYPE);
     claim.addInteraction().setCode(TypeRestfulInteraction.DELETE);
-    claim.addOperation().setName("$submit").setDefinition("http://hl7.org/fhir/OperationDefinition/Claim-submit");
+    claim.addOperation().setName("$submit")
+        .setDefinition("http://hl7.org/fhir/us/davinci-pas/OperationDefinition/Claim-submit");
     claim.addOperation().setName("$inquiry")
         .setDefinition("http://hl7.org/fhir/us/davinci-pas/OperationDefinition/Claim-inquiry");
     return claim;
