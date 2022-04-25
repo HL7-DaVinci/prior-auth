@@ -179,7 +179,7 @@ public class ClaimEndpoint {
     }
     Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, auditOutcome, null, request, "POST /Claim/$submit");
     MediaType contentType = requestType == RequestType.JSON ? MediaType.APPLICATION_JSON : MediaType.APPLICATION_XML;
-    String fhirContentType = requestType == RequestType.JSON ? "application/fhir+json" : "application/xml+json";
+    String fhirContentType = requestType == RequestType.JSON ? "application/fhir+json" : "application/fhir+xml";
     return ResponseEntity.status(status).contentType(contentType)
         .header(HttpHeaders.CONTENT_TYPE, fhirContentType + "; charset=utf-8")
         .header(HttpHeaders.LOCATION,
