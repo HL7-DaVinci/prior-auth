@@ -175,7 +175,7 @@ You can see a list of your pre-existing environment variables on your Mac by run
 1. `cd ~/`
 2. Open `.bash_profile` and add the following lines at the very bottom:
     ```bash
-    export COMPOSE_PROJECT_NAME=pas_prod
+    export COMPOSE_PROJECT_NAME=pas_docker_compose
     ```
 3. Save `.bash_profile` and complete the update to `env`: 
     ```bash
@@ -226,11 +226,11 @@ Note: replace ${vsac_api_key} in the below commands with your own vsac api key. 
 Note: On Windows this should be run within the interactive shell of the windows porter image container 
 
 ```bash
-    porter install fullstack_rems --param vsac_api_key=${vsac_api_key} --allow-docker-host-access --reference smalho01234/fullstack_drls_pas:latest # Initial Installation needs to be from remote repository
+    porter install fullstack_drls_pas --param vsac_api_key=${vsac_api_key} --allow-docker-host-access --reference smalho01234/fullstack_drls_pas:current # Initial Installation needs to be from remote repository
 
     or 
 
-    porter install fullstack_rems --param vsac_api_key=${vsac_api_key} --allow-docker-host-access  # Subsequent runs can use the local installation
+    porter install fullstack_drls_pas --param vsac_api_key=${vsac_api_key} --allow-docker-host-access  # Subsequent runs can use the local installation
 
 ```
 Note: The project will keep running in the background when you "ctrl + c" out of the above process. To stop running all together, use the stop command below 
@@ -240,19 +240,19 @@ Note: On Windows this should be run within the interactive shell of the windows 
 
 
 ```bash
-    porter invoke fullstack_rems --action stop --param vsac_api_key=${vsac_api_key} --allow-docker-host-access 
+    porter invoke fullstack_drls_pas --action stop --param vsac_api_key=${vsac_api_key} --allow-docker-host-access 
 ```
 
 If you get the below error on running the stop command above, then try running the stop command with the **--reference** field as so
 
 ```bash
 
-    Unable to find image 'codexrems/fullstack_rems-installer:v0.0.1' locally
+    Unable to find image 'smalho01234/fullstack_drls_pas-installer:v0.0.1' locally
     Error: 1 error occurred:
-        * Error response from daemon: manifest for codexrems/fullstack_rems-installer:v0.0.1 not found: manifest unknown: manifest unknown
+        * Error response from daemon: manifest for smalho01234/fullstack_drls_pas-installer:v0.0.1 not found: manifest unknown: manifest unknown
 
 
-    porter invoke fullstack_rems --action stop --param vsac_api_key=${vsac_api_key} --allow-docker-host-access --reference codexrems/fullstack_rems:REMSvCurrent
+    porter invoke fullstack_rems --action stop --param vsac_api_key=${vsac_api_key} --allow-docker-host-access --reference smalho01234/fullstack_drls_pas:current
 ```
 
 #### Updating Porter application 
@@ -262,7 +262,7 @@ If you get the below error on running the stop command above, then try running t
 
     or 
 
-    porter upgrade fullstack_rems --param vsac_api_key=${vsac_api_key} --allow-docker-host-access --reference codexrems/fullstack_rems:REMSvCurrent # Pull and Update Invocation Image in addition to application images from remote repository and recreate containers
+    porter upgrade fullstack_rems --param vsac_api_key=${vsac_api_key} --allow-docker-host-access --reference smalho01234/fullstack_drls_pas:current # Pull and Update Invocation Image in addition to application images from remote repository and recreate containers
 ```
 
 #### Uninstall Porter Application
@@ -274,12 +274,12 @@ If you get the below error on running the stop command above, then try running t
 
 ```bash
 
-    Unable to find image 'codexrems/fullstack_rems-installer:v0.0.1' locally
+    Unable to find image 'smalho01234/fullstack_drls_pas-installer:v0.0.1' locally
     Error: 1 error occurred:
-        * Error response from daemon: manifest for codexrems/fullstack_rems-installer:v0.0.1 not found: manifest unknown: manifest unknown
+        * Error response from daemon: manifest for smalho01234/fullstack_drls_pas-installer:v0.0.1 not found: manifest unknown: manifest unknown
 
 
-      porter uninstall fullstack_rems --param vsac_api_key=${vsac_api_key} --allow-docker-host-access --reference codexrems/fullstack_rems:REMSvCurrent
+      porter uninstall fullstack_rems --param vsac_api_key=${vsac_api_key} --allow-docker-host-access --reference smalho01234/fullstack_drls_pas:current
 ```
 
 To remove all images, volumes, and artifacts set up during the install, run the following commands
