@@ -4,9 +4,9 @@
 
 This document details the installation process for the dockerized version of the **Documentation Requirements Lookup Service (DRLS) PAS Workflow** system for Production. There are two approaches to doing this: 
 
-Option 1 utilizes Docker Compose, which comes with Docker Dektop, and requires the corresponding docker-compose.yml file from the prior-auth repository. This option has minimal technical set up involved and allows for the customization/modification of the dockerized configuration. 
+Option 1 utilizes Docker Compose, which comes with Docker Desktop, and requires the corresponding docker-compose.yml file from the prior-auth repository. This option has minimal technical set up involved and allows for the customization/modification of the dockerized configuration. 
 
-Option 2 utilizes Porter, which requires a seperate installation in addition to Docker Desktop but does not require the use of any local files. This option has the least amount of technical set up involved and is recommended for non-tecnical users of DRLS PAS as it **does not** allow for the customization/modification of the dockerized configuration. 
+Option 2 utilizes Porter, which requires a separate installation in addition to Docker Desktop but does not require the use of any local files. This option has the least amount of technical set up involved and is recommended for non-technical users of DRLS PAS as it **does not** allow for the customization/modification of the dockerized configuration. 
 
 This document **is designed to take you through the entire set up process for DRLS PAS using docker containers**. It is a standalone guide that does not depend on any supplementary DRLS PAS documentation.
 
@@ -72,7 +72,7 @@ How you set environment and path variables may vary depending on your operating 
 
 #### Install Visual Studio Code and Extensions (Option 1 Only)
 
-The recomended IDE for this set up is Visual Studio Code
+The recommended IDE for this set up is Visual Studio Code
 
 1. Install Visual Studio Code - https://code.visualstudio.com
 2. Install Docker extension - https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker
@@ -108,11 +108,11 @@ The recomended IDE for this set up is Visual Studio Code
 
 1. Pull Windows Porter Image
     ```bash
-    docker pull smalho01234/fullstack_drls_pas-windows:latest
+    docker pull smalho01234/fullstack_drls_pas-windows:current
     ```
 2. Run Windows Porter Image in Interactive mode with docker daemon volume mount
     ```bash
-    docker run -v /var/run/docker.sock:/var/run/docker.sock -ti --name porter-windows-container smalho01234/fullstack_drls_pas-windows:latest
+    docker run -v /var/run/docker.sock:/var/run/docker.sock -ti --name porter-windows-container smalho01234/fullstack_drls_pas-windows:current
     ```
 3. In the interactive docker shell, install the porter plugins 
     ```bash
@@ -129,11 +129,11 @@ The recomended IDE for this set up is Visual Studio Code
     git clone https://github.com/HL7-Davinci/prior-auth.git prior-auth  
     ```
 
-    Alternatively, you can download/copy just the docker-compose.yml file from the PAS reposiotry since that is the only file needed for this set up. 
+    Alternatively, you can download/copy just the docker-compose.yml file from the PAS repository since that is the only file needed for this set up. 
 
 ## Open prior-auth in VSCode (Option 1 Only)
 
-The Docker Extension for VsCode has useful functionality to aid in the development process using this set up guide. This extension lets you eaily visualize the containers, images, networks, and volumes created by this set up. Clicking on a running container will open up the file structure of the container. Right clicking on a running container will give the option to view container logs (useful to see output from select services), attach a shell instance within the container, and attach a Visual Studio Code IDE to the container using remote-containers. See: https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker
+The Docker Extension for VsCode has useful functionality to aid in the development process using this set up guide. This extension lets you easily visualize the containers, images, networks, and volumes created by this set up. Clicking on a running container will open up the file structure of the container. Right clicking on a running container will give the option to view container logs (useful to see output from select services), attach a shell instance within the container, and attach a Visual Studio Code IDE to the container using remote-containers. See: https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker
 
 ## Configure DRLS PAS
 
@@ -165,7 +165,7 @@ Note: How you set environment and path variables may vary depending on your oper
 
 ### Add Compose Project Name to environment (Option 1 only)
 
-Note: The compose project name is to disambiguate between different set ups on the same machine and can be set to any identifier. If you are following both options mentioned in this guide, it is reccomended to change the compose project name for each so that they differ.
+Note: The compose project name is to disambiguate between different set ups on the same machine and can be set to any identifier. If you are following both options mentioned in this guide, it is recommended to change the compose project name for each so that they differ.
 
 You can see a list of your pre-existing environment variables on your Mac by running `env` in your Terminal. To add to `env`:
 1. Set "COMPOSE_PROJECT_NAME" as "pas_prod" in the .env file in the PAS Repository 
