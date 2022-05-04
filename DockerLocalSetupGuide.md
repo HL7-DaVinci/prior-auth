@@ -252,22 +252,22 @@ If you get the below error on running the stop command above, then try running t
         * Error response from daemon: manifest for smalho01234/fullstack_drls_pas-installer:v0.0.1 not found: manifest unknown: manifest unknown
 
 
-    porter invoke fullstack_rems --action stop --param vsac_api_key=${vsac_api_key} --allow-docker-host-access --reference smalho01234/fullstack_drls_pas:current
+    porter invoke fullstack_drls_pas --action stop --param vsac_api_key=${vsac_api_key} --allow-docker-host-access --reference smalho01234/fullstack_drls_pas:current
 ```
 
 #### Updating Porter application 
 
 ```bash
-    porter upgrade fullstack_rems --param vsac_api_key=${vsac_api_key} --allow-docker-host-access # Pull and Update application images and recreate containers
+    porter upgrade fullstack_drls_pas --param vsac_api_key=${vsac_api_key} --allow-docker-host-access # Pull and Update application images and recreate containers
 
     or 
 
-    porter upgrade fullstack_rems --param vsac_api_key=${vsac_api_key} --allow-docker-host-access --reference smalho01234/fullstack_drls_pas:current # Pull and Update Invocation Image in addition to application images from remote repository and recreate containers
+    porter upgrade fullstack_drls_pas --param vsac_api_key=${vsac_api_key} --allow-docker-host-access --reference smalho01234/fullstack_drls_pas:current # Pull and Update Invocation Image in addition to application images from remote repository and recreate containers
 ```
 
 #### Uninstall Porter Application
 ```bash
-    porter uninstall fullstack_rems --param vsac_api_key=${vsac_api_key} --allow-docker-host-access
+    porter uninstall fullstack_drls_pas --param vsac_api_key=${vsac_api_key} --allow-docker-host-access
 ```
 
 If you get the below error on running the stop command above, then try running the stop command with the **--reference** field as so
@@ -279,7 +279,7 @@ If you get the below error on running the stop command above, then try running t
         * Error response from daemon: manifest for smalho01234/fullstack_drls_pas-installer:v0.0.1 not found: manifest unknown: manifest unknown
 
 
-      porter uninstall fullstack_rems --param vsac_api_key=${vsac_api_key} --allow-docker-host-access --reference smalho01234/fullstack_drls_pas:current
+      porter uninstall fullstack_drls_pas --param vsac_api_key=${vsac_api_key} --allow-docker-host-access --reference smalho01234/fullstack_drls_pas:current
 ```
 
 To remove all images, volumes, and artifacts set up during the install, run the following commands
