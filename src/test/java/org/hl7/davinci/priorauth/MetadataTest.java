@@ -1,5 +1,6 @@
 package org.hl7.davinci.priorauth;
 
+import org.hl7.fhir.r4.model.UriType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
@@ -63,11 +64,11 @@ public class MetadataTest {
     Assert.assertNotNull(capabilityStatement);
 
     // Test the websocket extension is included
-    StringType websocketUrl = null;
+    UriType websocketUrl = null;
     for (CapabilityStatementRestComponent rest : capabilityStatement.getRest()) {
       for (Extension ext : rest.getExtension()) {
         if (ext.getUrl().equals(FhirUtils.WEBSOCKET_EXTENSION_URL))
-          websocketUrl = (StringType) ext.getValue();
+          websocketUrl = (UriType) ext.getValue();
       }
     }
     Assert.assertNotNull(websocketUrl);
@@ -97,11 +98,11 @@ public class MetadataTest {
     Assert.assertNotNull(capabilityStatement);
 
     // Test the websocket extension is included
-    StringType websocketUrl = null;
+    UriType websocketUrl = null;
     for (CapabilityStatementRestComponent rest : capabilityStatement.getRest()) {
       for (Extension ext : rest.getExtension()) {
         if (ext.getUrl().equals(FhirUtils.WEBSOCKET_EXTENSION_URL))
-          websocketUrl = (StringType) ext.getValue();
+          websocketUrl = (UriType) ext.getValue();
       }
     }
     Assert.assertNotNull(websocketUrl);
