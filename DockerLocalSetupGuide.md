@@ -4,9 +4,9 @@
 
 This document details the installation process for the dockerized version of the **Documentation Requirements Lookup Service (DRLS) PAS Workflow** system for Production. There are two approaches to doing this: 
 
-Option 1 utilizes Docker Compose, which comes with Docker Dektop, and requires the corresponding docker-compose.yml file from the prior-auth repository. This option has minimal technical set up involved and allows for the customization/modification of the dockerized configuration. 
+Option 1 utilizes Docker Compose, which comes with Docker Desktop, and requires the corresponding docker-compose.yml file from the prior-auth repository. This option has minimal technical set up involved and allows for the customization/modification of the dockerized configuration. 
 
-Option 2 utilizes Porter, which requires a seperate installation in addition to Docker Desktop but does not require the use of any local files. This option has the least amount of technical set up involved and is recommended for non-tecnical users of DRLS PAS as it **does not** allow for the customization/modification of the dockerized configuration. 
+Option 2 utilizes Porter, which requires a separate installation in addition to Docker Desktop but does not require the use of any local files. This option has the least amount of technical set up involved and is recommended for non-technical users of DRLS PAS as it **does not** allow for the customization/modification of the dockerized configuration. 
 
 This document **is designed to take you through the entire set up process for DRLS PAS using docker containers**. It is a standalone guide that does not depend on any supplementary DRLS PAS documentation.
 
@@ -72,12 +72,15 @@ How you set environment and path variables may vary depending on your operating 
 
 #### Install Visual Studio Code and Extensions (Option 1 Only)
 
-The recomended IDE for this set up is Visual Studio Code
+The recommended IDE for this set up is Visual Studio Code
 
 1. Install Visual Studio Code - https://code.visualstudio.com
 2. Install Docker extension - https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker
 
 #### Install Porter (Option 2 Only)
+
+
+#### MacOS/Linux
 
 1. Download and install porter as per https://porter.sh/install/ instructions:
     ```bash
@@ -101,6 +104,24 @@ The recomended IDE for this set up is Visual Studio Code
 
     Note: How you set environment and path variables may vary depending on your operating system and terminal used. See [Setting Environment Variables and System Path](#setting-environment-variables-and-system-path) for more information.
 
+#### Windows
+
+1. Pull Windows Porter Image
+    ```bash
+    docker pull smalho01234/fullstack_drls_pas-windows:current
+    ```
+2. Run Windows Porter Image in Interactive mode with docker daemon volume mount
+    ```bash
+    docker run -v /var/run/docker.sock:/var/run/docker.sock -ti --name porter-windows-container smalho01234/fullstack_drls_pas-windows:current
+    ```
+3. In the interactive docker shell, install the porter plugins 
+    ```bash
+    porter mixins install docker
+    porter mixins install docker-compose
+    ```
+
+    Note: All future commands for Windows will be run in the interactive shell of the Windows Porter Image. To exit the interactive terminal type `ctrl + d`
+
 ## Clone PAS repository (Option 1 Only)
 
 1.  clone the PAS repositories from Github:
@@ -108,11 +129,11 @@ The recomended IDE for this set up is Visual Studio Code
     git clone https://github.com/HL7-Davinci/prior-auth.git prior-auth  
     ```
 
-    Alternatively, you can download/copy just the docker-compose.yml file from the PAS reposiotry since that is the only file needed for this set up. 
+    Alternatively, you can download/copy just the docker-compose.yml file from the PAS repository since that is the only file needed for this set up. 
 
 ## Open prior-auth in VSCode (Option 1 Only)
 
-The Docker Extension for VsCode has useful functionality to aid in the development process using this set up guide. This extension lets you eaily visualize the containers, images, networks, and volumes created by this set up. Clicking on a running container will open up the file structure of the container. Right clicking on a running container will give the option to view container logs (useful to see output from select services), attach a shell instance within the container, and attach a Visual Studio Code IDE to the container using remote-containers. See: https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker
+The Docker Extension for VsCode has useful functionality to aid in the development process using this set up guide. This extension lets you easily visualize the containers, images, networks, and volumes created by this set up. Clicking on a running container will open up the file structure of the container. Right clicking on a running container will give the option to view container logs (useful to see output from select services), attach a shell instance within the container, and attach a Visual Studio Code IDE to the container using remote-containers. See: https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker
 
 ## Configure DRLS PAS
 
@@ -144,7 +165,7 @@ Note: How you set environment and path variables may vary depending on your oper
 
 ### Add Compose Project Name to environment (Option 1 only)
 
-Note: The compose project name is to disambiguate between different set ups on the same machine and can be set to any identifier. If you are following both options mentioned in this guide, it is reccomended to change the compose project name for each so that they differ.
+Note: The compose project name is to disambiguate between different set ups on the same machine and can be set to any identifier. If you are following both options mentioned in this guide, it is recommended to change the compose project name for each so that they differ.
 
 You can see a list of your pre-existing environment variables on your Mac by running `env` in your Terminal. To add to `env`:
 1. Set "COMPOSE_PROJECT_NAME" as "pas_prod" in the .env file in the PAS Repository 
@@ -154,7 +175,7 @@ You can see a list of your pre-existing environment variables on your Mac by run
 1. `cd ~/`
 2. Open `.bash_profile` and add the following lines at the very bottom:
     ```bash
-    export COMPOSE_PROJECT_NAME=pas_prod
+    export COMPOSE_PROJECT_NAME=pas_docker_compose
     ```
 3. Save `.bash_profile` and complete the update to `env`: 
     ```bash
@@ -200,41 +221,77 @@ Note: How you set environment and path variables may vary depending on your oper
 
 You can set the flag --allow-docker-host-access in the below commands with the PORTER_ALLOW_DOCKER_HOST_ACCESS environment variable so that you don’t have to specify it for every command.
 
+Note: replace ${vsac_api_key} in the below commands with your own vsac api key. If you do not have access to VSAC, please refer to [Prerequisites](#prerequisites) for how to create these credentials and return here after you have confirmed you can access VSAC.
+
+Note: On Windows this should be run within the interactive shell of the windows porter image container 
+
 ```bash
-    porter install fullstack_drls_pas --allow-docker-host-access --reference smalho01234/fullstack_drls_pas:latest # Initial Installation needs to be from remote repository
+    porter install fullstack_drls_pas --param vsac_api_key=${vsac_api_key} --allow-docker-host-access --reference smalho01234/fullstack_drls_pas:current # Initial Installation needs to be from remote repository
 
     or 
 
-    porter install fullstack_drls_pas --allow-docker-host-access  # Subsequent runs can use the local installation
+    porter install fullstack_drls_pas --param vsac_api_key=${vsac_api_key} --allow-docker-host-access  # Subsequent runs can use the local installation
 
 ```
 Note: The project will keep running in the background when you "ctrl + c" out of the above process. To stop running all together, use the stop command below 
 
-#### Stop Running Porter application and Uninstall
+#### Stop Running Porter application
+Note: On Windows this should be run within the interactive shell of the windows porter image container 
+
+
 ```bash
-    porter invoke fullstack_drls_pas --action stop --allow-docker-host-access 
+    porter invoke fullstack_drls_pas --action stop --param vsac_api_key=${vsac_api_key} --allow-docker-host-access 
 ```
+
+If you get the below error on running the stop command above, then try running the stop command with the **--reference** field as so
+
+```bash
+
+    Unable to find image 'smalho01234/fullstack_drls_pas-installer:v0.0.1' locally
+    Error: 1 error occurred:
+        * Error response from daemon: manifest for smalho01234/fullstack_drls_pas-installer:v0.0.1 not found: manifest unknown: manifest unknown
+
+
+    porter invoke fullstack_rems --action stop --param vsac_api_key=${vsac_api_key} --allow-docker-host-access --reference smalho01234/fullstack_drls_pas:current
+```
+
 #### Updating Porter application 
 
 ```bash
-    porter upgrade fullstack_drls_pas --allow-docker-host-access # Pull and Update application images and recreate containers
+    porter upgrade fullstack_rems --param vsac_api_key=${vsac_api_key} --allow-docker-host-access # Pull and Update application images and recreate containers
 
     or 
 
-    porter upgrade fullstack_drls_pas --allow-docker-host-access --reference smalho01234/fullstack_drls_pas:latest # Pull and Update Invocation Image in addition to applicaion images from remote repository and recreate containers
+    porter upgrade fullstack_rems --param vsac_api_key=${vsac_api_key} --allow-docker-host-access --reference smalho01234/fullstack_drls_pas:current # Pull and Update Invocation Image in addition to application images from remote repository and recreate containers
+```
+
+#### Uninstall Porter Application
+```bash
+    porter uninstall fullstack_rems --param vsac_api_key=${vsac_api_key} --allow-docker-host-access
+```
+
+If you get the below error on running the stop command above, then try running the stop command with the **--reference** field as so
+
+```bash
+
+    Unable to find image 'smalho01234/fullstack_drls_pas-installer:v0.0.1' locally
+    Error: 1 error occurred:
+        * Error response from daemon: manifest for smalho01234/fullstack_drls_pas-installer:v0.0.1 not found: manifest unknown: manifest unknown
+
+
+      porter uninstall fullstack_rems --param vsac_api_key=${vsac_api_key} --allow-docker-host-access --reference smalho01234/fullstack_drls_pas:current
+```
+
+To remove all images, volumes, and artifacts set up during the install, run the following commands
+
+```bash
+    docker image prune -a
+    docker volume prune 
+    docker network prune
 ```
 
 
 ## Verify DRLS is working
-
-### Register the test-ehr
-
-1. Go to http://localhost:3005/register.
-    - Client Id: **app-login**
-    - Fhir Server (iss): **http://localhost:8080/test-ehr/r4**
-2. Click **Submit**
-
-
 ### The fun part: Generate a test request
 
 1. Go to http://localhost:3000
@@ -250,9 +307,7 @@ Note: The project will keep running in the background when you "ctrl + c" out of
 9. If you are asked for login credentials, use **alice** for username and **alice** for password.
 10. A webpage should open in a new tab, and after a few seconds, a questionnaire should appear.
 11. Fill out questionnaire and hit next
-12. Submit PAS Request to http://localhost:9015/fhir  
+<!-- 12. Submit PAS Request to http://localhost:9015/fhir   -->
+12. Submit PAS Request to https://davinci-prior-auth.logicahealth.org/fhir (submitting request locally has a bug and is being worked on)
 
-Congratulations! DRLS is fully installed and ready for you to use!
-
-## Troubleshooting docker-sync
-Reference: https://docker-sync.readthedocs.io/en/latest/troubleshooting/sync-stopping.html
+Congratulations! DRLS PAS is fully installed and ready for you to use!

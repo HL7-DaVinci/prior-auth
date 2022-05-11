@@ -23,6 +23,8 @@ services:
     ports: # Port binding to host from docker container
       - '8080:8080' # Bind port 3000 of host to 3000 of container
     image: smalho01234/test-ehr
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # Create crd container
   crd: # Name of our service

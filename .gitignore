@@ -37,4 +37,6 @@ database.trace.db
 # Ignore Mac OS X
 **/.DS_Store
 .idea/
+.vscode/*
+!.vscode/launch.json
 prior-auth.iml
