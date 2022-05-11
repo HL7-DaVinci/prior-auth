@@ -10,6 +10,13 @@
             "request": "attach",
             "hostName": "localhost",
             "port": 9016,
+        },
+        {
+            "type": "java",
+            "name": "Debug Prior Auth LogicaHealth Remote", // gradle bootRun -Pdebug,
+            "request": "attach",
+            "hostName": "https://davinci-prior-auth.logicahealth.org/fhir",
+            "port": 9016,
         }
     ]
 }

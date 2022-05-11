@@ -10,4 +10,4 @@ RUN gradle installBootDist
 # Expose port to access the app
 EXPOSE 9015
 # Command to run our app
-CMD gradle bootRun
+CMD gradle bootRun -Pdebug
