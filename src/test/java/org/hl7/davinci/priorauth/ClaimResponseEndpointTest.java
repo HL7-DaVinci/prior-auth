@@ -118,7 +118,7 @@ public class ClaimResponseEndpointTest {
     // Test the response has CORS headers and returned status 200
     MvcResult mvcresult = mockMvc.perform(requestBuilder).andExpect(ok).andExpect(cors).andReturn();
 
-    // Test the response is a XML Bundle
+    // Test the response is an XML Bundle
     String body = mvcresult.getResponse().getContentAsString();
     Bundle bundle = (Bundle) App.getFhirContext().newXmlParser().parseResource(body);
     Assert.assertNotNull(bundle);
@@ -171,7 +171,7 @@ public class ClaimResponseEndpointTest {
     // Test the response has CORS headers and returned status 200
     MvcResult mvcresult = mockMvc.perform(requestBuilder).andExpect(ok).andExpect(cors).andReturn();
 
-    // Test the response is a XML Bundle
+    // Test the response is an XML Bundle
     String body = mvcresult.getResponse().getContentAsString();
     Bundle bundle = (Bundle) App.getFhirContext().newXmlParser().parseResource(body);
     Assert.assertNotNull(bundle);
