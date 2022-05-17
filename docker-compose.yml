@@ -28,8 +28,8 @@ services:
 
   # Create crd container
   crd: # Name of our service
-    image: smalho01234/crd
-    container_name: pas_prod_crd2
+    image: smalho01234/crd2
+    container_name: pas_prod_crd
     ports: # Port binding to host from docker container
       - "8090:8090" # Bind port 3000 of host to 3000 of container
     environment:
