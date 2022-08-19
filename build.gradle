@@ -76,7 +76,7 @@ dependencies {
     testImplementation 'com.squareup.okhttp3:okhttp:4.9.3'
     testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation:5.5.3'
     testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-dstu3:5.6.1'
-    testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-dstu2:5.6.1'
+    testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-dstu2:6.1.0'
     testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-r4:5.6.1'
     testImplementation 'com.helger:ph-schematron:5.6.5'
     testImplementation 'com.phloc:phloc-schematron:2.7.1'
