@@ -74,7 +74,7 @@ dependencies {
     testImplementation 'org.projectreactor:reactor-spring:1.0.1.RELEASE'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'com.squareup.okhttp3:okhttp:4.9.3'
-    testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation:5.5.3'
+    testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation:6.1.1'
     testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-dstu3:5.6.1'
     testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-dstu2:5.6.1'
     testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-r4:5.6.1'
