@@ -1,6 +1,7 @@
 package org.hl7.davinci.priorauth.endpoint;
 
 import java.util.Calendar;
+import java.util.Date;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -11,7 +12,6 @@ import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
 import org.hl7.davinci.priorauth.Audit.AuditEventType;
 import org.hl7.fhir.r4.model.CapabilityStatement;
 import org.hl7.fhir.r4.model.Extension;
-import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.UriType;
 import org.hl7.fhir.r4.model.AuditEvent.AuditEventAction;
 import org.hl7.fhir.r4.model.CapabilityStatement.CapabilityStatementImplementationComponent;
@@ -51,7 +51,8 @@ public class Metadata {
       capabilityStatement = buildCapabilityStatement();
 
     String description = "Read metadata";
-    Audit.createAuditEvent(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.SUCCESS, "/metadata", request, description);
+    Audit.createAuditEvent(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.SUCCESS, "/metadata", request,
+        description);
     String json = FhirUtils.json(capabilityStatement);
     return new ResponseEntity<>(json, HttpStatus.OK);
   }
@@ -62,7 +63,8 @@ public class Metadata {
       capabilityStatement = buildCapabilityStatement();
 
     String description = "Read metadata";
-    Audit.createAuditEvent(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.SUCCESS, "/metadata", request, description);
+    Audit.createAuditEvent(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.SUCCESS, "/metadata", request,
+        description);
     String xml = FhirUtils.xml(capabilityStatement);
     return new ResponseEntity<>(xml, HttpStatus.OK);
   }
@@ -75,77 +77,136 @@ public class Metadata {
    */
   private CapabilityStatement buildCapabilityStatement() {
     CapabilityStatement metadata = new CapabilityStatement();
+
+    // title
     metadata.setTitle("Da Vinci Prior Authorization Reference Implementation");
+
+    // status
     metadata.setStatus(PublicationStatus.DRAFT);
+
+    // experimental
     metadata.setExperimental(true);
+
+    // date
     Calendar calendar = Calendar.getInstance();
     calendar.set(2019, 4, 28, 0, 0, 0);
-    metadata.setDate(calendar.getTime());
+    Date date = calendar.getTime();
+    metadata.setDate(date);
+
+    // publisher
     metadata.setPublisher("Da Vinci");
+
+    // kind
     metadata.setKind(CapabilityStatementKind.INSTANCE);
+
+    // software
     CapabilityStatementSoftwareComponent software = new CapabilityStatementSoftwareComponent();
     software.setName("https://github.com/HL7-DaVinci/prior-auth");
     metadata.setSoftware(software);
+
+    // implementation
     CapabilityStatementImplementationComponent implementation = new CapabilityStatementImplementationComponent();
     implementation.setDescription(metadata.getTitle());
     implementation.setUrl(App.getBaseUrl() + "metadata");
     metadata.setImplementation(implementation);
+
+    // version
     metadata.setFhirVersion(FHIRVersion._4_0_1);
+
+    // format
     metadata.addFormat("json");
     metadata.addFormat("xml");
-    metadata.addExtension(FhirUtils.WEBSOCKET_EXTENSION_URL, new StringType("/fhir"));
+
+    // implementationGuide
     metadata.addImplementationGuide("https://build.fhir.org/ig/HL7/davinci-pas/index.html");
     metadata
         .addImplementationGuide("http://wiki.hl7.org/index.php?title=Da_Vinci_Prior_Authorization_FHIR_IG_Proposal");
+
+    // rest
+    CapabilityStatementRestComponent rest = getRest();
+    metadata.addRest(rest);
+
+    return metadata;
+  }
+
+  private CapabilityStatementRestComponent getRest() {
     CapabilityStatementRestComponent rest = new CapabilityStatementRestComponent();
+
+    // extension:capabilityStatement-websocket
+    Extension websocket = new Extension(FhirUtils.WEBSOCKET_EXTENSION_URL);
+    websocket.setValue(new UriType("/fhir"));
+    rest.addExtension(websocket);
+
+    // mode
     rest.setMode(RestfulCapabilityMode.SERVER);
+
+    // security
+    CapabilityStatementRestSecurityComponent security = getSecurity();
+    rest.setSecurity(security);
+
+    // resource
+    CapabilityStatementRestResourceComponent claim = getClaim();
+    CapabilityStatementRestResourceComponent claimResponse = getClaimResponse();
+    CapabilityStatementRestResourceComponent bundle = getBundle();
+    rest.addResource(claim);
+    rest.addResource(claimResponse);
+    rest.addResource(bundle);
+
+    // operation
+    rest.addOperation().setName("$expunge")
+        .setDefinition("https://smilecdr.com/docs/current/fhir_repository/deleting_data.html#drop-all-data")
+        .setDocumentation(
+            "For Demonstration Purposes Only. Deletes all data from the demonstration database. Not part of the Implementation Guide.");
+
+    return rest;
+  }
+
+  private CapabilityStatementRestSecurityComponent getSecurity() {
     CapabilityStatementRestSecurityComponent security = new CapabilityStatementRestSecurityComponent();
     security.setCors(true);
     Extension oauthUris = new Extension("http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris");
-    String tokenUriBase = "https://davinci-prior-auth.logicahealth.org";
+    String uriBase = "https://davinci-prior-auth.logicahealth.org";
     if (System.getenv("TOKEN_BASE_URI") != null && !System.getenv("TOKEN_BASE_URI").isBlank()) {
-      tokenUriBase = System.getenv("TOKEN_BASE_URI");
+      uriBase = System.getenv("TOKEN_BASE_URI");
     }
-    Extension tokenUri = new Extension("token", new UriType(tokenUriBase + "/fhir/auth/token"));
+    Extension tokenUri = new Extension("token", new UriType(uriBase + "/fhir/auth/token"));
+    Extension authorizeUri = new Extension("authorize", new UriType(uriBase + "/fhir/auth/authorize"));
     oauthUris.addExtension(tokenUri);
+    oauthUris.addExtension(authorizeUri);
     security.addExtension(oauthUris);
-    rest.setSecurity(security);
+    return security;
+  }
 
-    // Claim Resource
-    CapabilityStatementRestResourceComponent claim = new CapabilityStatementRestResourceComponent();
-    claim.setType("Claim");
-    // TODO claim.setSupportedProfile(theSupportedProfile);
-    claim.addInteraction().setCode(TypeRestfulInteraction.READ);
-    claim.addInteraction().setCode(TypeRestfulInteraction.SEARCHTYPE);
-    claim.addInteraction().setCode(TypeRestfulInteraction.DELETE);
-    claim.addOperation().setName("$submit").setDefinition("http://hl7.org/fhir/OperationDefinition/Claim-submit");
-    claim.addOperation().setName("$inquiry").setDefinition("http://hl7.org/fhir/us/davinci-pas/OperationDefinition/Claim-inquiry");
-    rest.addResource(claim);
+  private CapabilityStatementRestResourceComponent getBundle() {
+    CapabilityStatementRestResourceComponent bundle = new CapabilityStatementRestResourceComponent();
+    bundle.setType("Bundle");
+    bundle.addInteraction().setCode(TypeRestfulInteraction.READ);
+    bundle.addInteraction().setCode(TypeRestfulInteraction.SEARCHTYPE);
+    bundle.addInteraction().setCode(TypeRestfulInteraction.DELETE);
+    return bundle;
+  }
 
-    // ClaimResponse Resource
+  private CapabilityStatementRestResourceComponent getClaimResponse() {
     CapabilityStatementRestResourceComponent claimResponse = new CapabilityStatementRestResourceComponent();
     claimResponse.setType("ClaimResponse");
     // TODO claimResponse.setSupportedProfile(theSupportedProfile);
     claimResponse.addInteraction().setCode(TypeRestfulInteraction.READ);
     claimResponse.addInteraction().setCode(TypeRestfulInteraction.SEARCHTYPE);
     claimResponse.addInteraction().setCode(TypeRestfulInteraction.DELETE);
-    rest.addResource(claimResponse);
+    return claimResponse;
+  }
 
-    // Bundle Resource
-    CapabilityStatementRestResourceComponent bundle = new CapabilityStatementRestResourceComponent();
-    bundle.setType("Bundle");
-    bundle.addInteraction().setCode(TypeRestfulInteraction.READ);
-    bundle.addInteraction().setCode(TypeRestfulInteraction.SEARCHTYPE);
-    bundle.addInteraction().setCode(TypeRestfulInteraction.DELETE);
-    rest.addResource(bundle);
-
-    rest.addOperation().setName("$expunge")
-        .setDefinition("https://smilecdr.com/docs/current/fhir_repository/deleting_data.html#drop-all-data")
-        .setDocumentation(
-            "For Demonstration Purposes Only. Deletes all data from the demonstration database. Not part of the Implementation Guide.");
-
-    metadata.addRest(rest);
-
-    return metadata;
+  private CapabilityStatementRestResourceComponent getClaim() {
+    CapabilityStatementRestResourceComponent claim = new CapabilityStatementRestResourceComponent();
+    claim.setType("Claim");
+    // TODO claim.setSupportedProfile(theSupportedProfile);
+    claim.addInteraction().setCode(TypeRestfulInteraction.READ);
+    claim.addInteraction().setCode(TypeRestfulInteraction.SEARCHTYPE);
+    claim.addInteraction().setCode(TypeRestfulInteraction.DELETE);
+    claim.addOperation().setName("$submit")
+        .setDefinition("http://hl7.org/fhir/us/davinci-pas/OperationDefinition/Claim-submit");
+    claim.addOperation().setName("$inquiry")
+        .setDefinition("http://hl7.org/fhir/us/davinci-pas/OperationDefinition/Claim-inquiry");
+    return claim;
   }
 }

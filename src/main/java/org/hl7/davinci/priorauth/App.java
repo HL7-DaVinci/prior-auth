@@ -77,7 +77,7 @@ public class App {
   /**
    * Get the base URL for the microservice
    * 
-   * @return the the base url
+   * @return the base url
    */
   public static String getBaseUrl() {
     return baseUrl;

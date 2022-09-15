@@ -179,7 +179,7 @@ public class ClaimEndpoint {
     }
     Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, auditOutcome, null, request, "POST /Claim/$submit");
     MediaType contentType = requestType == RequestType.JSON ? MediaType.APPLICATION_JSON : MediaType.APPLICATION_XML;
-    String fhirContentType = requestType == RequestType.JSON ? "application/fhir+json" : "application/xml+json";
+    String fhirContentType = requestType == RequestType.JSON ? "application/fhir+json" : "application/fhir+xml";
     return ResponseEntity.status(status).contentType(contentType)
         .header(HttpHeaders.CONTENT_TYPE, fhirContentType + "; charset=utf-8")
         .header(HttpHeaders.LOCATION,
@@ -297,7 +297,7 @@ public class ClaimEndpoint {
    * Process the claim items in the database. For a new claim add the items, for
    * an updated claim update the items.
    * 
-   * @param claim     - the claim the items belong to.
+   * @param bundle    - the bundle the items belong to.
    * @param id        - the id of the claim.
    * @param relatedId - the related id to this claim.
    * @return true if all updates successful, false otherwise.
@@ -438,7 +438,6 @@ public class ClaimEndpoint {
    * @param bundle      - the bundle containing the claim.
    * @param id          - the Claim ID.
    * @param patient     - the Patient ID.
-   * @param disposition - the new disposition of the updated Claim.
    */
   protected void schedulePendedClaimUpdate(Bundle bundle, String id, String patient) {
     Timer timer = new Timer();

@@ -40,7 +40,6 @@ public class Endpoint {
      * 
      * @param table         - the Table to read from.
      * @param constraintMap - map of the column names and values for the SQL query.
-     * @param uri           - the base URI for the microservice.
      * @param requestType   - the RequestType of the request.
      * @return the desired resource if successful and an error message otherwise
      */
@@ -51,7 +50,7 @@ public class Endpoint {
         String referenceUrl = table.value() + "/" + constraintMap.get("id");
         if (!constraintMap.containsKey("patient")) {
             logger.warning("Endpoint::read:patient null");
-            String description = "Attempted to read " + table.value() + " but is unathorized";
+            String description = "Attempted to read " + table.value() + " but is unauthorized";
             Audit.createAuditEvent(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.MINOR_FAILURE, referenceUrl, request,
                     description);
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
