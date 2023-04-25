@@ -7,15 +7,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimerTask;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import ca.uhn.fhir.context.FhirContext;
+import ca.uhn.fhir.parser.IParser;
+import okhttp3.MediaType;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
 import org.hl7.fhir.instance.model.api.IBaseResource;
-import org.hl7.fhir.r4.model.Bundle;
-import org.hl7.fhir.r4.model.Claim;
-import org.hl7.fhir.r4.model.Subscription;
+import org.hl7.fhir.r4.model.*;
 import org.hl7.fhir.r4.model.ClaimResponse.ClaimResponseStatus;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionChannelType;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
@@ -72,19 +74,44 @@ public class UpdateClaimTask extends TimerTask {
             constraintMap.put("patient", patient);
             List<IBaseResource> subscriptions = App.getDB().readAll(Table.SUBSCRIPTION, constraintMap);
 
+            AtomicInteger subscriptionEventNumber = new AtomicInteger();
             // Send notification to each subscriber
             subscriptions.stream().forEach(resource -> {
+                subscriptionEventNumber.addAndGet(1);
+
                 Subscription subscription = (Subscription) resource;
                 String subscriptionId = FhirUtils.getIdFromResource(subscription);
                 SubscriptionChannelType subscriptionType = subscription.getChannel().getType();
+
+                //Build Subscriptions R5 Backport Notification Bundle:
+                //http://hl7.org/fhir/uv/subscriptions-backport/components.html#subscription-notifications
+                Bundle bundle = new Bundle();
+                bundle.setType(Bundle.BundleType.HISTORY);
+
+                Parameters parameters = new Parameters();
+                parameters.addParameter().setName("subscription").setResource(subscription);
+                parameters.addParameter().setName("topic").setValue(new CanonicalType(""));
+                parameters.addParameter().setName("status").setValue(new CodeType(subscription.getStatus().toCode()));
+                parameters.addParameter().setName("type").setValue(new CodeType("event-notification"));
+                parameters.addParameter().setName("events-since-subscription-start").setValue(new StringType(String.valueOf(subscriptions.stream().count())));
+                parameters.addParameter().setName("notification-event").addPart().setName("notification-number").setValue(new StringType(subscriptionEventNumber.toString()));
+                //TODO: Add error
+                //parameters.addParameter().setName("error").setValue(new CodeableConcept());
+
+                bundle.addEntry().setResource(parameters);
+
                 if (subscriptionType == SubscriptionChannelType.RESTHOOK) {
                     // Send rest-hook notification...
                     String endpoint = subscription.getChannel().getEndpoint();
                     logger.info("SubscriptionHandler::Sending rest-hook notification to " + endpoint);
                     try {
+
+                        IParser parser = FhirContext.forR4().newJsonParser();
+                        RequestBody body = RequestBody.create(parser.encodeResourceToString(bundle), MediaType.parse("application/json; charset=utf-8"));
+
                         OkHttpClient client = new OkHttpClient();
                         okhttp3.Response response = client
-                                .newCall(new Request.Builder().post(RequestBody.create(null, "")).url(endpoint).build())
+                                .newCall(new Request.Builder().url(endpoint).post(body).build())
                                 .execute();
                         logger.fine("SubscriptionHandler::Response " + response.code());
                         App.getDB().update(Table.SUBSCRIPTION, Collections.singletonMap("id", subscriptionId),
