@@ -526,8 +526,11 @@ public class Database {
             .prepareStatement("DELETE FROM " + table.value() + " WHERE id = ? AND patient = ?;");
         stmt.setString(1, id);
         stmt.setString(2, patient);
+
         stmt.execute();
         result = stmt.getUpdateCount() > 0 ? true : false;
+        logger.info("Delete Statement: " + stmt.toString());
+        logger.info("Update Count: " + stmt.getUpdateCount());
       } catch (SQLException e) {
         auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
