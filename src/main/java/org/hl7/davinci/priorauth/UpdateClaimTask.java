@@ -90,7 +90,7 @@ public class UpdateClaimTask extends TimerTask {
 
                 Parameters parameters = new Parameters();
                 parameters.addParameter().setName("subscription").setResource(subscription);
-                parameters.addParameter().setName("topic").setValue(new CanonicalType(""));
+                //parameters.addParameter().setName("topic").setValue(new CanonicalType(""));
                 parameters.addParameter().setName("status").setValue(new CodeType(subscription.getStatus().toCode()));
                 parameters.addParameter().setName("type").setValue(new CodeType("event-notification"));
                 parameters.addParameter().setName("events-since-subscription-start").setValue(new StringType(String.valueOf(subscriptions.stream().count())));
@@ -128,9 +128,10 @@ public class UpdateClaimTask extends TimerTask {
                     String websocketId = App.getDB().readString(Table.SUBSCRIPTION,
                             Collections.singletonMap("id", subscriptionId), "websocketId");
                     if (websocketId != null) {
+                        IParser parser = FhirContext.forR4().newJsonParser();
                         logger.info("SubscriptionHandler::Sending web-socket notification to " + websocketId);
                         SubscribeController.sendMessageToUser(websocketId, WebSocketConfig.SUBSCRIBE_USER_NOTIFICATION,
-                                "ping: " + subscriptionId);
+                                "ping: " + subscriptionId + " Subscription Notification Bundle: " + parser.encodeResourceToString(bundle));
                         App.getDB().update(Table.SUBSCRIPTION, Collections.singletonMap("id", subscriptionId),
                                 Collections.singletonMap("status",
                                         SubscriptionStatus.ACTIVE.getDisplay().toLowerCase()));
