@@ -87,8 +87,11 @@ public class UpdateClaimTask extends TimerTask {
                 //http://hl7.org/fhir/uv/subscriptions-backport/components.html#subscription-notifications
                 Bundle bundle = new Bundle();
                 bundle.setType(Bundle.BundleType.HISTORY);
-
+                
                 Parameters parameters = new Parameters();
+                Meta meta = new Meta();
+                meta.addProfile("http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-subscription-status-r4");
+                parameters.setMeta(meta);
                 parameters.addParameter().setName("subscription").setResource(subscription);
                 //parameters.addParameter().setName("topic").setValue(new CanonicalType(""));
                 parameters.addParameter().setName("status").setValue(new CodeType(subscription.getStatus().toCode()));
