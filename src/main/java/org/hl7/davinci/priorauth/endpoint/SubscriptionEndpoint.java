@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.hl7.fhir.r4.model.StringType;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -174,8 +175,15 @@ public class SubscriptionEndpoint {
         String statusVarName = "status";
         String identifierVarName = "identifier";
         String patientIdentifierVarName = "patient.identifier";
-        String criteria = subscription.getCriteria();
-        String regex = "(.*)=(.*)&(.*)=(.*)&(.*)=(.*)";
+        String criteria = "";
+
+        try {
+            criteria = subscription.getCriteriaElement().getExtension().get(0).getValue().toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Could not get valueString from criteria extension");
+        }
+
+        String regex = "(.*)\\?(.*)=(.*)&(.*)=(.*)&(.*)=(.*)";
         String endVarName = "end";
         String end = "";
 
@@ -183,13 +191,14 @@ public class SubscriptionEndpoint {
         Matcher matcher = pattern.matcher(criteria);
         Map<String, String> criteriaMap = new HashMap<>();
 
-        if (matcher.find() && matcher.groupCount() == 6) {
-            criteriaMap.put(matcher.group(1), matcher.group(2));
-            criteriaMap.put(matcher.group(3), matcher.group(4));
-            criteriaMap.put(matcher.group(5), matcher.group(6));
-        } else {
+        if (matcher.find() && matcher.groupCount() == 7) {
+            criteriaMap.put(matcher.group(2), matcher.group(3));
+            criteriaMap.put(matcher.group(4), matcher.group(5));
+            criteriaMap.put(matcher.group(6), matcher.group(7));
+        }
+        else {
             logger.fine("Subscription.criteria: " + criteria);
-            logger.severe("Subcription.criteria is not in the form " + regex);
+            logger.severe("Subscription.criteria is not in the form " + regex);
             return null;
         }
 
