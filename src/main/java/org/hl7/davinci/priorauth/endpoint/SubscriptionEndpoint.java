@@ -104,7 +104,7 @@ public class SubscriptionEndpoint {
     private ResponseEntity<String> addSubscription(String body, HttpServletRequest request, RequestType requestType) {
         logger.info("POST /Subscription fhir+" + requestType.name());
 
-        HttpStatus status = HttpStatus.OK;
+        HttpStatus status = HttpStatus.CREATED;
         String formattedData = null;
         String description = "Subscribe to pended Claim";
         AuditEventOutcome auditOutcome = AuditEventOutcome.SUCCESS;
