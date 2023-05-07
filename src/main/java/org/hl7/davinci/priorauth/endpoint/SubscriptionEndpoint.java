@@ -183,7 +183,7 @@ public class SubscriptionEndpoint {
             throw new RuntimeException("Could not get valueString from criteria extension");
         }
 
-        String regex = "(.*)\\?(.*)=(.*)&(.*)=(.*)&(.*)=(.*)";
+        String regex = "(.*)=(.*)&(.*)=(.*)&(.*)=(.*)";
         String endVarName = "end";
         String end = "";
 
@@ -191,10 +191,10 @@ public class SubscriptionEndpoint {
         Matcher matcher = pattern.matcher(criteria);
         Map<String, String> criteriaMap = new HashMap<>();
 
-        if (matcher.find() && matcher.groupCount() == 7) {
-            criteriaMap.put(matcher.group(2), matcher.group(3));
-            criteriaMap.put(matcher.group(4), matcher.group(5));
-            criteriaMap.put(matcher.group(6), matcher.group(7));
+        if (matcher.find() && matcher.groupCount() == 6) {
+            criteriaMap.put(matcher.group(1), matcher.group(2));
+            criteriaMap.put(matcher.group(3), matcher.group(4));
+            criteriaMap.put(matcher.group(5), matcher.group(6));
         }
         else {
             logger.fine("Subscription.criteria: " + criteria);
