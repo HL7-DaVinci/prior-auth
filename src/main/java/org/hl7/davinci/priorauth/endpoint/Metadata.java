@@ -1,7 +1,9 @@
 package org.hl7.davinci.priorauth.endpoint;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -10,6 +12,7 @@ import org.hl7.davinci.priorauth.Audit;
 import org.hl7.davinci.priorauth.FhirUtils;
 import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
 import org.hl7.davinci.priorauth.Audit.AuditEventType;
+import org.hl7.fhir.r4.model.CanonicalType;
 import org.hl7.fhir.r4.model.CapabilityStatement;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.UriType;
@@ -126,6 +129,7 @@ public class Metadata {
     CapabilityStatementRestComponent rest = getRest();
     metadata.addRest(rest);
 
+
     return metadata;
   }
 
@@ -148,9 +152,11 @@ public class Metadata {
     CapabilityStatementRestResourceComponent claim = getClaim();
     CapabilityStatementRestResourceComponent claimResponse = getClaimResponse();
     CapabilityStatementRestResourceComponent bundle = getBundle();
+    CapabilityStatementRestResourceComponent subscription = getSubscriptionResponse();
     rest.addResource(claim);
     rest.addResource(claimResponse);
     rest.addResource(bundle);
+    rest.addResource(subscription);
 
     // operation
     rest.addOperation().setName("$expunge")
@@ -208,5 +214,22 @@ public class Metadata {
     claim.addOperation().setName("$inquiry")
         .setDefinition("http://hl7.org/fhir/us/davinci-pas/OperationDefinition/Claim-inquiry");
     return claim;
+  }
+
+  private CapabilityStatementRestResourceComponent getSubscriptionResponse() {
+    CapabilityStatementRestResourceComponent subscriptionResponse = new CapabilityStatementRestResourceComponent();
+    subscriptionResponse.setType("Subscription");
+
+    List<CanonicalType> canonicalTypeList = new ArrayList<>();
+    CanonicalType canonicalType = new CanonicalType();
+    canonicalType.setValue("http://build.fhir.org/ig/HL7/fhir-subscription-backport-ig/StructureDefinition-backport-subscription.html");
+
+    canonicalTypeList.add(canonicalType);
+    subscriptionResponse.setSupportedProfile(canonicalTypeList);
+    subscriptionResponse.addInteraction().setCode(TypeRestfulInteraction.CREATE);
+    subscriptionResponse.addInteraction().setCode(TypeRestfulInteraction.READ);
+    subscriptionResponse.addInteraction().setCode(TypeRestfulInteraction.DELETE);
+
+    return subscriptionResponse;
   }
 }
