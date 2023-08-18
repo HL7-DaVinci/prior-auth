@@ -260,19 +260,9 @@ public class ClaimResponseFactory {
         itemComponent.addAdjudication(adjudication);
 
         // Add the X12 extensions
-        Extension reviewActionExtension = new Extension(FhirUtils.REVIEW_ACTION_EXTENSION_URL);
-        CodeableConcept reviewActionCode = new CodeableConcept(new Coding(FhirUtils.REVIEW_ACTION_CODE_SYSTEM, action.value(), null));
-        reviewActionExtension.addExtension(FhirUtils.REVIEW_ACTION_CODE_EXTENSION_URL, reviewActionCode);
-        reviewActionExtension.addExtension(FhirUtils.REVIEW_NUMBER, new StringType(UUID.randomUUID().toString()));
-        if (action.equals(ReviewAction.DENIED) || action.equals(ReviewAction.PENDED)) {
-            CodeableConcept reasonCodeableConcept = new CodeableConcept(new Coding(FhirUtils.REVIEW_REASON_CODE_SYSTEM, "X", "TODO: unknown"));
-            reviewActionExtension.addExtension(FhirUtils.REVIEW_REASON_CODE, reasonCodeableConcept);
-        }
-
         Extension itemAuthorizedProviderExtension = new Extension(FhirUtils.ITEM_AUTHORIZED_PROVIDER_EXTENSION_URL);
         itemAuthorizedProviderExtension.addExtension("provider", provider);
 
-        itemComponent.addExtension(reviewActionExtension);
         itemComponent.addExtension(FhirUtils.ITEM_PREAUTH_ISSUE_DATE_EXTENSION_URL, new DateType(new Date()));
         itemComponent.addExtension(FhirUtils.AUTHORIZATION_NUMBER_EXTENSION_URL, new StringType(UUID.randomUUID().toString()));
         itemComponent.addExtension(itemAuthorizedProviderExtension);
