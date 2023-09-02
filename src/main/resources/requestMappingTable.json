@@ -1,0 +1,18 @@
+[
+    {
+      "productOrService": {
+        "code": "73722",
+        "system": "http://www.ama-assn.org/go/cpt"
+      },
+      "contentModifier": {
+        "code": "18748-4",
+        "system": "http://loinc.org|http://lonc.org",
+        "display": "Diagnostic imaging study"
+      },
+      "traceNumber": {
+        "identifier": "1111111",
+        "system": "http://example.org/payer/PATIENT_EVENT_LINE_TRACE_NUMBER"
+      },
+      "questionnaireURL": ""
+    }
+]
