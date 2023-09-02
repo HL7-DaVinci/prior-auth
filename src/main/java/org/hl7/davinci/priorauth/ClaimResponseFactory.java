@@ -378,7 +378,6 @@ public class ClaimResponseFactory {
                     {
                         crPayload.addExtension(FhirUtils.PAYLOAD_COMMUNICATED_DIAGNOSIS, diagnosis.getDiagnosisCodeableConcept());    
                     }
-                    crPayload.addExtension(FhirUtils.PAYLOAD_CONTENT_MODIFIER, new CodeableConcept(new Coding("http://loinc.org", "18748-4", "Diagnostic imaging study")));
                 }
                 crPayload.setContent(new StringType("Please provide the additional requested information"));
                 communicationRequest.addPayload(crPayload);
