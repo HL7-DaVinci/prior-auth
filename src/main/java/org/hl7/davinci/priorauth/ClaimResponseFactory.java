@@ -1,5 +1,6 @@
 package org.hl7.davinci.priorauth;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -9,13 +10,20 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 import java.util.Random;
+import com.fasterxml.jackson.core.*;
 
+import org.springframework.core.io.ClassPathResource;
 //import org.springframework.core.io.Resource;
 import org.springframework.core.io.DefaultResourceLoader;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
 import org.hl7.davinci.priorauth.FhirUtils.ReviewAction;
+import org.hl7.davinci.rules.RequestMapping;
 
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Claim;
@@ -48,6 +56,8 @@ public class ClaimResponseFactory {
     static final Logger logger = PALogger.getLogger();
     static final String TEMP_REQUEST_CODE = "73722";
     static final String TEMP_REQUEST_SYSTEM = "http://www.ama-assn.org/go/cpt";
+    
+    //Resource mappingTable = resourceLoader.getResource("requestMappingTable.json");
     /**
      * Generate a new ClaimResponse and store it in the database.
      *
@@ -136,18 +146,75 @@ public class ClaimResponseFactory {
     }
     public static boolean ItemRequiresFollowup(ItemComponent item)
     {
+
+        // TODO, this is not very effective and reloads the file every time (because it is a static function. Needs some rework
         boolean hasRequestTrigger = false;
+        List<RequestMapping> requestMapping = new ArrayList<RequestMapping>();
+
+    
+        //ObjectMapper objectMapper = new ObjectMapper(); 
+        // TODO: This should not have to be loaded for each call. Doing now for static functions, but needs to be fixed.
+        // This mapping has to be used for several uses beyond this function
+        //DefaultResourceLoader resourceLoader = new DefaultResourceLoader();
+
+
+        try(InputStream in=Thread.currentThread().getContextClassLoader().getResourceAsStream("requestMappingTable.json")){
+            ObjectMapper mapper = new ObjectMapper();
+            requestMapping = mapper.readValue(in, new TypeReference<List<RequestMapping>>() {});
+        }
+        catch(Exception e){
+        
+            logger.info("Exception on ItemRequiresFollowup :" + e.getMessage());
+        }
+        
+        
         for(Coding procedureCoding : item.getProductOrService().getCoding())
         {
-            // TODO: change to configuration file driven check. See file resources/requestMappingTable 
-            if(procedureCoding.getCode().equals(TEMP_REQUEST_CODE) && procedureCoding.getSystem().equals(TEMP_REQUEST_SYSTEM))
+            for(RequestMapping mapping : requestMapping)
             {
-                logger.info("Found a pending information Request Procedure Code");
-                hasRequestTrigger = true;
+                if(procedureCoding.getCode().equals(mapping.getProductOrService().getCode()) && procedureCoding.getSystem().equals(mapping.getProductOrService().getSystem()))
+                {
+                    logger.info("Found a pending information Request Procedure Code");
+                    hasRequestTrigger = true;
+                    break;
+                }
+                
+            }
+            if(hasRequestTrigger == true)
+            {
                 break;
             }
         }
         return hasRequestTrigger;
+    }
+
+    public static RequestMapping GetRequestMapping(ItemComponent item)
+    {
+        RequestMapping request = new RequestMapping();
+        List<RequestMapping> requestMapping = new ArrayList<RequestMapping>();
+
+        try(InputStream in=Thread.currentThread().getContextClassLoader().getResourceAsStream("requestMappingTable.json")){
+            ObjectMapper mapper = new ObjectMapper();
+            requestMapping = mapper.readValue(in, new TypeReference<List<RequestMapping>>() {});
+        }
+        catch(Exception e){
+        
+            logger.info("Exception on GetRequestMapping :" + e.getMessage());
+        }
+        
+        for(Coding procedureCoding : item.getProductOrService().getCoding())
+        {
+            for(RequestMapping mapping : requestMapping)
+            {
+                if(procedureCoding.getCode().equals(mapping.getProductOrService().getCode()) && procedureCoding.getSystem().equals(mapping.getProductOrService().getSystem()))
+                {
+                    logger.info("Found a pending information Request Procedure Code");
+                    request = mapping;
+                    break;
+                }
+            }
+        }
+        return request;
     }
 
     /**
@@ -367,10 +434,11 @@ public class ClaimResponseFactory {
         {
             if(ItemRequiresFollowup(item))
             {
+                RequestMapping request = GetRequestMapping(item);
                 CommunicationRequestPayloadComponent crPayload = new CommunicationRequestPayloadComponent();
                 crPayload.addExtension(FhirUtils.PAYLOAD_SERVICE_LINE_NUMBER, new PositiveIntType(item.getSequence()));
                 // TODO, this needs to be loaded from the request mapping table
-                crPayload.addExtension(FhirUtils.PAYLOAD_CONTENT_MODIFIER, new CodeableConcept(new Coding("http://loinc.org", "18748-4", "Diagnostic imaging study")));
+                crPayload.addExtension(FhirUtils.PAYLOAD_CONTENT_MODIFIER, new CodeableConcept(new Coding(request.getContentModifier().getSystem(), request.getContentModifier().getCode(), request.getContentModifier().getDisplay())));
                 for(DiagnosisComponent diagnosis : claim.getDiagnosis())
                 {
                     
@@ -455,10 +523,11 @@ public class ClaimResponseFactory {
         
         if(action == ReviewAction.PENDEDFOLLOWUP)
         {
+            RequestMapping request = GetRequestMapping(item);
             // TODO, The item trace number should be mapped from the request mapping table
             Identifier traceIdentifier = new Identifier();
-            traceIdentifier.setSystem("http://example.org/payer/PATIENT_EVENT_LINE_TRACE_NUMBER");
-            traceIdentifier.setValue("1111111");
+            traceIdentifier.setSystem(request.getTraceNumber().getSystem());
+            traceIdentifier.setValue(request.getTraceNumber().getCode());
             itemComponent.addExtension(FhirUtils.ITEM_TRACE_NUMBER_EXTENSION_URL, traceIdentifier);
             
             adjudicationReviewItemExtension.addExtension(FhirUtils.REVIEW_REASON_CODE, new Coding("https://codesystem.x12.org/external/886", "OS", "Open, Waiting for Supplier Feedback"));

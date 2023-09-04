@@ -10,7 +10,23 @@
         "display": "Diagnostic imaging study"
       },
       "traceNumber": {
-        "identifier": "1111111",
+        "code": "1111111",
+        "system": "http://example.org/payer/PATIENT_EVENT_LINE_TRACE_NUMBER"
+      },
+      "questionnaireURL": ""
+    },
+    {
+      "productOrService": {
+        "code": "73720",
+        "system": "http://www.ama-assn.org/go/cpt"
+      },
+      "contentModifier": {
+        "code": "18748-3",
+        "system": "http://loinc.org|http://lonc.org",
+        "display": "Diagnostic imaging study"
+      },
+      "traceNumber": {
+        "code": "1111112",
         "system": "http://example.org/payer/PATIENT_EVENT_LINE_TRACE_NUMBER"
       },
       "questionnaireURL": ""
