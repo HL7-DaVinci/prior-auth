@@ -243,7 +243,7 @@ public class ClaimResponseFactory {
         // Add Patient and Provider from Claim Bundle into Response Bundle
         for (BundleEntryComponent entry : requestBundle.getEntry()) {
             Resource r = entry.getResource();
-            if (r != null && (r.getResourceType() == ResourceType.Patient || r.getResourceType() == ResourceType.Practitioner)) {
+            if (r != null && (r.getResourceType() == ResourceType.Patient || r.getResourceType() == ResourceType.Practitioner || r.getResourceType() == ResourceType.PractitionerRole || r.getResourceType() == ResourceType.Organization)) {
                 responseBundle.addEntry(entry);
             }
         }
@@ -279,7 +279,7 @@ public class ClaimResponseFactory {
         // Add Patient and Provider from Claim Bundle into Response Bundle
         for (BundleEntryComponent entry : requestBundle.getEntry()) {
             Resource r = entry.getResource();
-            if (r != null && (r.getResourceType() == ResourceType.Patient || r.getResourceType() == ResourceType.Practitioner)) {
+            if (r != null && (r.getResourceType() == ResourceType.Patient || r.getResourceType() == ResourceType.Practitioner || r.getResourceType() == ResourceType.PractitionerRole || r.getResourceType() == ResourceType.Organization)) {
                 responseBundle.addEntry(entry);
             }
         }
