@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.hl7.fhir.r4.model.*;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -36,14 +37,9 @@ import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.endpoint.Endpoint.RequestType;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
 import org.hl7.fhir.instance.model.api.IBaseResource;
-import org.hl7.fhir.r4.model.Bundle;
-import org.hl7.fhir.r4.model.Claim;
-import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.ClaimResponse.ClaimResponseStatus;
-import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
-import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.AuditEvent.AuditEventAction;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
@@ -286,7 +282,20 @@ public class ClaimEndpoint {
 
     // Schedule update to Pended Claim
     if (responseDisposition == Disposition.PENDING) {
-      schedulePendedClaimUpdate(bundle, id, patient);
+      boolean schedule = true;
+
+      for (Bundle.BundleEntryComponent entry: responseBundle.getEntry())
+      {
+        if (entry.getResource().getClass() == CommunicationRequest.class)
+        {
+          schedule = false;
+          break;
+        }
+      }
+
+      if (schedule) {
+        schedulePendedClaimUpdate(bundle, id, patient);
+      }
     }
 
     // Respond...
