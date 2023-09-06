@@ -1,12 +1,7 @@
 package org.hl7.davinci.priorauth;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TimerTask;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -39,6 +34,18 @@ public class UpdateClaimTask extends TimerTask {
     public UpdateClaimTask(Bundle bundle, String claimId, String patient) {
         this.bundle = bundle;
         this.claimId = claimId;
+        this.patient = patient;
+    }
+
+    public  UpdateClaimTask(String claimId) {
+        this.claimId = claimId;
+        Map<String, Object> constraintMap = new HashMap<>();
+        constraintMap.put("id", claimId);
+
+        IBaseResource bundle = App.getDB().read(Table.BUNDLE, constraintMap);
+        String patient  = FhirUtils.getPatientIdentifierFromBundle((Bundle)bundle);
+
+        this.bundle = (Bundle)bundle;
         this.patient = patient;
     }
 

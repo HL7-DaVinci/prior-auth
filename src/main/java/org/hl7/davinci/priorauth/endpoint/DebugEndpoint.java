@@ -7,25 +7,18 @@ import java.io.FileWriter;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.hl7.davinci.priorauth.*;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.hl7.davinci.priorauth.App;
-import org.hl7.davinci.priorauth.Audit;
-import org.hl7.davinci.priorauth.FhirUtils;
-import org.hl7.davinci.priorauth.PALogger;
-import org.hl7.davinci.priorauth.PropertyProvider;
+import org.springframework.web.bind.annotation.*;
 import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
 import org.hl7.davinci.priorauth.Audit.AuditEventType;
 import org.hl7.davinci.priorauth.Database.Table;
@@ -81,6 +74,16 @@ public class DebugEndpoint {
   @GetMapping("/Client")
   public ResponseEntity<String> getClient(HttpServletRequest request) {
     return query(Table.CLIENT, request);
+  }
+
+  @GetMapping("/ReleaseClaim")
+  public ResponseEntity<String> releaseClaim(HttpServletRequest request, @RequestParam(name = "identifier", required = false) String id)
+  {
+    Timer timer = new Timer();
+    timer.schedule(new UpdateClaimTask(id), 1);
+
+    ResponseEntity<String> response = new ResponseEntity<>(HttpStatus.OK);
+    return response;
   }
 
   @PostMapping("/PopulateDatabaseTestData")

@@ -423,7 +423,8 @@ public class ClaimResponseFactory {
         */
         for(Identifier identifier : claimResponse.getIdentifier())
         {
-            if(identifier.getSystem().equals("http://example.org/payer/PATIENT_EVENT_TRACE_NUMBER"))
+            String system = identifier.getSystem();
+            if(system != null && system == "http://example.org/payer/PATIENT_EVENT_TRACE_NUMBER")
             {
                 communicationRequest.addIdentifier(identifier);
             }
