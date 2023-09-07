@@ -93,16 +93,17 @@ The service endpoints in the table below are relative to `http://localhost:9015/
 
 If debug mode is enabled the following endpoints are available for use at `http://localhost:9015/fhir`:
 
-| Service                           | Methods | Description                                                                                                                                                            |
-| --------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/debug/Bundle`                   | `GET`   | HTML page to view the Bundle table in the database                                                                                                                     |
-| `/debug/Claim`                    | `GET`   | HTML page to view the Claim table in the database                                                                                                                      |
-| `/debug/ClaimResponse`            | `GET`   | HTML page to view the ClaimResponse table in the database                                                                                                              |
-| `/debug/ClaimItem`                | `GET`   | HTML page to view the ClaimItem table in the database                                                                                                                  |
-| `/debug/Subscription`             | `GET`   | HTML page to view the Subscription table in the database                                                                                                               |
-| `/debug/PopulateDatabaseTestData` | `POST`  | Insert test data into the database. Remove any of the existing test data and insert a fresh copy. All test data has a timestamp in 2200 so it can easily be identifier |
-| `/debug/Convert`                  | `POST`  | Convert a CQL body (string) into Elm (xml)                                                                                                                             |
-| `/$expunge`                       | `POST`  | Delete all entried in all tables                                                                                                                                       |
+| Service                               | Methods | Description                                                                                                                                                            |
+|---------------------------------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `/debug/Bundle`                       | `GET`   | HTML page to view the Bundle table in the database                                                                                                                     |
+| `/debug/Claim`                        | `GET`   | HTML page to view the Claim table in the database                                                                                                                      |
+| `/debug/ClaimResponse`                | `GET`   | HTML page to view the ClaimResponse table in the database                                                                                                              |
+| `/debug/ClaimItem`                    | `GET`   | HTML page to view the ClaimItem table in the database                                                                                                                  |
+| `/debug/Subscription`                 | `GET`   | HTML page to view the Subscription table in the database                                                                                                               |
+| `/debug/PopulateDatabaseTestData`     | `POST`  | Insert test data into the database. Remove any of the existing test data and insert a fresh copy. All test data has a timestamp in 2200 so it can easily be identifier |
+| `/debug/Convert`                      | `POST`  | Convert a CQL body (string) into Elm (xml)                                                                                                                             |
+| `/debug/ReleaseClaim?identifier={id}` | `GET`   | Releases a claim by `id` from a pended state and triggers the subscription workflow.                                                                                   |
+| `/$expunge`                           | `POST`  | Delete all entried in all tables                                                                                                                                       |
 
 ## Authorization
 

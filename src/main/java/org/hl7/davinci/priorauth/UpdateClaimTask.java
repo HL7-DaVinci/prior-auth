@@ -37,18 +37,6 @@ public class UpdateClaimTask extends TimerTask {
         this.patient = patient;
     }
 
-    public  UpdateClaimTask(String claimId) {
-        this.claimId = claimId;
-        Map<String, Object> constraintMap = new HashMap<>();
-        constraintMap.put("id", claimId);
-
-        IBaseResource bundle = App.getDB().read(Table.BUNDLE, constraintMap);
-        String patient  = FhirUtils.getPatientIdentifierFromBundle((Bundle)bundle);
-
-        this.bundle = (Bundle)bundle;
-        this.patient = patient;
-    }
-
     /**
      * Update the pended claim and generate a new ClaimResponse.
      * 
