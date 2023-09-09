@@ -6,7 +6,7 @@
       },
       "contentModifier": {
         "code": "18748-4",
-        "system": "http://loinc.org|http://lonc.org",
+        "system": "http://loinc.org|http://loinc.org",
         "display": "Diagnostic imaging study"
       },
       "traceNumber": {
@@ -22,7 +22,7 @@
       },
       "contentModifier": {
         "code": "18748-3",
-        "system": "http://loinc.org|http://lonc.org",
+        "system": "http://loinc.org|http://loinc.org",
         "display": "Diagnostic imaging study"
       },
       "traceNumber": {
