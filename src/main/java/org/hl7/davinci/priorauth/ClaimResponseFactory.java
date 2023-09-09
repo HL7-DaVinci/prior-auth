@@ -361,7 +361,7 @@ public class ClaimResponseFactory {
         ClaimResponse response = new ClaimResponse();
         response.setStatus(responseStatus);
         response.setType(claim.getType());
-        response.setUse(Use.PREDETERMINATION);
+        response.setUse(Use.PREAUTHORIZATION);
         response.setPatient(claim.getPatient());
         response.setCreated(new Date());
         if (claim.hasInsurer()) {
