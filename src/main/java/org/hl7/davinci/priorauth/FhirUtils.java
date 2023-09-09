@@ -42,7 +42,7 @@ public class FhirUtils {
   public static final String ITEM_PREAUTH_PERIOD_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemPreAuthPeriod";
   public static final String ITEM_REFERENCE_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemReference";
   public static final String ITEM_TRACE_NUMBER_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemTraceNumber";
-  public static final String ITEM_REQUESTED_SERVICE_DATE = ":http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemRequestedServiceDate";
+  public static final String ITEM_REQUESTED_SERVICE_DATE = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemRequestedServiceDate";
   public static final String REVIEW_ACTION_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction";
   public static final String REVIEW_ACTION_CODE_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewActionCode";
   public static final String WEBSOCKET_EXTENSION_URL = "http://hl7.org/fhir/StructureDefinition/capabilitystatement-websocket";
