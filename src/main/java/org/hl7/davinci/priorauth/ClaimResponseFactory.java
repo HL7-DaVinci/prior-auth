@@ -531,7 +531,7 @@ public class ClaimResponseFactory {
             traceIdentifier.setValue(request.getTraceNumber().getCode());
             itemComponent.addExtension(FhirUtils.ITEM_TRACE_NUMBER_EXTENSION_URL, traceIdentifier);
             
-            adjudicationReviewItemExtension.addExtension(FhirUtils.REVIEW_REASON_CODE, new Coding("https://codesystem.x12.org/external/886", "OS", "Open, Waiting for Supplier Feedback"));
+            adjudicationReviewItemExtension.addExtension(FhirUtils.REVIEW_REASON_CODE, new CodeableConcept(new Coding("https://codesystem.x12.org/external/886", "OS", "Open, Waiting for Supplier Feedback")));
             adjudication.addExtension(adjudicationReviewItemExtension);
         }
         
