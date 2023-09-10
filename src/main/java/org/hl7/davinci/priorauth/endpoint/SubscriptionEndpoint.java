@@ -183,7 +183,7 @@ public class SubscriptionEndpoint {
             throw new RuntimeException("Could not get valueString from criteria extension");
         }
 
-        String regex = "(.*)=(.*)&(.*)=(.*)&(.*)=(.*)";
+        String regex = "ClaimResponse\\?(.*)=(.*)&(.*)=(.*)&(.*)=(.*)";
         String endVarName = "end";
         String end = "";
 
