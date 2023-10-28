@@ -363,7 +363,9 @@ docker run -p 9015:9015 -it --rm --name davinci-prior-auth mitre/davinci-prior-a
 ```
 
 ## Questions and Contributions
-
-Questions about the project can be asked in the [DaVinci stream on the FHIR Zulip Chat](https://chat.fhir.org/#narrow/stream/179283-DaVinci).
+Questions about the project can be asked in the [Da Vinci PAS stream on the FHIR Zulip Chat](https://chat.fhir.org/#narrow/stream/208874-Da-Vinci-PAS).
 
 This project welcomes Pull Requests. Any issues identified with the RI should be submitted via the [GitHub issue tracker](https://github.com/HL7-DaVinci/prior-auth/issues).
+
+As of October 1, 2022, The Lantana Consulting Group is responsible for the management and maintenance of this Reference Implementation.
+In addition to posting on FHIR Zulip Chat channel mentioned above you can contact [Corey Spears](mailto:corey.spears@lantanagroup.com) for questions or requests.
