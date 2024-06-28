@@ -51,7 +51,7 @@ public class Metadata {
   @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
   public ResponseEntity<String> getMetadata(HttpServletRequest request) {
     if (capabilityStatement == null)
-      capabilityStatement = buildCapabilityStatement();
+      capabilityStatement = buildCapabilityStatement(request);
 
     String description = "Read metadata";
     Audit.createAuditEvent(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.SUCCESS, "/metadata", request,
@@ -63,7 +63,7 @@ public class Metadata {
   @GetMapping(value = "", produces = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
   public ResponseEntity<String> getMetadataXml(HttpServletRequest request) {
     if (capabilityStatement == null)
-      capabilityStatement = buildCapabilityStatement();
+      capabilityStatement = buildCapabilityStatement(request);
 
     String description = "Read metadata";
     Audit.createAuditEvent(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.SUCCESS, "/metadata", request,
@@ -78,7 +78,7 @@ public class Metadata {
    * 
    * @return CapabilityStatement - the CapabilityStatement.
    */
-  private CapabilityStatement buildCapabilityStatement() {
+  private CapabilityStatement buildCapabilityStatement(HttpServletRequest request) {
     CapabilityStatement metadata = new CapabilityStatement();
 
     // title
@@ -126,14 +126,14 @@ public class Metadata {
         .addImplementationGuide("http://wiki.hl7.org/index.php?title=Da_Vinci_Prior_Authorization_FHIR_IG_Proposal");
 
     // rest
-    CapabilityStatementRestComponent rest = getRest();
+    CapabilityStatementRestComponent rest = getRest(request);
     metadata.addRest(rest);
 
 
     return metadata;
   }
 
-  private CapabilityStatementRestComponent getRest() {
+  private CapabilityStatementRestComponent getRest(HttpServletRequest request) {
     CapabilityStatementRestComponent rest = new CapabilityStatementRestComponent();
 
     // extension:capabilityStatement-websocket
@@ -145,7 +145,7 @@ public class Metadata {
     rest.setMode(RestfulCapabilityMode.SERVER);
 
     // security
-    CapabilityStatementRestSecurityComponent security = getSecurity();
+    CapabilityStatementRestSecurityComponent security = getSecurity(request);
     rest.setSecurity(security);
 
     // resource
@@ -167,11 +167,11 @@ public class Metadata {
     return rest;
   }
 
-  private CapabilityStatementRestSecurityComponent getSecurity() {
+  private CapabilityStatementRestSecurityComponent getSecurity(HttpServletRequest request) {
     CapabilityStatementRestSecurityComponent security = new CapabilityStatementRestSecurityComponent();
     security.setCors(true);
     Extension oauthUris = new Extension("http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris");
-    String uriBase = "https://davinci-prior-auth.logicahealth.org";
+    String uriBase = request.getRequestURL().toString().replace(request.getRequestURI(), "");
     if (System.getenv("TOKEN_BASE_URI") != null && !System.getenv("TOKEN_BASE_URI").isBlank()) {
       uriBase = System.getenv("TOKEN_BASE_URI");
     }
