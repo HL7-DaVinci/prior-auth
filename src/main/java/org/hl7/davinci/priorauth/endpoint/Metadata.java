@@ -7,6 +7,7 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.lang3.StringUtils;
 import org.hl7.davinci.priorauth.App;
 import org.hl7.davinci.priorauth.Audit;
 import org.hl7.davinci.priorauth.FhirUtils;
@@ -179,6 +180,10 @@ public class Metadata {
     if (System.getenv("TOKEN_BASE_URI") != null && !System.getenv("TOKEN_BASE_URI").isBlank()) {
       uriBase = System.getenv("TOKEN_BASE_URI");
     }
+    else if (StringUtils.isNotBlank(request.getHeader("X-Forwarded-Proto")) && StringUtils.isNotBlank(request.getHeader("X-Forwarded-Host"))) {
+      uriBase = request.getHeader("X-Forwarded-Proto") + "://" + request.getHeader("X-Forwarded-Host");
+    }
+
     Extension tokenUri = new Extension("token", new UriType(uriBase + "/fhir/auth/token"));
     Extension authorizeUri = new Extension("authorize", new UriType(uriBase + "/fhir/auth/authorize"));
     oauthUris.addExtension(tokenUri);
