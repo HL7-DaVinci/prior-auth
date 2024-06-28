@@ -171,7 +171,11 @@ public class Metadata {
     CapabilityStatementRestSecurityComponent security = new CapabilityStatementRestSecurityComponent();
     security.setCors(true);
     Extension oauthUris = new Extension("http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris");
-    String uriBase = request.getRequestURL().toString().replace(request.getRequestURI(), "");
+    String uriBase = request.getScheme() + "://" + request.getServerName()
+                    + ("http".equals(request.getScheme()) && request.getServerPort() == 80
+                    || "https".equals(request.getScheme()) && request.getServerPort() == 443 ? ""
+                    : ":" + request.getServerPort());
+
     if (System.getenv("TOKEN_BASE_URI") != null && !System.getenv("TOKEN_BASE_URI").isBlank()) {
       uriBase = System.getenv("TOKEN_BASE_URI");
     }
