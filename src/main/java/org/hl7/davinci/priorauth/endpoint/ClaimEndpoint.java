@@ -1,10 +1,6 @@
 package org.hl7.davinci.priorauth.endpoint;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Timer;
-import java.util.UUID;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -139,20 +135,28 @@ public class ClaimEndpoint {
         Bundle bundle = (Bundle) resource;
         if (bundle.hasEntry() && (!bundle.getEntry().isEmpty()) && bundle.getEntry().get(0).hasResource()
             && bundle.getEntry().get(0).getResource().getResourceType() == ResourceType.Claim) {
-          Bundle responseBundle = processBundle(bundle);
-          if (responseBundle == null) {
-            // Failed processing bundle...
-            OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, PROCESS_FAILED);
-            formattedData = FhirUtils.getFormattedData(error, requestType);
-            logger.severe("ClaimEndpoint::SubmitOperation:Failed to process Bundle:" + bundle.getId());
-            auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
+          if (validateSupportingInfoSequence(bundle)) {
+            Bundle responseBundle = processBundle(bundle);
+            if (responseBundle == null) {
+              // Failed processing bundle...
+              OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, PROCESS_FAILED);
+              formattedData = FhirUtils.getFormattedData(error, requestType);
+              logger.severe("ClaimEndpoint::SubmitOperation:Failed to process Bundle:" + bundle.getId());
+              auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
+            } else {
+              ClaimResponse response = FhirUtils.getClaimResponseFromResponseBundle(responseBundle);
+              id = FhirUtils.getIdFromResource(response);
+              patient = FhirUtils.getPatientIdentifierFromBundle(responseBundle);
+              formattedData = FhirUtils.getFormattedData(responseBundle, requestType);
+              status = HttpStatus.CREATED;
+              auditOutcome = AuditEventOutcome.SUCCESS;
+            }
           } else {
-            ClaimResponse response = FhirUtils.getClaimResponseFromResponseBundle(responseBundle);
-            id = FhirUtils.getIdFromResource(response);
-            patient = FhirUtils.getPatientIdentifierFromBundle(responseBundle);
-            formattedData = FhirUtils.getFormattedData(responseBundle, requestType);
-            status = HttpStatus.CREATED;
-            auditOutcome = AuditEventOutcome.SUCCESS;
+            OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
+            formattedData = FhirUtils.getFormattedData(error, requestType);
+            logger.severe("ClaimEndpoint::Claim contains duplicates Claim.supportingInfo.sequence values");
+            //status = HttpStatus.BAD_REQUEST;
+            //auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
           }
         } else {
           // Claim is required...
@@ -183,6 +187,35 @@ public class ClaimEndpoint {
         .body(formattedData);
   }
 
+  protected boolean validateSupportingInfoSequence(Bundle bundle) {
+    // for loop that runs until you run out of Claim.supportingInfo.sequence
+      // check if Hashset.get(sequence)
+      // if false, add sequence
+      // if true, throw an error
+      // return false
+    Claim claim = (Claim) bundle.getEntry().get(0).getResource();
+    Set<Integer> infoSet = new HashSet<>();
+    if (claim.hasSupportingInfo()) {
+      for (Claim.SupportingInformationComponent info : claim.getSupportingInfo()) {
+        if (!infoSet.add(info.getSequence())) {
+          return false;
+        } else {
+          infoSet.add(info.getSequence());
+        }
+      }
+    }
+
+    return true;
+  }
+
+  protected void validateReferences(Resource resource, Bundle bundle) {
+
+    //get every reference in this resource
+
+    // check that resource exists in bundle
+
+    //if resources exists, recursively call this function on that resource
+  }
   /**
    * Process the $submit operation Bundle. Theoretically, this is where business
    * logic should be implemented or overridden.
@@ -451,7 +484,7 @@ public class ClaimEndpoint {
   protected void schedulePendedClaimUpdate(Bundle bundle, String id, String patient) {
     Timer timer = new Timer();
     pendedTimers.put(id, timer);
-    timer.schedule(new UpdateClaimTask(bundle, id, patient), 300000); // 5 Mins
+    timer.schedule(new UpdateClaimTask(bundle, id, patient), 3); // 5 Mins
   }
 
   /**
