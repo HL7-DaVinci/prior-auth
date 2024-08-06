@@ -1,11 +1,15 @@
 package org.hl7.davinci.priorauth.endpoint;
 
+import java.lang.reflect.Array;
+import java.sql.Ref;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.hl7.davinci.priorauth.*;
 import org.hl7.fhir.r4.model.*;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -20,13 +24,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.hl7.davinci.priorauth.authorization.AuthUtils;
-import org.hl7.davinci.priorauth.App;
-import org.hl7.davinci.priorauth.Audit;
-import org.hl7.davinci.priorauth.ClaimResponseFactory;
-import org.hl7.davinci.priorauth.FhirUtils;
-import org.hl7.davinci.priorauth.PALogger;
-import org.hl7.davinci.priorauth.ProcessClaimItemTask;
-import org.hl7.davinci.priorauth.UpdateClaimTask;
 import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
 import org.hl7.davinci.priorauth.Audit.AuditEventType;
 import org.hl7.davinci.priorauth.Database.Table;
@@ -135,6 +132,7 @@ public class ClaimEndpoint {
         Bundle bundle = (Bundle) resource;
         if (bundle.hasEntry() && (!bundle.getEntry().isEmpty()) && bundle.getEntry().get(0).hasResource()
             && bundle.getEntry().get(0).getResource().getResourceType() == ResourceType.Claim) {
+          if(validateReferences(bundle.getEntry().get(0).getResource(), bundle)) {
           if (validateSupportingInfoSequence(bundle)) {
             Bundle responseBundle = processBundle(bundle);
             if (responseBundle == null) {
@@ -151,6 +149,11 @@ public class ClaimEndpoint {
               status = HttpStatus.CREATED;
               auditOutcome = AuditEventOutcome.SUCCESS;
             }
+          } else {
+            OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
+            formattedData = FhirUtils.getFormattedData(error, requestType);
+            logger.severe("ClaimEndpoint::References in the Claim resource do not exist in the bundle as a Resource");
+          }
           } else {
             OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
             formattedData = FhirUtils.getFormattedData(error, requestType);
@@ -188,11 +191,6 @@ public class ClaimEndpoint {
   }
 
   protected boolean validateSupportingInfoSequence(Bundle bundle) {
-    // for loop that runs until you run out of Claim.supportingInfo.sequence
-      // check if Hashset.get(sequence)
-      // if false, add sequence
-      // if true, throw an error
-      // return false
     Claim claim = (Claim) bundle.getEntry().get(0).getResource();
     Set<Integer> infoSet = new HashSet<>();
     if (claim.hasSupportingInfo()) {
@@ -208,13 +206,42 @@ public class ClaimEndpoint {
     return true;
   }
 
-  protected void validateReferences(Resource resource, Bundle bundle) {
+  protected boolean validateReferences(Resource resource, Bundle bundle) {
 
-    //get every reference in this resource
+    // retrieve all References
+    List<Reference> referenceList = FhirScanner.findReferences(resource);
 
-    // check that resource exists in bundle
+    // function produces a null value at index 0, removing it
+    List<Reference> nullReferenceRemovedList = referenceList.stream()
+            .filter(reference -> reference.hasReference()).collect(Collectors.toList());
 
-    //if resources exists, recursively call this function on that resource
+    // function duplicates some values, removing duplicates
+    Set<String> referenceSet= new HashSet<>();
+    List<Reference> duplicateReferencesRemovedList = new ArrayList<Reference>();
+
+    for (Reference reference : nullReferenceRemovedList) {
+      if (referenceSet.add(reference.getReference())) {
+        duplicateReferencesRemovedList.add(reference);
+      }
+    }
+
+    // Check References against Resources in Bundle
+    List<Bundle.BundleEntryComponent> entries = bundle.getEntry();
+    List<Reference> sizeCheck = new ArrayList<Reference>();
+   for (Reference reference: duplicateReferencesRemovedList) {
+      for (Bundle.BundleEntryComponent entry: entries) {
+        if (reference.getResource() == entry.getResource()) {
+          sizeCheck.add(reference);
+        }
+      }
+    }
+
+
+   if (sizeCheck.containsAll(duplicateReferencesRemovedList)) {
+     return true;
+   }
+
+    return false;
   }
   /**
    * Process the $submit operation Bundle. Theoretically, this is where business
