@@ -13,10 +13,7 @@ import org.hl7.davinci.priorauth.Audit;
 import org.hl7.davinci.priorauth.FhirUtils;
 import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
 import org.hl7.davinci.priorauth.Audit.AuditEventType;
-import org.hl7.fhir.r4.model.CanonicalType;
-import org.hl7.fhir.r4.model.CapabilityStatement;
-import org.hl7.fhir.r4.model.Extension;
-import org.hl7.fhir.r4.model.UriType;
+import org.hl7.fhir.r4.model.*;
 import org.hl7.fhir.r4.model.AuditEvent.AuditEventAction;
 import org.hl7.fhir.r4.model.CapabilityStatement.CapabilityStatementImplementationComponent;
 import org.hl7.fhir.r4.model.CapabilityStatement.CapabilityStatementKind;
@@ -152,10 +149,12 @@ public class Metadata {
     // resource
     CapabilityStatementRestResourceComponent claim = getClaim();
     CapabilityStatementRestResourceComponent claimResponse = getClaimResponse();
+    CapabilityStatementRestResourceComponent patient = getPatient();
     CapabilityStatementRestResourceComponent bundle = getBundle();
     CapabilityStatementRestResourceComponent subscription = getSubscriptionResponse();
     rest.addResource(claim);
     rest.addResource(claimResponse);
+    rest.addResource(patient);
     rest.addResource(bundle);
     rest.addResource(subscription);
 
@@ -223,6 +222,40 @@ public class Metadata {
     claim.addOperation().setName("inquiry")
         .setDefinition("http://hl7.org/fhir/us/davinci-pas/OperationDefinition/Claim-inquiry");
     return claim;
+  }
+
+  private CapabilityStatementRestResourceComponent getPatient() {
+    CapabilityStatementRestResourceComponent patient = new CapabilityStatementRestResourceComponent();
+    patient.setType("Patient");
+
+    patient.addSupportedProfile("http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient");
+
+    patient.addInteraction().setCode(TypeRestfulInteraction.READ);
+    patient.addInteraction().setCode(TypeRestfulInteraction.SEARCHTYPE);
+    patient.addInteraction().setCode(TypeRestfulInteraction.VREAD);
+    patient.addInteraction().setCode(TypeRestfulInteraction.HISTORYINSTANCE);
+
+    patient.addInteraction().setCode(TypeRestfulInteraction.CREATE);
+    patient.addInteraction().setCode(TypeRestfulInteraction.UPDATE);
+    patient.addInteraction().setCode(TypeRestfulInteraction.DELETE);
+
+    // Define supported search parameters
+    patient.addSearchParam().setName("identifier").setType(Enumerations.SearchParamType.TOKEN)
+            .setDefinition("http://hl7.org/fhir/SearchParameter/Patient-identifier")
+            .setDocumentation("Search for patients by identifier.");
+    patient.addSearchParam().setName("name").setType(Enumerations.SearchParamType.STRING)
+            .setDefinition("http://hl7.org/fhir/SearchParameter/Patient-name")
+            .setDocumentation("Search for patients by name.");
+    patient.addSearchParam().setName("birthdate").setType(Enumerations.SearchParamType.DATE)
+            .setDefinition("http://hl7.org/fhir/SearchParameter/Patient-birthdate")
+            .setDocumentation("Search for patients by birthdate.");
+
+    patient.addOperation().setName("populate")
+            .setDefinition("http://hl7.org/fhir/uv/sdc/OperationDefinition/Questionnaire-populate");
+    patient.addOperation().setName("everything")
+            .setDefinition("http://hl7.org/fhir/us/core/OperationDefinition/Patient-everything");
+
+    return patient;
   }
 
   private CapabilityStatementRestResourceComponent getSubscriptionResponse() {
