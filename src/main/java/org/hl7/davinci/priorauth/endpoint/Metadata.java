@@ -160,7 +160,7 @@ public class Metadata {
     rest.addResource(subscription);
 
     // operation
-    rest.addOperation().setName("$expunge")
+    rest.addOperation().setName("expunge")
         .setDefinition("https://smilecdr.com/docs/current/fhir_repository/deleting_data.html#drop-all-data")
         .setDocumentation(
             "For Demonstration Purposes Only. Deletes all data from the demonstration database. Not part of the Implementation Guide.");
@@ -218,9 +218,9 @@ public class Metadata {
     claim.addInteraction().setCode(TypeRestfulInteraction.READ);
     claim.addInteraction().setCode(TypeRestfulInteraction.SEARCHTYPE);
     claim.addInteraction().setCode(TypeRestfulInteraction.DELETE);
-    claim.addOperation().setName("$submit")
+    claim.addOperation().setName("submit")
         .setDefinition("http://hl7.org/fhir/us/davinci-pas/OperationDefinition/Claim-submit");
-    claim.addOperation().setName("$inquiry")
+    claim.addOperation().setName("inquiry")
         .setDefinition("http://hl7.org/fhir/us/davinci-pas/OperationDefinition/Claim-inquiry");
     return claim;
   }
