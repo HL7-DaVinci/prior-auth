@@ -2,7 +2,7 @@
 
 The Da Vinci Prior Authorization Reference Implementation (RI) is a software project that conforms to the [Prior Authorization Implementation Guide (IG)](https://build.fhir.org/ig/HL7/davinci-pas/index.html) and the [Prior Authorization IG Proposal](http://wiki.hl7.org/index.php?title=Da_Vinci_Prior_Authorization_FHIR_IG_Proposal) developed by the [Da Vinci Project](http://www.hl7.org/about/davinci/index.cfm?ref=common) within the [HL7 Standards Organization](http://www.hl7.org/).
  
-
+A live demo is hosted by [HL7 FHIR Foundry](https://foundry.hl7.org/products/0ae47685-cc05-4134-a326-e5a80c8a2b55), where you may also download curated configurations to run yourself.
 
 ## Requirements
 
