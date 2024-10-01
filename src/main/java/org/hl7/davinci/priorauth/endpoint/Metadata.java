@@ -13,10 +13,7 @@ import org.hl7.davinci.priorauth.Audit;
 import org.hl7.davinci.priorauth.FhirUtils;
 import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
 import org.hl7.davinci.priorauth.Audit.AuditEventType;
-import org.hl7.fhir.r4.model.CanonicalType;
-import org.hl7.fhir.r4.model.CapabilityStatement;
-import org.hl7.fhir.r4.model.Extension;
-import org.hl7.fhir.r4.model.UriType;
+import org.hl7.fhir.r4.model.*;
 import org.hl7.fhir.r4.model.AuditEvent.AuditEventAction;
 import org.hl7.fhir.r4.model.CapabilityStatement.CapabilityStatementImplementationComponent;
 import org.hl7.fhir.r4.model.CapabilityStatement.CapabilityStatementKind;
@@ -152,15 +149,23 @@ public class Metadata {
     // resource
     CapabilityStatementRestResourceComponent claim = getClaim();
     CapabilityStatementRestResourceComponent claimResponse = getClaimResponse();
+    CapabilityStatementRestResourceComponent patient = getPatient();
+    CapabilityStatementRestResourceComponent observation = getObservation();
+    CapabilityStatementRestResourceComponent condition = getCondition();
+    CapabilityStatementRestResourceComponent procedure = getProcedure();
     CapabilityStatementRestResourceComponent bundle = getBundle();
     CapabilityStatementRestResourceComponent subscription = getSubscriptionResponse();
     rest.addResource(claim);
     rest.addResource(claimResponse);
+    rest.addResource(patient);
+    rest.addResource(observation);
+    rest.addResource(condition);
+    rest.addResource(procedure);
     rest.addResource(bundle);
     rest.addResource(subscription);
 
     // operation
-    rest.addOperation().setName("$expunge")
+    rest.addOperation().setName("expunge")
         .setDefinition("https://smilecdr.com/docs/current/fhir_repository/deleting_data.html#drop-all-data")
         .setDocumentation(
             "For Demonstration Purposes Only. Deletes all data from the demonstration database. Not part of the Implementation Guide.");
@@ -218,11 +223,116 @@ public class Metadata {
     claim.addInteraction().setCode(TypeRestfulInteraction.READ);
     claim.addInteraction().setCode(TypeRestfulInteraction.SEARCHTYPE);
     claim.addInteraction().setCode(TypeRestfulInteraction.DELETE);
-    claim.addOperation().setName("$submit")
+    claim.addOperation().setName("submit")
         .setDefinition("http://hl7.org/fhir/us/davinci-pas/OperationDefinition/Claim-submit");
-    claim.addOperation().setName("$inquiry")
+    claim.addOperation().setName("inquiry")
         .setDefinition("http://hl7.org/fhir/us/davinci-pas/OperationDefinition/Claim-inquiry");
     return claim;
+  }
+
+  private CapabilityStatementRestResourceComponent getPatient() {
+    CapabilityStatementRestResourceComponent patient = new CapabilityStatementRestResourceComponent();
+    patient.setType("Patient");
+
+    patient.addSupportedProfile("http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient");
+
+    patient.addInteraction().setCode(TypeRestfulInteraction.READ);
+    patient.addInteraction().setCode(TypeRestfulInteraction.SEARCHTYPE);
+    patient.addInteraction().setCode(TypeRestfulInteraction.VREAD);
+    patient.addInteraction().setCode(TypeRestfulInteraction.HISTORYINSTANCE);
+
+    patient.addInteraction().setCode(TypeRestfulInteraction.CREATE);
+    patient.addInteraction().setCode(TypeRestfulInteraction.UPDATE);
+    patient.addInteraction().setCode(TypeRestfulInteraction.DELETE);
+
+    // Define supported search parameters
+    patient.addSearchParam().setName("identifier").setType(Enumerations.SearchParamType.TOKEN)
+            .setDefinition("http://hl7.org/fhir/SearchParameter/Patient-identifier")
+            .setDocumentation("Search for patients by identifier.");
+    patient.addSearchParam().setName("name").setType(Enumerations.SearchParamType.STRING)
+            .setDefinition("http://hl7.org/fhir/SearchParameter/Patient-name")
+            .setDocumentation("Search for patients by name.");
+    patient.addSearchParam().setName("birthdate").setType(Enumerations.SearchParamType.DATE)
+            .setDefinition("http://hl7.org/fhir/SearchParameter/Patient-birthdate")
+            .setDocumentation("Search for patients by birthdate.");
+
+    patient.addOperation().setName("populate")
+            .setDefinition("http://hl7.org/fhir/uv/sdc/OperationDefinition/Questionnaire-populate");
+    patient.addOperation().setName("everything")
+            .setDefinition("http://hl7.org/fhir/us/core/OperationDefinition/Patient-everything");
+
+    return patient;
+  }
+
+  private CapabilityStatementRestResourceComponent getObservation() {
+    CapabilityStatementRestResourceComponent observation = new CapabilityStatementRestResourceComponent();
+    observation.setType("Observation");
+
+    observation.addSupportedProfile("http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation");
+
+    observation.addInteraction().setCode(TypeRestfulInteraction.READ);
+    observation.addInteraction().setCode(TypeRestfulInteraction.SEARCHTYPE);
+    observation.addInteraction().setCode(TypeRestfulInteraction.VREAD);
+    observation.addInteraction().setCode(TypeRestfulInteraction.HISTORYINSTANCE);
+
+    observation.addInteraction().setCode(TypeRestfulInteraction.CREATE);
+    observation.addInteraction().setCode(TypeRestfulInteraction.UPDATE);
+    observation.addInteraction().setCode(TypeRestfulInteraction.DELETE);
+
+    // Define supported search parameters
+    observation.addSearchParam().setName("code").setType(Enumerations.SearchParamType.TOKEN)
+            .setDefinition("http://hl7.org/fhir/SearchParameter/Observation-code")
+            .setDocumentation("Search for observations by code.");
+    observation.addSearchParam().setName("date").setType(Enumerations.SearchParamType.DATE)
+            .setDefinition("http://hl7.org/fhir/SearchParameter/Observation-date")
+            .setDocumentation("Search for observations by date.");
+
+    return observation;
+  }
+
+  private CapabilityStatementRestResourceComponent getCondition() {
+    CapabilityStatementRestResourceComponent condition = new CapabilityStatementRestResourceComponent();
+    condition.setType("Condition");
+
+    condition.addSupportedProfile("http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition");
+
+    condition.addInteraction().setCode(TypeRestfulInteraction.READ);
+    condition.addInteraction().setCode(TypeRestfulInteraction.SEARCHTYPE);
+    condition.addInteraction().setCode(TypeRestfulInteraction.CREATE);
+    condition.addInteraction().setCode(TypeRestfulInteraction.UPDATE);
+    condition.addInteraction().setCode(TypeRestfulInteraction.DELETE);
+
+    condition.addSearchParam().setName("code").setType(Enumerations.SearchParamType.TOKEN)
+            .setDefinition("http://hl7.org/fhir/SearchParameter/Condition-code")
+            .setDocumentation("Search for conditions by code.");
+    condition.addSearchParam().setName("patient").setType(Enumerations.SearchParamType.REFERENCE)
+            .setDefinition("http://hl7.org/fhir/SearchParameter/Condition-patient")
+            .setDocumentation("Search for conditions by patient.");
+
+    return condition;
+  }
+
+  private CapabilityStatementRestResourceComponent getProcedure() {
+    CapabilityStatementRestResourceComponent procedure = new CapabilityStatementRestResourceComponent();
+    procedure.setType("Procedure");
+
+    procedure.addSupportedProfile("http://hl7.org/fhir/us/core/StructureDefinition/us-core-procedure");
+
+    procedure.addInteraction().setCode(TypeRestfulInteraction.READ);
+    procedure.addInteraction().setCode(TypeRestfulInteraction.SEARCHTYPE);
+    procedure.addInteraction().setCode(TypeRestfulInteraction.CREATE);
+    procedure.addInteraction().setCode(TypeRestfulInteraction.UPDATE);
+    procedure.addInteraction().setCode(TypeRestfulInteraction.DELETE);
+
+    // Define supported search parameters
+    procedure.addSearchParam().setName("date").setType(Enumerations.SearchParamType.DATE)
+            .setDefinition("http://hl7.org/fhir/SearchParameter/Procedure-date")
+            .setDocumentation("Search for procedures by date.");
+    procedure.addSearchParam().setName("status").setType(Enumerations.SearchParamType.TOKEN)
+            .setDefinition("http://hl7.org/fhir/SearchParameter/Procedure-status")
+            .setDocumentation("Search for procedures by status.");
+
+    return procedure;
   }
 
   private CapabilityStatementRestResourceComponent getSubscriptionResponse() {
