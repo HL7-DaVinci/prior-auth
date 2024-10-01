@@ -150,14 +150,17 @@ public class Metadata {
     CapabilityStatementRestResourceComponent claim = getClaim();
     CapabilityStatementRestResourceComponent claimResponse = getClaimResponse();
     CapabilityStatementRestResourceComponent patient = getPatient();
+    CapabilityStatementRestResourceComponent observation = getObservation();
+    CapabilityStatementRestResourceComponent condition = getCondition();
+    CapabilityStatementRestResourceComponent procedure = getProcedure();
     CapabilityStatementRestResourceComponent bundle = getBundle();
     CapabilityStatementRestResourceComponent subscription = getSubscriptionResponse();
     rest.addResource(claim);
     rest.addResource(claimResponse);
     rest.addResource(patient);
-    rest.addResource(getObservation());
-    rest.addResource(getCondition());
-    rest.addResource(getProcedure());
+    rest.addResource(observation);
+    rest.addResource(condition);
+    rest.addResource(procedure);
     rest.addResource(bundle);
     rest.addResource(subscription);
 
