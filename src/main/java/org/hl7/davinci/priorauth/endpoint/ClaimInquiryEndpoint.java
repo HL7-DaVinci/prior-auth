@@ -49,15 +49,15 @@ public class ClaimInquiryEndpoint {
 
     static final Logger logger = PALogger.getLogger();
 
-    static final String REQUIRES_BUNDLE = "Prior Authorization Claim/$inquiry Operation requires a Bundle with a single Claim as the first entry and supporting resources.";
+    static final String REQUIRES_BUNDLE = "Prior Authorization Claim/$inquire Operation requires a Bundle with a single Claim as the first entry and supporting resources.";
     static final String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
 
-    @PostMapping(value = "/$inquiry", consumes = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
+    @PostMapping(value = "/$inquire", consumes = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
     public ResponseEntity<String> submitOperationJson(HttpServletRequest request, HttpEntity<String> entity) {
         return inquiryOperation(entity.getBody(), RequestType.JSON, request);
     }
 
-    @PostMapping(value = "/$inquiry", consumes = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
+    @PostMapping(value = "/$inquire", consumes = { MediaType.APPLICATION_XML_VALUE, "application/fhir+xml" })
     public ResponseEntity<String> submitOperationXml(HttpServletRequest request, HttpEntity<String> entity) {
         return inquiryOperation(entity.getBody(), RequestType.XML, request);
     }
@@ -71,7 +71,7 @@ public class ClaimInquiryEndpoint {
      */
 
     private ResponseEntity<String> inquiryOperation(String body, RequestType requestType, HttpServletRequest request) {
-        logger.info("POST /Claim/$inquiry fhir+" + requestType.name());
+        logger.info("POST /Claim/$inquire fhir+" + requestType.name());
         App.setBaseUrl(Endpoint.getServiceBaseUrl(request));
 
         if (!AuthUtils.validateAccessToken(request))
@@ -143,7 +143,7 @@ public class ClaimInquiryEndpoint {
             auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
         }
         Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, auditOutcome, null, request,
-                "POST /Claim/$inquiry");
+                "POST /Claim/$inquire");
         MediaType contentType = requestType == RequestType.JSON ? MediaType.APPLICATION_JSON
                 : MediaType.APPLICATION_XML;
         String fhirContentType = requestType == RequestType.JSON ? "application/fhir+json" : "application/fhir+xml";
