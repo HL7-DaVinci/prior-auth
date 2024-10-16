@@ -7,6 +7,9 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.security.Principal;
 import java.util.Collections;
@@ -54,6 +57,14 @@ public class SubscribeController {
             sendMessageToUser(username, WebSocketConfig.SUBSCRIBE_USER_NOTIFICATION,
                     "Unable to bind id. Request was not in the form \"" + regex + "\"");
         }
+    }
+
+    @PostMapping("/notify/{subscriptionId}")
+    public void handleNotification(@PathVariable String subscriptionId, @RequestBody String message) {
+        // Find all users subscribed to this subscriptionId and send them a message
+        String destination = WebSocketConfig.SUBSCRIBE_USER_NOTIFICATION + "/" + subscriptionId;
+        messagingTemplate.convertAndSend(destination, message);
+        logger.info("SubscribeController::Notification sent to subscriptionId " + subscriptionId);
     }
 
     public static void sendMessageToUser(String username, String channel, String msg) {
