@@ -32,7 +32,7 @@
             "codeCodeableConcept": {
               "coding": [
                 {
-                  "system": "https://bluebutton.cms.gov/resources/codesystem/hcpcs",
+                  "system": "https://www.cms.gov/Medicare/Coding/HCPCSReleaseCodeSets",
                   "code": "E0424",
                   "display": "Stationary Compressed Gaseous Oxygen System, Rental"
                 }
@@ -193,7 +193,7 @@
             "codeCodeableConcept": {
               "coding": [
                 {
-                  "system": "https://bluebutton.cms.gov/resources/codesystem/hcpcs",
+                  "system": "https://www.cms.gov/Medicare/Coding/HCPCSReleaseCodeSets",
                   "code": "E0424",
                   "display": "Stationary Compressed Gaseous Oxygen System, Rental"
                 }
@@ -213,7 +213,7 @@
             "type": {
               "coding": [
                 {
-                  "system": "https://bluebutton.cms.gov/resources/codesystem/hcpcs",
+                  "system": "https://www.cms.gov/Medicare/Coding/HCPCSReleaseCodeSets",
                   "code": "E0424",
                   "display": "Stationary Compressed Gaseous Oxygen System, Rental"
                 }
