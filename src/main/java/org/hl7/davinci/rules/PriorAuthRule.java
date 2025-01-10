@@ -33,7 +33,7 @@ public class PriorAuthRule {
     static {
         Map<String, String> tempMap = new HashMap<String, String>();
         tempMap.put("cpt", "http://www.ama-assn.org/go/cpt");
-        tempMap.put("hcpcs", "https://bluebutton.cms.gov/resources/codesystem/hcpcs");
+        tempMap.put("hcpcs", "https://www.cms.gov/Medicare/Coding/HCPCSReleaseCodeSets");
         tempMap.put("rxnorm", "http://www.nlm.nih.gov/research/umls/rxnorm");
         tempMap.put("sct", "http://snomed.info/sct");
         CODE_SYSTEM_SHORT_NAME_TO_FULL_NAME = Collections.unmodifiableMap(tempMap);
