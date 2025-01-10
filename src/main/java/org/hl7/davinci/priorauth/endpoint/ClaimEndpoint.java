@@ -132,35 +132,37 @@ public class ClaimEndpoint {
         Bundle bundle = (Bundle) resource;
         if (bundle.hasEntry() && (!bundle.getEntry().isEmpty()) && bundle.getEntry().get(0).hasResource()
             && bundle.getEntry().get(0).getResource().getResourceType() == ResourceType.Claim) {
-          if(validateReferences(bundle.getEntry().get(0).getResource(), bundle)) {
-          if (validateSupportingInfoSequence(bundle)) {
-            Bundle responseBundle = processBundle(bundle);
-            if (responseBundle == null) {
-              // Failed processing bundle...
-              OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, PROCESS_FAILED);
+
+          if(!validateReferences(bundle.getEntry().get(0).getResource(), bundle)) {
+              OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
               formattedData = FhirUtils.getFormattedData(error, requestType);
-              logger.severe("ClaimEndpoint::SubmitOperation:Failed to process Bundle:" + bundle.getId());
+              logger.severe("ClaimEndpoint::References in the Claim resource do not exist in the bundle as a Resource");
               auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
-            } else {
-              ClaimResponse response = FhirUtils.getClaimResponseFromResponseBundle(responseBundle);
-              id = FhirUtils.getIdFromResource(response);
-              patient = FhirUtils.getPatientIdentifierFromBundle(responseBundle);
-              formattedData = FhirUtils.getFormattedData(responseBundle, requestType);
-              status = HttpStatus.CREATED;
-              auditOutcome = AuditEventOutcome.SUCCESS;
-            }
-          } else {
-            OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
-            formattedData = FhirUtils.getFormattedData(error, requestType);
-            logger.severe("ClaimEndpoint::References in the Claim resource do not exist in the bundle as a Resource");
           }
-          } else {
+
+          if (!validateSupportingInfoSequence(bundle)) {
             OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
             formattedData = FhirUtils.getFormattedData(error, requestType);
             logger.severe("ClaimEndpoint::Claim contains duplicates Claim.supportingInfo.sequence values");
-            //status = HttpStatus.BAD_REQUEST;
-            //auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
+            auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
           }
+
+          Bundle responseBundle = processBundle(bundle);
+          if (responseBundle == null) {
+            // Failed processing bundle...
+            OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, PROCESS_FAILED);
+            formattedData = FhirUtils.getFormattedData(error, requestType);
+            logger.severe("ClaimEndpoint::SubmitOperation:Failed to process Bundle:" + bundle.getId());
+            auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
+          } else {
+            ClaimResponse response = FhirUtils.getClaimResponseFromResponseBundle(responseBundle);
+            id = FhirUtils.getIdFromResource(response);
+            patient = FhirUtils.getPatientIdentifierFromBundle(responseBundle);
+            formattedData = FhirUtils.getFormattedData(responseBundle, requestType);
+            status = HttpStatus.CREATED;
+            auditOutcome = AuditEventOutcome.SUCCESS;
+          }
+
         } else {
           // Claim is required...
           OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
