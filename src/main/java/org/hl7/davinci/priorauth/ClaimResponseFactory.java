@@ -111,7 +111,9 @@ public class ClaimResponseFactory {
 		//Resource mappingTable = resourceLoader.getResource("requestMappingTable.json");
         //claim
         // Generate the claim response...
+        // logger.info("ClaimResponseFactory::generateAndStoreClaimResponse:Generating ClaimResponse for claim id: " + claim.getId() + ", disposition: " + responseDisposition + ", status: " + responseStatus);
         ClaimResponse claimResponse = createClaimResponse(claim, id, responseDisposition, responseStatus, isScheduledUpdate, hasRequestTrigger);
+        // logger.info("ClaimResponseFactory::generateAndStoreClaimResponse:ClaimResponse id: " + claimResponse.getId() + " disposition: " + claimResponse.getDisposition() + ", outcome: " + claimResponse.getOutcome() + " status: " + claimResponse.getStatus());
         String claimId = App.getDB().getMostRecentId(FhirUtils.getIdFromResource(claim));
         Bundle responseBundle = new Bundle();
         if(hasRequestTrigger)
@@ -140,6 +142,7 @@ public class ClaimResponseFactory {
         responseMap.put("status", FhirUtils.getStatusFromResource(claimResponse));
         responseMap.put("outcome", FhirUtils.dispositionToReviewAction(responseDisposition).value());
         responseMap.put("resource", responseBundle);
+        // responseMap.put("resource", claimResponse);
         App.getDB().write(Table.CLAIM_RESPONSE, responseMap);
 
         return responseBundle;
@@ -377,8 +380,8 @@ public class ClaimResponseFactory {
             response.setOutcome(RemittanceOutcome.COMPLETE);
         }
         response.setItem(setClaimResponseItems(claim, isScheduledUpdate, isFollowupRequired));
-        //response.setDisposition(responseDisposition.value());
-        response.setDisposition("Pending");
+        response.setDisposition(responseDisposition.value());
+        // response.setDisposition("Pending");
         response.setPreAuthRef(id);
         response.setId(id);
 
