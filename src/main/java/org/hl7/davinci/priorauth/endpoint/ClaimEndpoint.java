@@ -513,7 +513,7 @@ public class ClaimEndpoint {
   protected void schedulePendedClaimUpdate(Bundle bundle, String id, String patient) {
     Timer timer = new Timer();
     pendedTimers.put(id, timer);
-    timer.schedule(new UpdateClaimTask(bundle, id, patient), 3); // 5 Mins
+    timer.schedule(new UpdateClaimTask(bundle, id, patient), 15000); // 15 seconds
   }
 
   /**
