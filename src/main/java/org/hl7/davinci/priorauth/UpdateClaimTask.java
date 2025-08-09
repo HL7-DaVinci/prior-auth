@@ -13,6 +13,7 @@ import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.*;
+import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.ClaimResponse.ClaimResponseStatus;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionChannelType;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
@@ -62,12 +63,30 @@ public class UpdateClaimTask extends TimerTask {
 
     @Override
     public void run() {
-        if (updatePendedClaim(bundle, claimId, patient) != null) {
+        Bundle updatedClaimBundle = updatePendedClaim(bundle, claimId, patient);
+        if (updatedClaimBundle != null) {
+
             // Check for subscription
             Map<String, Object> constraintMap = new HashMap<>();
-            constraintMap.put("claimResponseId", claimId);
-            constraintMap.put("patient", patient);
+            // constraintMap.put("claimResponseId", claimId);
+            // constraintMap.put("patient", patient);
+            constraintMap.put("orgId", claimId);
+            String orgId;
+            ClaimResponse cr = (ClaimResponse)updatedClaimBundle.getEntryFirstRep().getResource();
+            String[] requestorRef = cr.getRequestor().getReference().split("/");
+            BundleEntryComponent entry = FhirUtils.getEntryComponentFromBundle(bundle, ResourceType.fromCode(requestorRef[0]), requestorRef[1]);
+            Identifier identifier = null;
+            if (entry.getResource() instanceof Organization) {
+                identifier = ((Organization)entry.getResource()).getIdentifierFirstRep();
+            }
+            else if (entry.getResource() instanceof PractitionerRole) {
+                identifier = ((PractitionerRole)entry.getResource()).getIdentifierFirstRep();
+            }
+            orgId = identifier.getSystem() + "|" + identifier.getValue();
+            constraintMap.put("orgId", orgId);
+
             List<IBaseResource> subscriptions = App.getDB().readAll(Table.SUBSCRIPTION, constraintMap);
+            logger.info("SubscriptionEndpoint::Found " + subscriptions.size() + " subscriptions for orgId: " + orgId);
 
             AtomicInteger subscriptionEventNumber = new AtomicInteger();
             // Send notification to each subscriber
@@ -88,15 +107,22 @@ public class UpdateClaimTask extends TimerTask {
                 meta.addProfile("http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-subscription-status-r4");
                 parameters.setMeta(meta);
                 parameters.addParameter().setName("subscription").setResource(subscription);
-                //parameters.addParameter().setName("topic").setValue(new CanonicalType(""));
+                parameters.addParameter().setName("topic").setValue(new CanonicalType("http://hl7.org/fhir/us/davinci-pas/SubscriptionTopic/PASSubscriptionTopic"));
                 parameters.addParameter().setName("status").setValue(new CodeType(subscription.getStatus().toCode()));
                 parameters.addParameter().setName("type").setValue(new CodeType("event-notification"));
-                parameters.addParameter().setName("events-since-subscription-start").setValue(new StringType(String.valueOf(subscriptions.stream().count())));
-                parameters.addParameter().setName("notification-event").addPart().setName("notification-number").setValue(new StringType(subscriptionEventNumber.toString()));
+
+                Parameters.ParametersParameterComponent notificationEventPart = new Parameters.ParametersParameterComponent();
+                notificationEventPart.setName("notification-event");
+                notificationEventPart.addPart().setName("event-number").setValue(new StringType(subscriptionEventNumber.toString()));
+                notificationEventPart.addPart().setName("timestamp").setValue(new DateTimeType(new Date()));
+                notificationEventPart.addPart().setName("focus").setValue(new Reference(updatedClaimBundle.getEntryFirstRep().getFullUrl()));
+                parameters.addParameter(notificationEventPart);
+
                 //TODO: Add error
                 //parameters.addParameter().setName("error").setValue(new CodeableConcept());
 
                 bundle.addEntry().setResource(parameters);
+                bundle.addEntry().setResource(updatedClaimBundle);
 
                 if (subscriptionType == SubscriptionChannelType.RESTHOOK) {
                     // Send rest-hook notification...

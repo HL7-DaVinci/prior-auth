@@ -170,11 +170,12 @@ public class SubscriptionEndpoint {
     private Subscription processSubscription(Subscription subscription) {
         // Get the criteria details parsed
         String claimResponseId = "";
-        String patient = "";
-        String status = "";
-        String statusVarName = "status";
-        String identifierVarName = "identifier";
-        String patientIdentifierVarName = "patient.identifier";
+        // String patient = "";
+        String status = "active";
+        String orgId = "";
+        // String statusVarName = "status";
+        // String identifierVarName = "identifier";
+        // String patientIdentifierVarName = "patient.identifier";
         String criteria = "";
 
         try {
@@ -183,7 +184,7 @@ public class SubscriptionEndpoint {
             throw new RuntimeException("Could not get valueString from criteria extension");
         }
 
-        String regex = "ClaimResponse\\?(.*)=(.*)&(.*)=(.*)&(.*)=(.*)";
+        String regex = "orgIdentifier=(.*)";
         String endVarName = "end";
         String end = "";
 
@@ -191,10 +192,8 @@ public class SubscriptionEndpoint {
         Matcher matcher = pattern.matcher(criteria);
         Map<String, String> criteriaMap = new HashMap<>();
 
-        if (matcher.find() && matcher.groupCount() == 6) {
-            criteriaMap.put(matcher.group(1), matcher.group(2));
-            criteriaMap.put(matcher.group(3), matcher.group(4));
-            criteriaMap.put(matcher.group(5), matcher.group(6));
+        if (matcher.find()) {
+            orgId = matcher.group(1);
         }
         else {
             logger.fine("Subscription.criteria: " + criteria);
@@ -203,25 +202,25 @@ public class SubscriptionEndpoint {
         }
 
         // Determine which variable is which
-        String variableName;
-        for (Iterator<String> iterator = criteriaMap.keySet().iterator(); iterator.hasNext();) {
-            variableName = iterator.next();
-            if (variableName.equals(identifierVarName))
-                claimResponseId = criteriaMap.get(variableName);
-            if (variableName.equals(patientIdentifierVarName))
-                patient = criteriaMap.get(variableName);
-            if (variableName.equals(statusVarName))
-                status = criteriaMap.get(variableName);
-            if (variableName.equals(endVarName))
-                status = criteriaMap.get(variableName);
-        }
+        // String variableName;
+        // for (Iterator<String> iterator = criteriaMap.keySet().iterator(); iterator.hasNext();) {
+        //     variableName = iterator.next();
+        //     if (variableName.equals(identifierVarName))
+        //         claimResponseId = criteriaMap.get(variableName);
+        //     if (variableName.equals(patientIdentifierVarName))
+        //         patient = criteriaMap.get(variableName);
+        //     if (variableName.equals(statusVarName))
+        //         status = criteriaMap.get(variableName);
+        //     if (variableName.equals(endVarName))
+        //         status = criteriaMap.get(variableName);
+        // }
 
         // Check the desired ClaimResponse is pended
-        String outcome = App.getDB().readString(Table.CLAIM_RESPONSE, Collections.singletonMap("id", claimResponseId),
-                "outcome");
-        logger.info("SubscriptionEndpoint::Outcome for desired resource is: " + outcome);
-        if (outcome == null || !outcome.equals(FhirUtils.ReviewAction.PENDED.value()))
-            return null;
+        // String outcome = App.getDB().readString(Table.CLAIM_RESPONSE, Collections.singletonMap("id", claimResponseId),
+        //         "outcome");
+        // logger.info("SubscriptionEndpoint::Outcome for desired resource is: " + outcome);
+        // if (outcome == null || !outcome.equals(FhirUtils.ReviewAction.PENDED.value()))
+        //     return null;
 
         // Add to db
         String id = UUID.randomUUID().toString();
@@ -230,8 +229,7 @@ public class SubscriptionEndpoint {
         logger.fine("SubscriptionEndpoint::Subscription given uuid " + id);
         Map<String, Object> dataMap = new HashMap<>();
         dataMap.put("id", id);
-        dataMap.put("claimResponseId", claimResponseId);
-        dataMap.put("patient", patient);
+        dataMap.put("orgId", orgId);
         dataMap.put("status", status);
         dataMap.put("resource", subscription);
         dataMap.put(endVarName, end);

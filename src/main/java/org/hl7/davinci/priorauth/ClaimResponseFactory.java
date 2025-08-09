@@ -379,6 +379,8 @@ public class ClaimResponseFactory {
         } else {
             response.setOutcome(RemittanceOutcome.COMPLETE);
         }
+        response.setRequestor(claim.getProvider());
+        response.setRequest(new Reference().setReference("Claim/" + claim.getId()));
         response.setItem(setClaimResponseItems(claim, isScheduledUpdate, isFollowupRequired));
         response.setDisposition(responseDisposition.value());
         // response.setDisposition("Pending");

@@ -34,6 +34,7 @@ import org.hl7.fhir.r4.model.ClaimResponse.ClaimResponseStatus;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.AuditEvent.AuditEventAction;
+import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
 
@@ -246,7 +247,7 @@ public class ClaimEndpoint {
     return false;
   }
   /**
-   * Process the $submit operation Bundle. Theoretically, this is where business
+   * Process the  operation Bundle. Theoretically, this is where business
    * logic should be implemented or overridden.
    * 
    * @param bundle Bundle with a Claim followed by other required resources.
@@ -261,6 +262,21 @@ public class ClaimEndpoint {
     // Get the patient
     Claim claim = FhirUtils.getClaimFromRequestBundle(bundle);
     String patient = FhirUtils.getPatientIdentifierFromBundle(bundle);
+    
+    // Store provider identifier
+    String[] providerRef = claim.getProvider().getReference().split("/");
+    BundleEntryComponent providerEntry = FhirUtils.getEntryComponentFromBundle(bundle, ResourceType.fromCode(providerRef[0]), providerRef[1]);
+    String provider = null;
+    if (providerEntry != null) {
+      Resource providerResource = providerEntry.getResource();
+      if (providerResource instanceof Organization) {
+        provider = ((Organization) providerResource).getIdentifierFirstRep().getValue();
+      } else if (providerResource instanceof PractitionerRole) {
+        provider = ((PractitionerRole) providerResource).getIdentifierFirstRep().getValue();
+      } else {
+        logger.severe("ClaimEndpoint::processBundle:Provider resource is not Organization or PractitionerRole");
+      }
+    }
     if (patient == null) {
       logger.severe("ClaimEndpoint::processBundle:Patient was null");
       return null;
@@ -287,6 +303,7 @@ public class ClaimEndpoint {
       claimMap.put("isDifferential", FhirUtils.isDifferential(bundle));
       claimMap.put("id", id);
       claimMap.put("patient", patient);
+      claimMap.put("provider", provider);
       claimMap.put("status", FhirUtils.getStatusFromResource(claim));
       claimMap.put("resource", claim);
       String relatedId = FhirUtils.getRelatedComponentId(claim);
@@ -513,7 +530,16 @@ public class ClaimEndpoint {
   protected void schedulePendedClaimUpdate(Bundle bundle, String id, String patient) {
     Timer timer = new Timer();
     pendedTimers.put(id, timer);
-    timer.schedule(new UpdateClaimTask(bundle, id, patient), 15000); // 15 seconds
+    long delay = 15000; // default to 15 seconds
+    String delayEnv = System.getenv("DELAY");
+    if (delayEnv != null) {
+      try {
+      delay = Long.parseLong(delayEnv);
+      } catch (NumberFormatException e) {
+      logger.warning("Invalid DELAY environment variable, using default 15000ms");
+      }
+    }
+    timer.schedule(new UpdateClaimTask(bundle, id, patient), delay);
   }
 
   /**
