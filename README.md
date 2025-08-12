@@ -230,31 +230,63 @@ A successful submission will return a `ClaimResponse` with the status code `201`
 
 `POST`ing to the `/Subscription` endpoint is used to submit a new Rest-Hook or WebSocket based subscription for a pended or partial ClaimResponse. Once an update has been made a notification will be sent to the subscription. The subscriber can then poll using the original `identifier` to obtain the most updated ClaimResponse.
 
-The body for a Rest-Hook subscription is as follows:
+An example body for a Rest-Hook subscription for an organization with the identifier `urn:ietf:rfc:3986|2.16.840.1.113883.13.34.110.1.150.2` is as follows:
 
 ```json
 {
   "resourceType": "Subscription",
-  "status": "requested",
-  "criteria": "identifier={id}&patient.identifier={patient}&status=active",
+  "criteria": "http://hl7.org/fhir/us/davinci-pas/SubscriptionTopic/PASSubscriptionTopic",
+  "_criteria": {
+    "extension": [
+      {
+        "url": "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-filter-criteria",
+        "valueString": "orgIdentifier=urn:ietf:rfc:3986|2.16.840.1.113883.13.34.110.1.150.2"
+      }
+    ]
+  },
   "channel": {
     "type": "rest-hook",
-    "endpoint": "http://localhost:9090/fhir/SubscriptionNotification?identifier={id}&patient.identifier={patient}&status=active"
+    "endpoint": "http://localhost:8081/fhir/Bundle",
+    "payload": "application/fhir+json",
+    "_payload": {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-payload-content",
+          "valueCode": "full-resource"
+        }
+      ]
+    }
   }
 }
 ```
 
 For more information on rest-hook subscriptions jump to Using Rest-Hook Subscriptions.
 
-The body for a WebSocket subscription is as follows:
+An example body for a WebSocket subscription for an organization with the identifier `urn:ietf:rfc:3986|2.16.840.1.113883.13.34.110.1.150.2` is as follows:
 
 ```json
 {
   "resourceType": "Subscription",
-  "status": "requested",
-  "criteria": "identifier={id}&patient.identifier={patient}&status=active",
+  "criteria": "http://hl7.org/fhir/us/davinci-pas/SubscriptionTopic/PASSubscriptionTopic",
+  "_criteria": {
+    "extension": [
+      {
+        "url": "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-filter-criteria",
+        "valueString": "orgIdentifier=urn:ietf:rfc:3986|2.16.840.1.113883.13.34.110.1.150.2"
+      }
+    ]
+  },
   "channel": {
-    "type": "websocket"
+    "type": "websocket",
+    "payload": "application/fhir+json",
+    "_payload": {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-payload-content",
+          "valueCode": "full-resource"
+        }
+      ]
+    }
   }
 }
 ```

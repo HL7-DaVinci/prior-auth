@@ -1,8 +1,6 @@
 package org.hl7.davinci.priorauth.endpoint;
 
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -11,7 +9,6 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.hl7.fhir.r4.model.StringType;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -35,10 +32,12 @@ import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Subscription;
 import org.hl7.fhir.r4.model.AuditEvent.AuditEventAction;
+import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionChannelType;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
+import org.hl7.fhir.r4.model.Type;
 
 import ca.uhn.fhir.parser.IParser;
 
@@ -57,6 +56,9 @@ public class SubscriptionEndpoint {
     static final String SUBSCRIPTION_ADDED_SUCCESS = "Subscription successful";
     static final String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
     static final String INVALID_CHANNEL_TYPE = "Invalid channel type. Must be rest-hook or websocket";
+    static final String PAS_SUBSCRIPTION_TOPIC = "http://hl7.org/fhir/us/davinci-pas/SubscriptionTopic/PASSubscriptionTopic";
+    static final String SUBSCRIPTION_CRITERIA_EXTENSION_URL = "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-filter-criteria";
+    static final String SUBSCRIPTION_PAYLOAD_EXTENSION_URL = "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-payload-content";
 
     @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
     public ResponseEntity<String> readSubscriptionJSON(HttpServletRequest request,
@@ -176,30 +178,55 @@ public class SubscriptionEndpoint {
         // String statusVarName = "status";
         // String identifierVarName = "identifier";
         // String patientIdentifierVarName = "patient.identifier";
-        String criteria = "";
+        String criteria = subscription.getCriteria();
+        Extension criteriaExtension;
+        String criteriaExtensionValue = "";
+
+        // Checks for conformance to subscription backport and the single PAS subscription topic
+        if (criteria == null || criteria.isEmpty()) {
+            throw new RuntimeException("Subscription criteria is null or empty");
+        }
+        if (!criteria.equals(PAS_SUBSCRIPTION_TOPIC)) {
+            throw new RuntimeException("Subscription criteria must be " + PAS_SUBSCRIPTION_TOPIC);
+        }
 
         try {
-            criteria = subscription.getCriteriaElement().getExtension().get(0).getValue().toString();
+            criteriaExtension = subscription.getCriteriaElement().getExtension().get(0);
+            criteriaExtensionValue = criteriaExtension.getValue().toString();
         } catch (Exception e) {
             throw new RuntimeException("Could not get valueString from criteria extension");
         }
+        if (!criteriaExtension.getUrl().equals(SUBSCRIPTION_CRITERIA_EXTENSION_URL)) {
+            throw new RuntimeException("Subscription criteria extension URL must be " + SUBSCRIPTION_CRITERIA_EXTENSION_URL);
+        }
 
-        String regex = "orgIdentifier=(.*)";
+        String regex = "^(?:^|[&?])org[-]?identifier=([^&]*)\\&?";
         String endVarName = "end";
         String end = "";
 
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(criteria);
-        Map<String, String> criteriaMap = new HashMap<>();
+        Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(criteriaExtensionValue);
+        // Map<String, String> criteriaMap = new HashMap<>();
 
         if (matcher.find()) {
             orgId = matcher.group(1);
         }
         else {
-            logger.fine("Subscription.criteria: " + criteria);
+            logger.fine("Subscription.criteria: " + criteriaExtensionValue);
             logger.severe("Subscription.criteria is not in the form " + regex);
             return null;
         }
+
+        Extension payloadExtension = subscription.getChannel().getPayloadElement().getExtensionByUrl(SUBSCRIPTION_PAYLOAD_EXTENSION_URL);
+        if (payloadExtension == null) {
+            throw new RuntimeException("Subscription.channel.payload extension with expected URL " + SUBSCRIPTION_PAYLOAD_EXTENSION_URL + " is missing");
+        }
+
+        Type payload = payloadExtension.getValue();
+        if (payload == null || payload.isEmpty()) {
+            throw new RuntimeException("Subscription payload extension value is null or empty");
+        }
+        
 
         // Determine which variable is which
         // String variableName;
