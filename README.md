@@ -295,16 +295,33 @@ For more information on WebSocket subscriptions jump to Using WebSocket Subscrip
 
 ## Response to `/Subscription` Submission
 
-Assuming the contents of the Subscription are valid and the server is able to process the request correctly it will respond with the same Subscription resource and the id set to the logical id of the Subscription. For example, the response to a WebSocket Subscription would be:
+Assuming the contents of the Subscription are valid and the server is able to process the request correctly it will respond with the same Subscription resource and the id set to the logical id of the Subscription. For example, the response to the above WebSocket Subscription would be:
 
 ```json
 {
   "resourceType": "Subscription",
   "id": "{new subscription id}",
   "status": "active",
-  "criteria": "identifier={id}&patient.identifier={patient}&status=active",
+  "criteria": "http://hl7.org/fhir/us/davinci-pas/SubscriptionTopic/PASSubscriptionTopic",
+  "_criteria": {
+    "extension": [
+      {
+        "url": "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-filter-criteria",
+        "valueString": "orgIdentifier=urn:ietf:rfc:3986|2.16.840.1.113883.13.34.110.1.150.2"
+      }
+    ]
+  },
   "channel": {
-    "type": "websocket"
+    "type": "websocket",
+    "payload": "application/fhir+json",
+    "_payload": {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-payload-content",
+          "valueCode": "full-resource"
+        }
+      ]
+    }
   }
 }
 ```

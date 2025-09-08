@@ -1,8 +1,8 @@
 # Base image
-FROM eclipse-temurin:17-jdk-alpine
+FROM eclipse-temurin:17-jdk-noble
 
 # embedCdsLibrary task requires git
-RUN apk add --no-cache git bash
+RUN apt-get update && apt-get install -y git bash
 
 WORKDIR /app
 
