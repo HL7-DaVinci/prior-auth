@@ -19,7 +19,7 @@ plugins {
 
 ext {
     hapiFhirVersion = '8.2.1'
-    jacksonVersion = '2.18.4'
+    jacksonVersion = '2.20'
 }
 
 apply plugin: 'org.springframework.boot'
