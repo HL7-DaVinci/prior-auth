@@ -18,7 +18,7 @@ plugins {
 }
 
 ext {
-    hapiFhirVersion = '8.2.1'
+    hapiFhirVersion = '8.4.0'
     jacksonVersion = '2.18.4'
 }
 
