@@ -74,7 +74,7 @@ dependencies {
         exclude group: 'com.sun.xml.bind', module: 'jaxb-core'
     } 
     implementation 'info.cqframework:cql-to-elm:1.5.5'
-    implementation 'com.google.guava:guava:31.0.1-jre'
+    implementation 'com.google.guava:guava:33.4.8-jre'
     implementation "ca.uhn.hapi.fhir:hapi-fhir-base:${hapiFhirVersion}"
     implementation "ca.uhn.hapi.fhir:hapi-fhir-structures-r4:${hapiFhirVersion}"
     implementation 'com.h2database:h2:1.4.200'
