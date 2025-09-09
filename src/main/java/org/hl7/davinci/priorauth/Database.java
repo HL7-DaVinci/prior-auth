@@ -60,7 +60,7 @@ public class Database {
   // (so that we don't lose everything between a connection closing and the next
   // being opened)
   private static final String JDBC_TYPE = "jdbc:h2:";
-  private static final String JDBC_FILE = "database";
+  private static final String JDBC_FILE = "databaseData/database";
   private static final String JDBC_OPTIONS = ";DB_CLOSE_DELAY=-1";
   private String JDBC_STRING;
 
@@ -80,6 +80,7 @@ public class Database {
 
   public Database() {
     this("./");
+
   }
 
   public Database(String relativePath) {
@@ -225,7 +226,8 @@ public class Database {
       auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
       logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
     }
-    Audit.createAuditEvent(AuditEventType.ACTIVITY, AuditEventAction.R, auditOutcome, null, null, "Search " + table.value());
+    Audit.createAuditEvent(AuditEventType.ACTIVITY, AuditEventAction.R, auditOutcome, null, null,
+        "Search " + table.value());
     return results;
   }
 
@@ -262,7 +264,8 @@ public class Database {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
-    Audit.createAuditEvent(AuditEventType.ACTIVITY, AuditEventAction.R, auditOutcome, null, null, "Read from " + table.value());
+    Audit.createAuditEvent(AuditEventType.ACTIVITY, AuditEventAction.R, auditOutcome, null, null,
+        "Read from " + table.value());
     return result;
   }
 
@@ -300,7 +303,8 @@ public class Database {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
-    Audit.createAuditEvent(AuditEventType.ACTIVITY, AuditEventAction.R, auditOutcome, null, null, "Read all of " + table.value());
+    Audit.createAuditEvent(AuditEventType.ACTIVITY, AuditEventAction.R, auditOutcome, null, null,
+        "Read all of " + table.value());
     return results;
   }
 
@@ -522,8 +526,11 @@ public class Database {
             .prepareStatement("DELETE FROM " + table.value() + " WHERE id = ? AND patient = ?;");
         stmt.setString(1, id);
         stmt.setString(2, patient);
+
         stmt.execute();
         result = stmt.getUpdateCount() > 0 ? true : false;
+        logger.info("Delete Statement: " + stmt.toString());
+        logger.info("Update Count: " + stmt.getUpdateCount());
       } catch (SQLException e) {
         auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
@@ -581,20 +588,21 @@ public class Database {
         logger.log(Level.SEVERE, "Database::runQuery:SQLException", e);
       }
     }
-    Audit.createAuditEvent(AuditEventType.ACTIVITY, AuditEventAction.D, auditOutcome, null, null, "Delete " + table.value());
+    Audit.createAuditEvent(AuditEventType.ACTIVITY, AuditEventAction.D, auditOutcome, null, null,
+        "Delete " + table.value());
     return result;
   }
 
   /**
    * Reduce a Map to a single string in the form "{key} = '{value}'" +
-   * concatonator
+   * separator
    * 
-   * @param map          - key value pair of columns and values.
-   * @param concatonator - the string to connect a set of key value with another
-   *                     set.
-   * @return string in the form "{key} = '{value}'" + concatonator...
+   * @param map       - key value pair of columns and values.
+   * @param separator - the string to connect a set of key value with another
+   *                  set.
+   * @return string in the form "{key} = '{value}'" + separator...
    */
-  private String generateClause(Map<String, Object> map, String concatonator) {
+  private String generateClause(Map<String, Object> map, String separator) {
     String column;
     String sqlStr = "";
     for (Iterator<String> iterator = map.keySet().iterator(); iterator.hasNext();) {
@@ -602,7 +610,7 @@ public class Database {
       sqlStr += column + " = ?";
 
       if (iterator.hasNext())
-        sqlStr += concatonator;
+        sqlStr += separator;
     }
 
     return sqlStr;
@@ -623,9 +631,13 @@ public class Database {
     StringBuilder string = new StringBuilder("{ ");
 
     for (Map.Entry<String, Object> entry : data.entrySet()) {
-      if (entry.getKey().equals("resource")) string.append("resource, ");
-      else if (entry.getKey().equals("organization")) string.append("organization, ");
-      else string.append(entry.getValue() != null ? entry.getValue().toString() : "null, ");
+      if (entry.getKey().equals("resource")) {
+        string.append("resource, ");
+      } else if (entry.getKey().equals("organization")) {
+        string.append("organization, ");
+      } else {
+        string.append(entry.getValue() != null ? entry.getValue().toString() : "null, ");
+      }
     }
 
     string.append(" }");

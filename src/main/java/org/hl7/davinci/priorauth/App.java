@@ -44,13 +44,12 @@ public class App {
       (System.getenv("debug") != null && System.getenv("debug").equalsIgnoreCase("true"))) {
         debugMode = true;
     }
-
     // Set the DB
     initializeAppDB();
-
     // Assemble the microservice
     SpringApplication server = new SpringApplication(App.class);
-    server.run();
+    server.run(args);
+
   }
 
   public static void initializeAppDB() {
@@ -78,7 +77,7 @@ public class App {
   /**
    * Get the base URL for the microservice
    * 
-   * @return the the base url
+   * @return the base url
    */
   public static String getBaseUrl() {
     return baseUrl;

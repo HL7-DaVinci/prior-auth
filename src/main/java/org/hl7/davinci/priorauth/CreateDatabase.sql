@@ -10,6 +10,7 @@ BEGIN TRANSACTION;
     CREATE TABLE IF NOT EXISTS Claim (
         "id" varchar PRIMARY KEY,
         "patient" varchar,
+        "provider" varchar,
         "related" varchar DEFAULT NULL,
         "status" varchar,
         "isDifferential" boolean DEFAULT FALSE,
@@ -42,14 +43,13 @@ BEGIN TRANSACTION;
 
     CREATE TABLE IF NOT EXISTS Subscription (
         "id" varchar PRIMARY KEY,
-        "claimResponseId" varchar,
-        "patient" varchar,
+        "patient" varchar DEFAULT NULL,
+        "orgId" varchar,
         "status" varchar,
         "end" varchar,
         "websocketId" varchar DEFAULT NULL,
         "timestamp" datetime DEFAULT CURRENT_TIMESTAMP,
-        "resource" clob,
-        FOREIGN KEY ("claimResponseId") REFERENCES ClaimResponse("id") 
+        "resource" clob
     );
 
     CREATE TABLE IF NOT EXISTS Rules (

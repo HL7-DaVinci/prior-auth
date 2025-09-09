@@ -1,9 +1,21 @@
-FROM gradle:6.9.0-jdk11
-EXPOSE 9000/tcp
-COPY --chown=gradle:gradle . /prior-auth/
-RUN apt-get update         
-RUN apt-get install -y git
-WORKDIR /prior-auth/
-RUN git clone https://github.com/HL7-DaVinci/CDS-Library.git
-RUN gradle installBootDist
-CMD ["gradle", "bootRun"]
+# Base image
+FROM amazoncorretto:17-alpine-jdk
+
+# embedCdsLibrary task requires git
+RUN apk add --no-cache git bash
+
+WORKDIR /app
+
+# Copy project files
+COPY . .
+
+# Ensure gradlew is executable
+RUN chmod +x gradlew
+
+# Embed CDS Library
+RUN ./gradlew embedCdsLibrary
+
+# Expose port to access the app
+EXPOSE 9015
+# Command to run our app
+CMD ["./gradlew", "bootRun", "-Pdebug"]

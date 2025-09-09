@@ -1,8 +1,6 @@
 package org.hl7.davinci.priorauth.endpoint;
 
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -34,10 +32,12 @@ import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Subscription;
 import org.hl7.fhir.r4.model.AuditEvent.AuditEventAction;
+import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionChannelType;
 import org.hl7.fhir.r4.model.Subscription.SubscriptionStatus;
+import org.hl7.fhir.r4.model.Type;
 
 import ca.uhn.fhir.parser.IParser;
 
@@ -56,6 +56,9 @@ public class SubscriptionEndpoint {
     static final String SUBSCRIPTION_ADDED_SUCCESS = "Subscription successful";
     static final String PROCESS_FAILED = "Unable to process the request properly. Check the log for more details.";
     static final String INVALID_CHANNEL_TYPE = "Invalid channel type. Must be rest-hook or websocket";
+    static final String PAS_SUBSCRIPTION_TOPIC = "http://hl7.org/fhir/us/davinci-pas/SubscriptionTopic/PASSubscriptionTopic";
+    static final String SUBSCRIPTION_CRITERIA_EXTENSION_URL = "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-filter-criteria";
+    static final String SUBSCRIPTION_PAYLOAD_EXTENSION_URL = "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-payload-content";
 
     @GetMapping(value = "", produces = { MediaType.APPLICATION_JSON_VALUE, "application/fhir+json" })
     public ResponseEntity<String> readSubscriptionJSON(HttpServletRequest request,
@@ -104,7 +107,7 @@ public class SubscriptionEndpoint {
     private ResponseEntity<String> addSubscription(String body, HttpServletRequest request, RequestType requestType) {
         logger.info("POST /Subscription fhir+" + requestType.name());
 
-        HttpStatus status = HttpStatus.OK;
+        HttpStatus status = HttpStatus.CREATED;
         String formattedData = null;
         String description = "Subscribe to pended Claim";
         AuditEventOutcome auditOutcome = AuditEventOutcome.SUCCESS;
@@ -169,50 +172,82 @@ public class SubscriptionEndpoint {
     private Subscription processSubscription(Subscription subscription) {
         // Get the criteria details parsed
         String claimResponseId = "";
-        String patient = "";
-        String status = "";
-        String statusVarName = "status";
-        String identifierVarName = "identifier";
-        String patientIdentifierVarName = "patient.identifier";
+        // String patient = "";
+        String status = "active";
+        String orgId = "";
+        // String statusVarName = "status";
+        // String identifierVarName = "identifier";
+        // String patientIdentifierVarName = "patient.identifier";
         String criteria = subscription.getCriteria();
-        String regex = "(.*)=(.*)&(.*)=(.*)&(.*)=(.*)";
+        Extension criteriaExtension;
+        String criteriaExtensionValue = "";
+
+        // Checks for conformance to subscription backport and the single PAS subscription topic
+        if (criteria == null || criteria.isEmpty()) {
+            throw new RuntimeException("Subscription criteria is null or empty");
+        }
+        if (!criteria.equals(PAS_SUBSCRIPTION_TOPIC)) {
+            throw new RuntimeException("Subscription criteria must be " + PAS_SUBSCRIPTION_TOPIC);
+        }
+
+        try {
+            criteriaExtension = subscription.getCriteriaElement().getExtension().get(0);
+            criteriaExtensionValue = criteriaExtension.getValue().toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Could not get valueString from criteria extension");
+        }
+        if (!criteriaExtension.getUrl().equals(SUBSCRIPTION_CRITERIA_EXTENSION_URL)) {
+            throw new RuntimeException("Subscription criteria extension URL must be " + SUBSCRIPTION_CRITERIA_EXTENSION_URL);
+        }
+
+        String regex = "^(?:^|[&?])org[-]?identifier=([^&]*)\\&?";
         String endVarName = "end";
         String end = "";
 
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(criteria);
-        Map<String, String> criteriaMap = new HashMap<>();
+        Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(criteriaExtensionValue);
+        // Map<String, String> criteriaMap = new HashMap<>();
 
-        if (matcher.find() && matcher.groupCount() == 6) {
-            criteriaMap.put(matcher.group(1), matcher.group(2));
-            criteriaMap.put(matcher.group(3), matcher.group(4));
-            criteriaMap.put(matcher.group(5), matcher.group(6));
-        } else {
-            logger.fine("Subscription.criteria: " + criteria);
-            logger.severe("Subcription.criteria is not in the form " + regex);
+        if (matcher.find()) {
+            orgId = matcher.group(1);
+        }
+        else {
+            logger.fine("Subscription.criteria: " + criteriaExtensionValue);
+            logger.severe("Subscription.criteria is not in the form " + regex);
             return null;
         }
+
+        Extension payloadExtension = subscription.getChannel().getPayloadElement().getExtensionByUrl(SUBSCRIPTION_PAYLOAD_EXTENSION_URL);
+        if (payloadExtension == null) {
+            throw new RuntimeException("Subscription.channel.payload extension with expected URL " + SUBSCRIPTION_PAYLOAD_EXTENSION_URL + " is missing");
+        }
+
+        Type payload = payloadExtension.getValue();
+        if (payload == null || payload.isEmpty()) {
+            throw new RuntimeException("Subscription payload extension value is null or empty");
+        }
+        
 
         // Determine which variable is which
-        String variableName;
-        for (Iterator<String> iterator = criteriaMap.keySet().iterator(); iterator.hasNext();) {
-            variableName = iterator.next();
-            if (variableName.equals(identifierVarName))
-                claimResponseId = criteriaMap.get(variableName);
-            if (variableName.equals(patientIdentifierVarName))
-                patient = criteriaMap.get(variableName);
-            if (variableName.equals(statusVarName))
-                status = criteriaMap.get(variableName);
-            if (variableName.equals(endVarName))
-                status = criteriaMap.get(variableName);
-        }
+        // String variableName;
+        // for (Iterator<String> iterator = criteriaMap.keySet().iterator(); iterator.hasNext();) {
+        //     variableName = iterator.next();
+        //     if (variableName.equals(identifierVarName))
+        //         claimResponseId = criteriaMap.get(variableName);
+        //     if (variableName.equals(patientIdentifierVarName))
+        //         patient = criteriaMap.get(variableName);
+        //     if (variableName.equals(statusVarName))
+        //         status = criteriaMap.get(variableName);
+        //     if (variableName.equals(endVarName))
+        //         status = criteriaMap.get(variableName);
+        // }
 
         // Check the desired ClaimResponse is pended
-        String outcome = App.getDB().readString(Table.CLAIM_RESPONSE, Collections.singletonMap("id", claimResponseId),
-                "outcome");
-        logger.info("SubscriptionEndpoint::Outcome for desired resource is: " + outcome);
-        if (!outcome.equals(FhirUtils.ReviewAction.PENDED.value()))
-            return null;
+        // String outcome = App.getDB().readString(Table.CLAIM_RESPONSE, Collections.singletonMap("id", claimResponseId),
+        //         "outcome");
+        // logger.info("SubscriptionEndpoint::Outcome for desired resource is: " + outcome);
+        // if (outcome == null || !outcome.equals(FhirUtils.ReviewAction.PENDED.value()))
+        //     return null;
 
         // Add to db
         String id = UUID.randomUUID().toString();
@@ -221,8 +256,7 @@ public class SubscriptionEndpoint {
         logger.fine("SubscriptionEndpoint::Subscription given uuid " + id);
         Map<String, Object> dataMap = new HashMap<>();
         dataMap.put("id", id);
-        dataMap.put("claimResponseId", claimResponseId);
-        dataMap.put("patient", patient);
+        dataMap.put("orgId", orgId);
         dataMap.put("status", status);
         dataMap.put("resource", subscription);
         dataMap.put(endVarName, end);

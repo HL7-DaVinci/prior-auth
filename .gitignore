@@ -1,3 +1,8 @@
+.cnab
+.docker-sync/
+Zscaler_Root_CA.pem
+.env
+
 # Ignore Gradle project-specific cache directory
 .gradle
 
@@ -13,12 +18,12 @@ CDS-Library
 # Ignore all log files
 *.log
 *.log.lck
+logs/
 
 # Ignore Eclipse and vscode files
 .project
 .classpath
 .settings/
-.vscode/
 bin
 
 # Ignore Database files
@@ -32,4 +37,6 @@ database.trace.db
 # Ignore Mac OS X
 **/.DS_Store
 .idea/
+.vscode/*
+!.vscode/launch.json
 prior-auth.iml

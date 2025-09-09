@@ -25,6 +25,7 @@ public class AuthUtils {
 
     public static final int TOKEN_LIFE_MIN = 5;
     private static final String ADMIN_TOKEN = "Y3YWq2l08kvFqy50fQJY";
+    private static final String BYPASS_AUTH = "BYPASS_AUTH";
 
     /**
      * Populate the Client table with default data
@@ -58,8 +59,8 @@ public class AuthUtils {
 
         dataMap = new HashMap<>();
         dataMap.put("id", clientId);
-        dataMap.put("jwks", "{\"keys\":[{\"kty\":\"RSA\",\"e\":\"AQAB\",\"use\":\"sig\",\"kid\":\"QjemCvDBrY2NjImHhd2gO9M6ghMW0ZK3R6wcmKGk6NMvgj_H5NZIeCOeopx5brEX\",\"alg\":\"RS384\",\"n\":\"iLVJtm0Tb6-S5qomxnmwxaHtWPLMu0K3lLCIwz_7KLKgEsbN0FUaHU0SivGsztD9LRsQ72QtBuyA9LxmK5m_50Lx7hbfUxUPR9rzdj8sz3isiSzryDFm0jq3LsjSu27duiGU0c2oxqpqiC5LWJcW6JcRbtHwnMkU2T0_mdwLLFcdv8ZCxY8ce4vG4E4V3kUmiOYGClkP3eeHiMdXJQ_r4SFwXAuH-uWv_YtkAFE3ChpVlyKsIvXtnncQPoRmf1kPq0obp7veQZvjHIzM9A56TfsnSfBBFwx2oxEX0T2zArDKf3FdMgCzoi63WUUiLmRoPIl5lrtzg17GAhzbAR_WzQ\"}]}");
-        dataMap.put("jwks_url", null);
+        dataMap.put("jwks", null);
+        dataMap.put("jwks_url", "https://touchstone.aegis.net/touchstone/tsJwks?type=RS384");
         dataMap.put("token", "Y3YWq2l08kvFqy50fQJY");
         dataMap.put("organization", organization);
         App.getDB().write(Table.CLIENT, dataMap);
@@ -72,6 +73,15 @@ public class AuthUtils {
      * @return true if the access token is valid, false if invalid or no bearer token provided
      */
     public static boolean validateAccessToken(HttpServletRequest request) {
+
+        String bypassAuthEnv = System.getenv(BYPASS_AUTH);
+        boolean bypassAuth = bypassAuthEnv != null && bypassAuthEnv.equalsIgnoreCase("true");
+
+        if (bypassAuth) {
+            logger.fine("AuthEndpoint::validateAccessToken:Bypass auth enabled");
+            return true;
+        }
+
         String accessToken = getAccessToken(request);
         if (accessToken == null) return false;
 

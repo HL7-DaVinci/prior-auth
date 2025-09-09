@@ -7,7 +7,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.hl7.fhir.dstu3.model.codesystems.IssueSeverity;
+import org.hl7.fhir.r4.model.codesystems.IssueSeverity;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Subscription;

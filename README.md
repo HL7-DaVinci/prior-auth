@@ -1,6 +1,8 @@
 # Prior Authorization Reference Implementation
 
 The Da Vinci Prior Authorization Reference Implementation (RI) is a software project that conforms to the [Prior Authorization Implementation Guide (IG)](https://build.fhir.org/ig/HL7/davinci-pas/index.html) and the [Prior Authorization IG Proposal](http://wiki.hl7.org/index.php?title=Da_Vinci_Prior_Authorization_FHIR_IG_Proposal) developed by the [Da Vinci Project](http://www.hl7.org/about/davinci/index.cfm?ref=common) within the [HL7 Standards Organization](http://www.hl7.org/).
+ 
+A live demo is hosted by [HL7 FHIR Foundry](https://foundry.hl7.org/products/0ae47685-cc05-4134-a326-e5a80c8a2b55), where you may also download curated configurations to run yourself.
 
 ## Requirements
 
@@ -11,6 +13,7 @@ The Da Vinci Prior Authorization Reference Implementation (RI) is a software pro
 Build, test, and start the Prior Authorization microservice:
 
 ```
+./gradlew embedCdsLibrary
 ./gradlew installBootDist
 ./gradlew clean check
 ./gradlew bootRun
@@ -25,10 +28,10 @@ To run the microservice in debug mode (which enables debug log statements, an en
 Access the microservice:
 
 ```
-curl http://localhost:9000/fhir/metadata
-curl http://localhost:9000/fhir/Bundle
-curl http://localhost:9000/fhir/Claim
-curl http://localhost:9000/fhir/ClaimResponse
+curl http://localhost:9015/fhir/metadata
+curl http://localhost:9015/fhir/Bundle
+curl http://localhost:9015/fhir/Claim
+curl http://localhost:9015/fhir/ClaimResponse
 ```
 
 Submit a prior authorization request: 
@@ -37,8 +40,17 @@ Submit a prior authorization request:
 curl -X POST
      -H "Content-Type: application/json"
      -d @src/test/resources/bundle-prior-auth.json
-     http://localhost:9000/fhir/Claim/\$submit
+     http://localhost:9015/fhir/Claim/\$submit
 ```
+
+## End-To-End DRLS PAS Docker configuration:
+
+You can find complete end-to-end fullstack set up guides for DRLS PAS at the following links:
+
+[Developer Environment Set Up](DockerDevSetupGuideForMacOS.md) - Follow this guide if you are a developer and intend on making code changes to the DRLS PAS project. This guide follows a much more technical set up process.
+    
+[Production Environement Set Up](DockerProdSetupGuideForMacOS.md) - Follow this guide if you are not a developer and do not intend on making code changes to the DRLS PAS project. This guide covers two options for running DRLS PAS, both of which are less techincal than the developer set up. 
+
 
 ## Configuration Notes
 
@@ -50,7 +62,7 @@ The server on the `dev` branch is always configured to run on Logicahealth. If y
 
 ## FHIR Services
 
-The service endpoints in the table below are relative to `http://localhost:9000/fhir`. `patient` is the first `identifier.value` on the `Patient` referenced in the submitted `Claim`.
+The service endpoints in the table below are relative to `http://localhost:9015/fhir`. `patient` is the first `identifier.value` on the `Patient` referenced in the submitted `Claim`.
 
 | Service                                                                       | Methods  | Description                                                                                                                                                                                                        |
 | ----------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -79,18 +91,19 @@ The service endpoints in the table below are relative to `http://localhost:9000/
 
 > _Note About DELETE_: A DELETE by `id` to one resource (i.e. `Bundle`, `Claim`, `ClaimResponse`) is a _Cascading Delete_ and it will delete all associated and related resources.
 
-If debug mode is enabled the following endpoints are available for use at `http://localhost:9000/fhir`:
+If debug mode is enabled the following endpoints are available for use at `http://localhost:9015/fhir`:
 
-| Service                           | Methods | Description                                                                                                                                                            |
-| --------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/debug/Bundle`                   | `GET`   | HTML page to view the Bundle table in the database                                                                                                                     |
-| `/debug/Claim`                    | `GET`   | HTML page to view the Claim table in the database                                                                                                                      |
-| `/debug/ClaimResponse`            | `GET`   | HTML page to view the ClaimResponse table in the database                                                                                                              |
-| `/debug/ClaimItem`                | `GET`   | HTML page to view the ClaimItem table in the database                                                                                                                  |
-| `/debug/Subscription`             | `GET`   | HTML page to view the Subscription table in the database                                                                                                               |
-| `/debug/PopulateDatabaseTestData` | `POST`  | Insert test data into the database. Remove any of the existing test data and insert a fresh copy. All test data has a timestamp in 2200 so it can easily be identifier |
-| `/debug/Convert`                  | `POST`  | Convert a CQL body (string) into Elm (xml)                                                                                                                             |
-| `/$expunge`                       | `POST`  | Delete all entried in all tables                                                                                                                                       |
+| Service                               | Methods | Description                                                                                                                                                            |
+|---------------------------------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `/debug/Bundle`                       | `GET`   | HTML page to view the Bundle table in the database                                                                                                                     |
+| `/debug/Claim`                        | `GET`   | HTML page to view the Claim table in the database                                                                                                                      |
+| `/debug/ClaimResponse`                | `GET`   | HTML page to view the ClaimResponse table in the database                                                                                                              |
+| `/debug/ClaimItem`                    | `GET`   | HTML page to view the ClaimItem table in the database                                                                                                                  |
+| `/debug/Subscription`                 | `GET`   | HTML page to view the Subscription table in the database                                                                                                               |
+| `/debug/PopulateDatabaseTestData`     | `POST`  | Insert test data into the database. Remove any of the existing test data and insert a fresh copy. All test data has a timestamp in 2200 so it can easily be identifier |
+| `/debug/Convert`                      | `POST`  | Convert a CQL body (string) into Elm (xml)                                                                                                                             |
+| `/debug/ReleaseClaim?identifier={id}` | `GET`   | Releases a claim by `id` from a pended state and triggers the subscription workflow.                                                                                   |
+| `/$expunge`                           | `POST`  | Delete all entried in all tables                                                                                                                                       |
 
 ## Authorization
 
@@ -217,31 +230,63 @@ A successful submission will return a `ClaimResponse` with the status code `201`
 
 `POST`ing to the `/Subscription` endpoint is used to submit a new Rest-Hook or WebSocket based subscription for a pended or partial ClaimResponse. Once an update has been made a notification will be sent to the subscription. The subscriber can then poll using the original `identifier` to obtain the most updated ClaimResponse.
 
-The body for a Rest-Hook subscription is as follows:
+An example body for a Rest-Hook subscription for an organization with the identifier `urn:ietf:rfc:3986|2.16.840.1.113883.13.34.110.1.150.2` is as follows:
 
 ```json
 {
   "resourceType": "Subscription",
-  "status": "requested",
-  "criteria": "identifier={id}&patient.identifier={patient}&status=active",
+  "criteria": "http://hl7.org/fhir/us/davinci-pas/SubscriptionTopic/PASSubscriptionTopic",
+  "_criteria": {
+    "extension": [
+      {
+        "url": "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-filter-criteria",
+        "valueString": "orgIdentifier=urn:ietf:rfc:3986|2.16.840.1.113883.13.34.110.1.150.2"
+      }
+    ]
+  },
   "channel": {
     "type": "rest-hook",
-    "endpoint": "http://localhost:9090/fhir/SubscriptionNotification?identifier={id}&patient.identifier={patient}&status=active"
+    "endpoint": "http://localhost:8081/fhir/Bundle",
+    "payload": "application/fhir+json",
+    "_payload": {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-payload-content",
+          "valueCode": "full-resource"
+        }
+      ]
+    }
   }
 }
 ```
 
 For more information on rest-hook subscriptions jump to Using Rest-Hook Subscriptions.
 
-The body for a WebSocket subscription is as follows:
+An example body for a WebSocket subscription for an organization with the identifier `urn:ietf:rfc:3986|2.16.840.1.113883.13.34.110.1.150.2` is as follows:
 
 ```json
 {
   "resourceType": "Subscription",
-  "status": "requested",
-  "criteria": "identifier={id}&patient.identifier={patient}&status=active",
+  "criteria": "http://hl7.org/fhir/us/davinci-pas/SubscriptionTopic/PASSubscriptionTopic",
+  "_criteria": {
+    "extension": [
+      {
+        "url": "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-filter-criteria",
+        "valueString": "orgIdentifier=urn:ietf:rfc:3986|2.16.840.1.113883.13.34.110.1.150.2"
+      }
+    ]
+  },
   "channel": {
-    "type": "websocket"
+    "type": "websocket",
+    "payload": "application/fhir+json",
+    "_payload": {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-payload-content",
+          "valueCode": "full-resource"
+        }
+      ]
+    }
   }
 }
 ```
@@ -250,16 +295,33 @@ For more information on WebSocket subscriptions jump to Using WebSocket Subscrip
 
 ## Response to `/Subscription` Submission
 
-Assuming the contents of the Subscription are valid and the server is able to process the request correctly it will respond with the same Subscription resource and the id set to the logical id of the Subscription. For example, the response to a WebSocket Subscription would be:
+Assuming the contents of the Subscription are valid and the server is able to process the request correctly it will respond with the same Subscription resource and the id set to the logical id of the Subscription. For example, the response to the above WebSocket Subscription would be:
 
 ```json
 {
   "resourceType": "Subscription",
   "id": "{new subscription id}",
   "status": "active",
-  "criteria": "identifier={id}&patient.identifier={patient}&status=active",
+  "criteria": "http://hl7.org/fhir/us/davinci-pas/SubscriptionTopic/PASSubscriptionTopic",
+  "_criteria": {
+    "extension": [
+      {
+        "url": "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-filter-criteria",
+        "valueString": "orgIdentifier=urn:ietf:rfc:3986|2.16.840.1.113883.13.34.110.1.150.2"
+      }
+    ]
+  },
   "channel": {
-    "type": "websocket"
+    "type": "websocket",
+    "payload": "application/fhir+json",
+    "_payload": {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-payload-content",
+          "valueCode": "full-resource"
+        }
+      ]
+    }
   }
 }
 ```
@@ -288,7 +350,7 @@ To use WebSocket subscriptions the client must submit a Subscription as well as 
 1.  Start the Prior Auth service
 2.  Submit a Claim to `/Claim/$submit`
 3.  Subscribe to a pended or partial ClaimResponse by submitting a WebSocket subscription to `/Subscription`. The response to this submission will contain the logical id of the Subscription used in step 5
-4.  The client should connect to the WebSocket `ws://{BASE}/fhir/connect` and subscribe to `/private/notification`. For localhost the `{BASE}` is `localhost:9000`. To connect to the RI on LogicaHealth use `wss://davinci-prior-auth.logicahealth.org/fhir/connect`.
+4.  The client should connect to the WebSocket `ws://{BASE}/fhir/connect` and subscribe to `/private/notification`. For localhost the `{BASE}` is `localhost:9015`. To connect to the RI on LogicaHealth use `wss://davinci-prior-auth.logicahealth.org/fhir/connect`.
 5.  The client then binds the Subscription id by sending the message `bind: id` (using the logical id of the Subscription) to `/subscribe` over the WebSocket
 6.  If the id is bound successfully the client receives the message `bound: id` over `{BASE}/fhir/private/notification`
 7.  When an update is ready the Prior Auth service will send the message `ping: id` over `{BASE}/fhir/private/notification`
@@ -337,7 +399,7 @@ docker build -t hspc/davinci-prior-auth:latest .
 Run the docker image:
 
 ```
-docker run -p 9000:9000 -it --rm --name davinci-prior-auth hspc/davinci-prior-auth:latest
+docker run -p 9015:9015 -it --rm --name davinci-prior-auth hspc/davinci-prior-auth:latest
 ```
 
 If you are building the docker image locally from a MITRE machine you must copy over the BA Certificates to the Docker image. Download the `MITRE BA NPE CA-3` and `MITRE BA ROOT` certs from the [MII](http://www2.mitre.org/tech/mii/pki/). Copy the two files to the root directory of this project.
@@ -346,11 +408,13 @@ Build and run using:
 
 ```
 docker build -f Dockerfile.mitre -t mitre/davinci-prior-auth .
-docker run -p 9000:9000 -it --rm --name davinci-prior-auth mitre/davinci-prior-auth
+docker run -p 9015:9015 -it --rm --name davinci-prior-auth mitre/davinci-prior-auth
 ```
 
 ## Questions and Contributions
-
-Questions about the project can be asked in the [DaVinci stream on the FHIR Zulip Chat](https://chat.fhir.org/#narrow/stream/179283-DaVinci).
+Questions about the project can be asked in the [Da Vinci PAS stream on the FHIR Zulip Chat](https://chat.fhir.org/#narrow/stream/208874-Da-Vinci-PAS).
 
 This project welcomes Pull Requests. Any issues identified with the RI should be submitted via the [GitHub issue tracker](https://github.com/HL7-DaVinci/prior-auth/issues).
+
+As of October 1, 2022, The Lantana Consulting Group is responsible for the management and maintenance of this Reference Implementation.
+In addition to posting on FHIR Zulip Chat channel mentioned above you can contact [Corey Spears](mailto:corey.spears@lantanagroup.com) for questions or requests.

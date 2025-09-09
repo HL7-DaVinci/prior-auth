@@ -1,27 +1,55 @@
 buildscript {
     repositories {
-        jcenter()
+        mavenCentral()
+        maven { url 'https://repo.spring.io/snapshot' }
+        maven { url 'http://repo.jenkins-ci.org/releases/' 
+        allowInsecureProtocol = true}
     }
     dependencies {
-        classpath 'org.springframework.boot:spring-boot-gradle-plugin:2.6.1'
+        classpath 'org.springframework.boot:spring-boot-gradle-plugin:2.7.18'
     }
 }
 
 plugins {
- id 'java'
- id 'application'
- id 'eclipse'
- id 'jacoco'
+  id 'java'
+  id 'application'
+  id 'eclipse'
+  id 'jacoco'
+}
+
+ext {
+    hapiFhirVersion = '8.2.1'
+    jacksonVersion = '2.18.4'
 }
 
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
 
-repositories {
-    jcenter()
+processResources {
+    from ('CDS-Library') {
+        into 'CDS-Library'
+    }
+}   
+
+bootRun {  
+    if (project.hasProperty('debug')) { 
+        jvmArgs=["-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=0.0.0.0:9016"]
+    }
+
 }
 
+repositories {
+    mavenLocal()
+    maven {
+        url = uri('https://oss.sonatype.org/content/repositories/snapshots/')
+    }
+
+    maven {
+        url = uri('https://repo.maven.apache.org/maven2/')
+    }}
+
 dependencies {
+    developmentOnly("org.springframework.boot:spring-boot-devtools")
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.webjars:webjars-locator-core'
     implementation 'org.webjars:sockjs-client:1.1.2'
@@ -30,19 +58,25 @@ dependencies {
     implementation 'org.webjars:jquery:3.1.0'
     implementation 'com.squareup.okhttp3:okhttp:4.9.3'
     implementation 'com.googlecode.json-simple:json-simple:1.1.1'
+    implementation "com.fasterxml.jackson.core:jackson-core:${jacksonVersion}"
+    implementation "com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}"
+    implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
     implementation files('lib/RuleUtils.jar')
 
     implementation('org.opencds.cqf:cql-engine:1.3.12.1') {
         exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+        exclude group: 'com.sun.xml.bind', module: 'jaxb-impl'
+        exclude group: 'com.sun.xml.bind', module: 'jaxb-core'
     }
     implementation (group: 'org.opencds.cqf', name: 'cql-engine-fhir', version:  '1.3.12.1') {        
-        exclude group: 'org.slf4j', module: 'slf4j-log4j12'    
+        exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+        exclude group: 'com.sun.xml.bind', module: 'jaxb-impl'
+        exclude group: 'com.sun.xml.bind', module: 'jaxb-core'
     } 
     implementation 'info.cqframework:cql-to-elm:1.5.5'
     implementation 'com.google.guava:guava:31.0.1-jre'
-    implementation 'ca.uhn.hapi.fhir:hapi-fhir-base:5.6.1'
-    implementation 'ca.uhn.hapi.fhir:hapi-fhir-structures-dstu3:5.6.1'
-    implementation 'ca.uhn.hapi.fhir:hapi-fhir-structures-r4:5.6.1'
+    implementation "ca.uhn.hapi.fhir:hapi-fhir-base:${hapiFhirVersion}"
+    implementation "ca.uhn.hapi.fhir:hapi-fhir-structures-r4:${hapiFhirVersion}"
     implementation 'com.h2database:h2:1.4.200'
     implementation 'com.auth0:java-jwt:3.18.2'
     implementation 'com.auth0:jwks-rsa:0.20.0'
@@ -52,23 +86,76 @@ dependencies {
     testImplementation 'org.projectreactor:reactor-spring:1.0.1.RELEASE'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'com.squareup.okhttp3:okhttp:4.9.3'
-    testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation:5.5.3'
-    testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-dstu3:5.6.1'
-    testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-dstu2:5.6.1'
-    testImplementation 'ca.uhn.hapi.fhir:hapi-fhir-validation-resources-r4:5.6.1'
+    testImplementation "ca.uhn.hapi.fhir:hapi-fhir-validation-resources-r4:${hapiFhirVersion}"
     testImplementation 'com.helger:ph-schematron:5.6.5'
     testImplementation 'com.phloc:phloc-schematron:2.7.1'
     testImplementation 'com.phloc:phloc-commons:4.6.7'
 }
 
+task embedCdsLibrary() {
+    doFirst {
+        exec {
+            workingDir './'
+            commandLine 'rm', '-rf', 'CDS-Library'
+        }
+    }
+
+    doLast {
+        if (project.hasProperty('branch')) {
+            cloneCdsLibraryScript(branch)
+        } else {
+            cloneCdsLibraryScript('master')
+        }
+    }
+}
+
+task updateCdsLibrary() {
+    doLast {
+        if (project.hasProperty('branch')) {
+            checkoutCdsLibraryScript(branch)
+            pullCdsLibraryScript()
+        } else {
+            pullCdsLibraryScript()
+        }
+    }
+}
+
+void cloneCdsLibraryScript(branch) {
+    println "GIT: clone CDS-Library branch " + branch
+    exec {
+        workingDir './'
+        commandLine 'git', 'clone', 'https://github.com/HL7-DaVinci/CDS-Library.git', 'CDS-Library'
+    }
+    checkoutCdsLibraryScript(branch)
+}
+
+void pullCdsLibraryScript() {
+    println "GIT: pull latest CDS-Library"
+    exec {
+        workingDir './CDS-Library'
+        commandLine 'git', 'pull'
+    }
+}
+
+void checkoutCdsLibraryScript(branch) {
+    println "GIT: checkout CDS-Library branch " + branch
+    exec {
+        workingDir './CDS-Library'
+        commandLine 'git', 'checkout', branch
+    }
+}
+
+
 jacocoTestReport {
   reports {
-    xml.enabled true
-    html.enabled true
+    xml.required = true
+    html.required = true
   }
 }
 
 check.dependsOn jacocoTestReport
 
 // Define the main class for the application
-mainClassName = 'org.hl7.davinci.priorauth.App'
+application {
+    mainClass = 'org.hl7.davinci.priorauth.App'
+}

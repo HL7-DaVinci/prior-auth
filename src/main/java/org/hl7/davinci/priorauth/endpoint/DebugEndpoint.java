@@ -7,25 +7,19 @@ import java.io.FileWriter;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.hl7.davinci.priorauth.*;
+import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.hl7.davinci.priorauth.App;
-import org.hl7.davinci.priorauth.Audit;
-import org.hl7.davinci.priorauth.FhirUtils;
-import org.hl7.davinci.priorauth.PALogger;
-import org.hl7.davinci.priorauth.PropertyProvider;
+import org.springframework.web.bind.annotation.*;
 import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
 import org.hl7.davinci.priorauth.Audit.AuditEventType;
 import org.hl7.davinci.priorauth.Database.Table;
@@ -81,6 +75,28 @@ public class DebugEndpoint {
   @GetMapping("/Client")
   public ResponseEntity<String> getClient(HttpServletRequest request) {
     return query(Table.CLIENT, request);
+  }
+
+  @GetMapping("/ReleaseClaim")
+  public ResponseEntity<String> releaseClaim(HttpServletRequest request, @RequestParam(name = "identifier", required = false) String id)
+  {
+    Map<String, Object> constraintMap = new HashMap<>();
+    constraintMap.put("id", id);
+    IBaseResource bundle = App.getDB().read(Table.BUNDLE, constraintMap);
+
+    if (bundle == null) {
+      return new ResponseEntity<>("Bundle not found for " + id, HttpStatus.BAD_REQUEST);
+    }
+
+    String patient  = FhirUtils.getPatientIdentifierFromBundle((Bundle)bundle);
+
+    if (patient == null || patient.isEmpty()) {
+      return new ResponseEntity<>("Patient resource not found in " + id, HttpStatus.BAD_REQUEST);
+    }
+
+    new UpdateClaimTask((Bundle)bundle, id, patient).run();
+
+    return new ResponseEntity<>("Release for " + id + " scheduled.", HttpStatus.OK);
   }
 
   @PostMapping("/PopulateDatabaseTestData")

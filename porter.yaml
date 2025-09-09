@@ -1,0 +1,82 @@
+name: fullstack_drls_pas
+version: 0.0.1
+description: Fullstack DRLS Prior Authorization Workflow
+registry: smalho01234
+
+dockerfile: Dockerfile.tmpl
+
+
+required:
+  - docker
+
+mixins:
+  - docker
+  - docker-compose
+
+parameters:
+- name: vsac_api_key
+  type: string
+
+build:
+  - docker:
+      description: "Docker build"
+      outputs:
+        - name: invocationImage
+
+install:
+  - docker-compose:
+      description: docker-compose up
+      arguments:
+        - -f 
+        - docker-compose-porter.yml
+        - up
+
+
+upgrade:
+  - docker-compose:
+      description: docker-compose pull
+      arguments:
+        - -f 
+        - docker-compose-porter.yml
+        - pull
+  - docker-compose:
+      description: docker-compose build
+      arguments:
+        - -f 
+        - docker-compose-porter.yml
+        - build
+        - --pull
+        - --no-cache
+  - docker-compose:
+      description: docker-compose up
+      arguments:
+        - -f 
+        - docker-compose-porter.yml
+        - up
+        - --force-recreate
+ 
+ps:
+  - docker-compose:
+      description: Docker Compose ps
+      arguments:
+        - -f 
+        - docker-compose-porter.yml      
+        - ps
+
+uninstall:
+  - docker-compose:
+      description: Docker Compose down
+      arguments:
+        - -f 
+        - docker-compose-porter.yml
+        - down
+        - --remove-orphans
+
+customActions:
+stop:
+  - docker-compose:
+      description: Stop Running Application Images
+      arguments:
+        - -f 
+        - docker-compose-porter.yml
+        - stop

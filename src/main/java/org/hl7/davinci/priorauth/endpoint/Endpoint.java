@@ -1,5 +1,7 @@
 package org.hl7.davinci.priorauth.endpoint;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -22,6 +24,8 @@ import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import com.google.common.net.HttpHeaders;
+
 public class Endpoint {
 
     static final Logger logger = PALogger.getLogger();
@@ -40,7 +44,6 @@ public class Endpoint {
      * 
      * @param table         - the Table to read from.
      * @param constraintMap - map of the column names and values for the SQL query.
-     * @param uri           - the base URI for the microservice.
      * @param requestType   - the RequestType of the request.
      * @return the desired resource if successful and an error message otherwise
      */
@@ -51,7 +54,7 @@ public class Endpoint {
         String referenceUrl = table.value() + "/" + constraintMap.get("id");
         if (!constraintMap.containsKey("patient")) {
             logger.warning("Endpoint::read:patient null");
-            String description = "Attempted to read " + table.value() + " but is unathorized";
+            String description = "Attempted to read " + table.value() + " but is unauthorized";
             Audit.createAuditEvent(AuditEventType.QUERY, AuditEventAction.R, AuditEventOutcome.MINOR_FAILURE, referenceUrl, request,
                     description);
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -147,11 +150,34 @@ public class Endpoint {
      * @return the base url for the service
      */
     public static String getServiceBaseUrl(HttpServletRequest request) {
-        if (request.getServerPort() != 80)
-            return "https://" + request.getServerName() + ":" + request.getServerPort()
-                + request.getContextPath();
-        else 
-            return "https://" + request.getServerName() + request.getContextPath();
+        URL url = null;
+
+        try {
+            // grab the forwarded values if they are not null
+            if (request.getHeader(HttpHeaders.X_FORWARDED_HOST) != null) {
+                String serverName = request.getHeader(HttpHeaders.X_FORWARDED_HOST);
+
+                // grab the last forwarded url
+                String[] serverParts = serverName.split(", ");
+                serverName = serverParts[serverParts.length - 1];
+
+                // default protocol to http if not set
+                String proto = (request.getHeader(HttpHeaders.X_FORWARDED_PROTO) != null) ? request.getHeader(HttpHeaders.X_FORWARDED_PROTO) : "http";
+
+                if (request.getHeader(HttpHeaders.X_FORWARDED_PORT) != null) {
+                url = new URL(proto, serverName, Integer.parseInt(request.getHeader(HttpHeaders.X_FORWARDED_PORT)), request.getContextPath());
+                } else {
+                url = new URL(proto, serverName, request.getContextPath());
+                }
+
+            } else {
+                url = new URL(request.getScheme(), request.getServerName(), request.getServerPort(), request.getContextPath());
+            }
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("Unable to get current server URL");
+        }        
+
+        return url.toString();
     }
 
 }

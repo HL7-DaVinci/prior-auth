@@ -28,7 +28,7 @@ public class Audit {
     // ensure that prior authorizations are not accessed without a legitimate
     // business requirement. This approach is used because there is no reasonable
     // way for a payer to know ‘a priori’ whether a given provider has a legitimate
-    // need to know tha prior authorization status or for the patient to be involved
+    // need to know the prior authorization status or for the patient to be involved
     // in verifying their need to know.
 
     // TODO: add this resource to the server
@@ -78,8 +78,8 @@ public class Audit {
     }
 
     /**
-     * Get the client IP Address via the XFF header or Servlet Remote Addr. Note
-     * this is succeptible to IP spoofing but is the only way to get the IP.
+     * Get the client IP Address via the XFF header or Servlet Remote Address. Note
+     * this is susceptible to IP spoofing but is the only way to get the IP.
      * 
      * @param request - the servlet request
      * @return the IP Address

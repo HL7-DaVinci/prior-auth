@@ -42,6 +42,7 @@ public class FhirUtils {
   public static final String ITEM_PREAUTH_PERIOD_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemPreAuthPeriod";
   public static final String ITEM_REFERENCE_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemReference";
   public static final String ITEM_TRACE_NUMBER_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemTraceNumber";
+  public static final String ITEM_REQUESTED_SERVICE_DATE = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemRequestedServiceDate";
   public static final String REVIEW_ACTION_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewAction";
   public static final String REVIEW_ACTION_CODE_EXTENSION_URL = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-reviewActionCode";
   public static final String WEBSOCKET_EXTENSION_URL = "http://hl7.org/fhir/StructureDefinition/capabilitystatement-websocket";
@@ -50,6 +51,9 @@ public class FhirUtils {
   public static final String REVIEW_REASON_CODE = "reasonCode";
   public static final String REVIEW_NUMBER = "number";
   public static final String REVIEW_SECOND_SURGICAL_OPINION = "secondSurgicalOpinionFlag";
+  public static final String PAYLOAD_SERVICE_LINE_NUMBER = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-serviceLineNumber";
+  public static final String PAYLOAD_CONTENT_MODIFIER = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-contentModifier";
+  public static final String PAYLOAD_COMMUNICATED_DIAGNOSIS = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-communicatedDiagnosis";
 
   // FHIR Code Systems
   public static final String REVIEW_ACTION_CODE_SYSTEM = "https://valueset.x12.org/x217/005010/response/2000F/HCR/1/01/00/306";
@@ -91,7 +95,7 @@ public class FhirUtils {
    * https://www.cms.gov/Research-Statistics-Data-and-Systems/Computer-Data-and-Systems/ESMD/Downloads/esMD_X12_278_09_2016Companion_Guide.pdf
    */
   public enum ReviewAction {
-    APPROVED("A1"), PARTIAL("A2"), DENIED("A3"), PENDED("A4"), CANCELLED("A6");
+    APPROVED("A1"), PARTIAL("A2"), DENIED("A3"), PENDED("A4"), CANCELLED("A6"), PENDEDFOLLOWUP("86");
 
     private final String value;
 
@@ -114,6 +118,39 @@ public class FhirUtils {
       }
 
       return null;
+    }
+
+    public String getCodeSystem()
+    {
+      return "https://codesystem.x12.org/005010/306";
+    }
+
+    public String getDisplay()
+    {
+      String returnVal = "";
+      switch(value)
+      {
+        case "A1":
+          returnVal = "Certified in total";
+          break;
+        case "A2":
+          returnVal = "Certified - partial";
+          break;
+        case "A3":
+          returnVal = "Not Certified";
+          break;
+        case "A4":
+          returnVal = "Pended";
+          break;
+        case "A6":
+          returnVal = "Modified";
+          break;
+        case "86":
+          returnVal = "Pended for Follow Up";
+          break;
+      }
+
+      return returnVal;
     }
 
   }

@@ -1,15 +1,16 @@
 package org.hl7.davinci.priorauth.endpoint;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Timer;
-import java.util.UUID;
+import java.lang.reflect.Array;
+import java.sql.Ref;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.hl7.davinci.priorauth.*;
+import org.hl7.fhir.r4.model.*;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -23,28 +24,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.hl7.davinci.priorauth.authorization.AuthUtils;
-import org.hl7.davinci.priorauth.App;
-import org.hl7.davinci.priorauth.Audit;
-import org.hl7.davinci.priorauth.ClaimResponseFactory;
-import org.hl7.davinci.priorauth.FhirUtils;
-import org.hl7.davinci.priorauth.PALogger;
-import org.hl7.davinci.priorauth.ProcessClaimItemTask;
-import org.hl7.davinci.priorauth.UpdateClaimTask;
 import org.hl7.davinci.priorauth.Audit.AuditEventOutcome;
 import org.hl7.davinci.priorauth.Audit.AuditEventType;
 import org.hl7.davinci.priorauth.Database.Table;
 import org.hl7.davinci.priorauth.endpoint.Endpoint.RequestType;
 import org.hl7.davinci.priorauth.FhirUtils.Disposition;
 import org.hl7.fhir.instance.model.api.IBaseResource;
-import org.hl7.fhir.r4.model.Bundle;
-import org.hl7.fhir.r4.model.Claim;
-import org.hl7.fhir.r4.model.ClaimResponse;
 import org.hl7.fhir.r4.model.ClaimResponse.ClaimResponseStatus;
-import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
-import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.AuditEvent.AuditEventAction;
+import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Claim.ClaimStatus;
 import org.hl7.fhir.r4.model.Claim.ItemComponent;
 
@@ -143,6 +133,21 @@ public class ClaimEndpoint {
         Bundle bundle = (Bundle) resource;
         if (bundle.hasEntry() && (!bundle.getEntry().isEmpty()) && bundle.getEntry().get(0).hasResource()
             && bundle.getEntry().get(0).getResource().getResourceType() == ResourceType.Claim) {
+
+          if(!validateReferences(bundle.getEntry().get(0).getResource(), bundle)) {
+              OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
+              formattedData = FhirUtils.getFormattedData(error, requestType);
+              logger.severe("ClaimEndpoint::References in the Claim resource do not exist in the bundle as a Resource");
+              auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
+          }
+
+          if (!validateSupportingInfoSequence(bundle)) {
+            OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
+            formattedData = FhirUtils.getFormattedData(error, requestType);
+            logger.severe("ClaimEndpoint::Claim contains duplicates Claim.supportingInfo.sequence values");
+            auditOutcome = AuditEventOutcome.SERIOUS_FAILURE;
+          }
+
           Bundle responseBundle = processBundle(bundle);
           if (responseBundle == null) {
             // Failed processing bundle...
@@ -158,6 +163,7 @@ public class ClaimEndpoint {
             status = HttpStatus.CREATED;
             auditOutcome = AuditEventOutcome.SUCCESS;
           }
+
         } else {
           // Claim is required...
           OperationOutcome error = FhirUtils.buildOutcome(IssueSeverity.ERROR, IssueType.INVALID, REQUIRES_BUNDLE);
@@ -179,7 +185,7 @@ public class ClaimEndpoint {
     }
     Audit.createAuditEvent(AuditEventType.REST, AuditEventAction.E, auditOutcome, null, request, "POST /Claim/$submit");
     MediaType contentType = requestType == RequestType.JSON ? MediaType.APPLICATION_JSON : MediaType.APPLICATION_XML;
-    String fhirContentType = requestType == RequestType.JSON ? "application/fhir+json" : "application/xml+json";
+    String fhirContentType = requestType == RequestType.JSON ? "application/fhir+json" : "application/fhir+xml";
     return ResponseEntity.status(status).contentType(contentType)
         .header(HttpHeaders.CONTENT_TYPE, fhirContentType + "; charset=utf-8")
         .header(HttpHeaders.LOCATION,
@@ -187,8 +193,61 @@ public class ClaimEndpoint {
         .body(formattedData);
   }
 
+  protected boolean validateSupportingInfoSequence(Bundle bundle) {
+    Claim claim = (Claim) bundle.getEntry().get(0).getResource();
+    Set<Integer> infoSet = new HashSet<>();
+    if (claim.hasSupportingInfo()) {
+      for (Claim.SupportingInformationComponent info : claim.getSupportingInfo()) {
+        if (!infoSet.add(info.getSequence())) {
+          return false;
+        } else {
+          infoSet.add(info.getSequence());
+        }
+      }
+    }
+
+    return true;
+  }
+
+  protected boolean validateReferences(Resource resource, Bundle bundle) {
+
+    // retrieve all References
+    List<Reference> referenceList = FhirScanner.findReferences(resource);
+
+    // function produces a null value at index 0, removing it
+    List<Reference> nullReferenceRemovedList = referenceList.stream()
+            .filter(reference -> reference.hasReference()).collect(Collectors.toList());
+
+    // function duplicates some values, removing duplicates
+    Set<String> referenceSet= new HashSet<>();
+    List<Reference> duplicateReferencesRemovedList = new ArrayList<Reference>();
+
+    for (Reference reference : nullReferenceRemovedList) {
+      if (referenceSet.add(reference.getReference())) {
+        duplicateReferencesRemovedList.add(reference);
+      }
+    }
+
+    // Check References against Resources in Bundle
+    List<Bundle.BundleEntryComponent> entries = bundle.getEntry();
+    List<Reference> sizeCheck = new ArrayList<Reference>();
+   for (Reference reference: duplicateReferencesRemovedList) {
+      for (Bundle.BundleEntryComponent entry: entries) {
+        if (reference.getResource() == entry.getResource()) {
+          sizeCheck.add(reference);
+        }
+      }
+    }
+
+
+   if (sizeCheck.containsAll(duplicateReferencesRemovedList)) {
+     return true;
+   }
+
+    return false;
+  }
   /**
-   * Process the $submit operation Bundle. Theoretically, this is where business
+   * Process the  operation Bundle. Theoretically, this is where business
    * logic should be implemented or overridden.
    * 
    * @param bundle Bundle with a Claim followed by other required resources.
@@ -203,6 +262,21 @@ public class ClaimEndpoint {
     // Get the patient
     Claim claim = FhirUtils.getClaimFromRequestBundle(bundle);
     String patient = FhirUtils.getPatientIdentifierFromBundle(bundle);
+    
+    // Store provider identifier
+    String[] providerRef = claim.getProvider().getReference().split("/");
+    BundleEntryComponent providerEntry = FhirUtils.getEntryComponentFromBundle(bundle, ResourceType.fromCode(providerRef[0]), providerRef[1]);
+    String provider = null;
+    if (providerEntry != null) {
+      Resource providerResource = providerEntry.getResource();
+      if (providerResource instanceof Organization) {
+        provider = ((Organization) providerResource).getIdentifierFirstRep().getValue();
+      } else if (providerResource instanceof PractitionerRole) {
+        provider = ((PractitionerRole) providerResource).getIdentifierFirstRep().getValue();
+      } else {
+        logger.severe("ClaimEndpoint::processBundle:Provider resource is not Organization or PractitionerRole");
+      }
+    }
     if (patient == null) {
       logger.severe("ClaimEndpoint::processBundle:Patient was null");
       return null;
@@ -229,6 +303,7 @@ public class ClaimEndpoint {
       claimMap.put("isDifferential", FhirUtils.isDifferential(bundle));
       claimMap.put("id", id);
       claimMap.put("patient", patient);
+      claimMap.put("provider", provider);
       claimMap.put("status", FhirUtils.getStatusFromResource(claim));
       claimMap.put("resource", claim);
       String relatedId = FhirUtils.getRelatedComponentId(claim);
@@ -286,7 +361,20 @@ public class ClaimEndpoint {
 
     // Schedule update to Pended Claim
     if (responseDisposition == Disposition.PENDING) {
-      schedulePendedClaimUpdate(bundle, id, patient);
+      boolean schedule = true;
+
+      for (Bundle.BundleEntryComponent entry: responseBundle.getEntry())
+      {
+        if (entry.getResource().getClass() == CommunicationRequest.class)
+        {
+          schedule = false;
+          break;
+        }
+      }
+
+      if (schedule) {
+        schedulePendedClaimUpdate(bundle, id, patient);
+      }
     }
 
     // Respond...
@@ -297,7 +385,7 @@ public class ClaimEndpoint {
    * Process the claim items in the database. For a new claim add the items, for
    * an updated claim update the items.
    * 
-   * @param claim     - the claim the items belong to.
+   * @param bundle    - the bundle the items belong to.
    * @param id        - the id of the claim.
    * @param relatedId - the related id to this claim.
    * @return true if all updates successful, false otherwise.
@@ -438,12 +526,20 @@ public class ClaimEndpoint {
    * @param bundle      - the bundle containing the claim.
    * @param id          - the Claim ID.
    * @param patient     - the Patient ID.
-   * @param disposition - the new disposition of the updated Claim.
    */
   protected void schedulePendedClaimUpdate(Bundle bundle, String id, String patient) {
     Timer timer = new Timer();
     pendedTimers.put(id, timer);
-    timer.schedule(new UpdateClaimTask(bundle, id, patient), 30000); // 30s
+    long delay = 15000; // default to 15 seconds
+    String delayEnv = System.getenv("DELAY");
+    if (delayEnv != null) {
+      try {
+      delay = Long.parseLong(delayEnv);
+      } catch (NumberFormatException e) {
+      logger.warning("Invalid DELAY environment variable, using default 15000ms");
+      }
+    }
+    timer.schedule(new UpdateClaimTask(bundle, id, patient), delay);
   }
 
   /**
