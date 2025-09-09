@@ -77,7 +77,7 @@ dependencies {
     implementation 'com.google.guava:guava:31.0.1-jre'
     implementation "ca.uhn.hapi.fhir:hapi-fhir-base:${hapiFhirVersion}"
     implementation "ca.uhn.hapi.fhir:hapi-fhir-structures-r4:${hapiFhirVersion}"
-    implementation 'com.h2database:h2:1.4.200'
+    implementation 'com.h2database:h2:2.3.232'
     implementation 'com.auth0:java-jwt:3.18.2'
     implementation 'com.auth0:jwks-rsa:0.20.0'
 
