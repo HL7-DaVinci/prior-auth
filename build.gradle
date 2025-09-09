@@ -6,7 +6,7 @@ buildscript {
         allowInsecureProtocol = true}
     }
     dependencies {
-        classpath 'org.springframework.boot:spring-boot-gradle-plugin:2.7.18'
+        classpath 'org.springframework.boot:spring-boot-gradle-plugin:3.5.5'
     }
 }
 
