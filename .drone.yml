@@ -28,7 +28,7 @@ steps:
     settings:
       repo: hlseven/davinci-prior-auth
       tags:
-        - ${DRONE_COMMIT_BRANCH/\//-}-linux-arm64
+        - ${DRONE_COMMIT_BRANCH//\//-}-linux-arm64
       username:
         from_secret: docker_username
       password:
