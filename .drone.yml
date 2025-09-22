@@ -11,6 +11,9 @@ steps:
       repo: hlseven/davinci-prior-auth
       tags:
         - ${DRONE_COMMIT_BRANCH//\//-}-linux-amd64
+      cache_from:
+        - hlseven/davinci-prior-auth:${DRONE_COMMIT_BRANCH//\//-}-linux-amd64
+        - hlseven/davinci-prior-auth:latest
       username:
         from_secret: docker_username
       password:
@@ -29,6 +32,9 @@ steps:
       repo: hlseven/davinci-prior-auth
       tags:
         - ${DRONE_COMMIT_BRANCH//\//-}-linux-arm64
+      cache_from:
+        - hlseven/davinci-prior-auth:${DRONE_COMMIT_BRANCH//\//-}-linux-arm64
+        - hlseven/davinci-prior-auth:latest
       username:
         from_secret: docker_username
       password:
